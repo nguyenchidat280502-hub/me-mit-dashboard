@@ -54,6 +54,14 @@
   .bar{height:8px;background:#0b1220;border-radius:99px;overflow:hidden}
   .bar>i{display:block;height:100%;background:var(--acc)}
   .st-done{color:#34d399;font-weight:600} .st-doing{color:#f59e0b;font-weight:600} .st-todo{color:var(--mut)}
+  .fbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
+  .f-video{background:rgba(244,63,94,.16);color:#fda4af;border-color:rgba(244,63,94,.45)}
+  .f-single{background:rgba(56,189,248,.13);color:#7dd3fc;border-color:rgba(56,189,248,.45)}
+  .f-group{background:rgba(52,211,153,.13);color:#6ee7b7;border-color:rgba(52,211,153,.45)}
+  .f-other{background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.45)}
+  .person{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:#0b1220;border:1px solid var(--line);padding:3px 9px 3px 4px;border-radius:999px;font-size:12.5px}
+  .avatar{width:22px;height:22px;border-radius:50%;color:#0b1220;font-weight:700;font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px}
+  .pbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
   .hint{color:var(--mut);font-size:12px;margin-top:6px}
 </style>
 </head>
@@ -452,6 +460,38 @@ function statusHtml(s){
   return s;
 }
 
+const PERSON_COLORS = { "tuyền": "#f9a8d4", "như": "#c4b5fd", "vân": "#5eead4", "huy": "#fdba74", "changgi": "#93c5fd", "xuân nhi": "#86efac" };
+const PALETTE = ["#fca5a5","#fcd34d","#6ee7b7","#67e8f9","#a5b4fc","#f0abfc","#fda4af","#bef264"];
+function personColor(name){
+  const key = (name || "").trim().toLowerCase();
+  if(PERSON_COLORS[key]) return PERSON_COLORS[key];
+  let h = 0; for(const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
+function personChip(name){
+  if(!name) return '<span class="st-todo">—</span>';
+  const initials = name.trim().split(/\s+/).map(w => w[0]).slice(-2).join("").toUpperCase();
+  return `<span class="person"><span class="avatar" style="background:${personColor(name)}">${initials}</span>${name}</span>`;
+}
+function formBadge(form){
+  const t = (form || "").toLowerCase();
+  if(t.includes("video")) return '<span class="fbadge f-video">🎬 Video</span>';
+  if(t.includes("group")) return '<span class="fbadge f-group">👥 Group post</span>';
+  if(t.includes("single")) return '<span class="fbadge f-single">📝 Single post</span>';
+  return `<span class="fbadge f-other">${form || "—"}</span>`;
+}
+const PILLAR_STYLES = {
+  "Xưởng & Sản xuất": "background:rgba(245,158,11,.14);color:#fcd34d;border-color:rgba(245,158,11,.45)",
+  "Thương hiệu cá nhân": "background:rgba(236,72,153,.13);color:#f9a8d4;border-color:rgba(236,72,153,.45)",
+  "Bài học khởi nghiệp": "background:rgba(139,92,246,.15);color:#c4b5fd;border-color:rgba(139,92,246,.45)",
+  "R&D": "background:rgba(6,182,212,.13);color:#67e8f9;border-color:rgba(6,182,212,.45)",
+  "Seri xây xưởng": "background:rgba(249,115,22,.13);color:#fdba74;border-color:rgba(249,115,22,.45)",
+};
+function pillarBadge(short){
+  const st = PILLAR_STYLES[short] || "background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.45)";
+  return `<span class="pbadge" style="${st}">${short}</span>`;
+}
+
 function renderPlan(){
   const fc = document.getElementById("planPicC").value;
   const fd = document.getElementById("planPicD").value;
@@ -470,13 +510,13 @@ function renderPlan(){
     { label: "Tổng bài tháng 11", value: fmt(PLAN.length), note: "theo media plan" },
     { label: "Đã có Link Air", value: fmt(withAir) + " / " + fmt(PLAN.length), note: PLAN.length ? Math.round(withAir/PLAN.length*100) + "% kế hoạch" : "" },
     { label: "Số video", value: fmt(videos), note: "hình thức Video" },
-    ...Object.entries(perPic).map(([k,v]) => ({ label: "Bài của " + k, value: fmt(v), note: "PIC Content" })),
-  ].map(k => `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("");
+    ...Object.entries(perPic).map(([k,v]) => ({ label: "● Bài của " + k, value: fmt(v), note: "PIC Content", color: personColor(k) })),
+  ].map(k => `<div class="kpi" ${k.color ? `style="border-top:3px solid ${k.color}"` : ""}><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("");
   document.querySelector("#planTable tbody").innerHTML = rows.map(r =>
-    `<tr><td style="white-space:nowrap">${r.date}${r.dow ? " (" + r.dow + ")" : ""}</td><td>${r.hour}</td><td>${r.form}</td>` +
+    `<tr><td style="white-space:nowrap">${r.date}${r.dow ? " (" + r.dow + ")" : ""}</td><td>${r.hour}</td><td>${formBadge(r.form)}</td>` +
     `<td>${[r.plat1, r.plat2].filter(Boolean).join(" + ")}</td>` +
     `<td class="title-cell">${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">${r.topic}</a>` : r.topic}</td>` +
-    `<td>${r.picC}</td><td>${r.picD}</td>` +
+    `<td>${personChip(r.picC)}</td><td>${personChip(r.picD)}</td>` +
     `<td>${linkOr(r.brief, "Brief")}</td>` +
     `<td>${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">🔗 Đã air</a>` : '<span class="st-todo">chưa có</span>'}</td>` +
     `<td>${r.check}</td></tr>`).join("") ||
@@ -492,7 +532,7 @@ function renderLC(){
     (!fs || r.statusGroup === fs) &&
     (!q || r.topic.toLowerCase().includes(q)));
   document.querySelector("#lcTable tbody").innerHTML = rows.map(r =>
-    `<tr><td style="white-space:nowrap">${r.date}</td><td>${r.deadline}</td><td>${r.pillarShort}</td><td>${r.angle}</td>` +
+    `<tr><td style="white-space:nowrap">${r.date}</td><td>${r.deadline}</td><td>${pillarBadge(r.pillarShort)}</td><td>${r.angle}</td>` +
     `<td class="title-cell">${r.topic}</td><td>${linkOr(r.kb, "KB")}</td>` +
     `<td>${statusHtml(r.status)}</td>` +
     `<td>${r.video ? linkOr(r.video, "▶ Mở") : ""}</td><td>${r.drive ? linkOr(r.drive, "📁 Mở") : ""}</td><td>${r.caption ? linkOr(r.caption, "✎ Mở") : ""}</td></tr>`).join("") ||
