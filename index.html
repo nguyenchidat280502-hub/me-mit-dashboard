@@ -78,6 +78,12 @@
 
   <div class="card">
     <h2>🏆 Bài viết trong kỳ —
+      <label style="color:var(--mut);font-size:13px">loại</label>
+      <select id="typeSel">
+        <option value="all">Tất cả</option>
+        <option value="video">🎬 Video</option>
+        <option value="post">📝 Bài viết</option>
+      </select>
       <label style="color:var(--mut);font-size:13px">xếp theo</label>
       <select id="sortSel">
         <option value="views">Lượt xem</option>
@@ -86,10 +92,11 @@
         <option value="shares">Chia sẻ</option>
         <option value="rate">Tỷ lệ tương tác</option>
       </select>
+      <span id="postsCount" style="color:var(--mut);font-size:13px"></span>
     </h2>
     <div class="scroll">
     <table id="postsTable"><thead><tr>
-      <th>#</th><th>Bài viết (bấm để mở Facebook)</th><th>Ngày đăng</th>
+      <th>#</th><th>Bài viết (bấm để mở Facebook)</th><th>Loại</th><th>Ngày đăng</th>
       <th class="num">Lượt xem</th><th class="num">Reactions</th><th class="num">Bình luận</th><th class="num">Chia sẻ</th><th class="num">Tỷ lệ TT</th>
     </tr></thead><tbody></tbody></table>
     </div>
@@ -204,13 +211,19 @@ function render(from, to){
     options: { responsive: true, scales: ax, plugins: leg } });
 
   const sortKey = document.getElementById("sortSel").value;
+  const typeKey = document.getElementById("typeSel").value;
   const postsIn = POSTS.filter(p => p.date && p.date >= from && p.date <= to)
+                       .filter(p => typeKey === "all" || p.dtype === typeKey)
                        .sort((a,b) => b[sortKey] - a[sortKey]);
+  const nVideo = postsIn.filter(p => p.dtype === "video").length;
+  document.getElementById("postsCount").textContent =
+    `· ${postsIn.length} mục (${nVideo} video, ${postsIn.length - nVideo} bài viết)`;
   document.querySelector("#postsTable tbody").innerHTML = postsIn.map((p,i) =>
     `<tr><td>${i+1}</td><td class="title-cell"><a href="${p.link}" target="_blank" rel="noopener">${p.title || "(không tiêu đề)"}</a></td>` +
+    `<td>${p.dtype === "video" ? "🎬 Video" : "📝 Bài viết"}</td>` +
     `<td>${p.when || ""}</td><td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.reactions)}</td>` +
     `<td class="num">${fmt(p.comments)}</td><td class="num">${fmt(p.shares)}</td><td class="num">${p.rate.toFixed(2)}%</td></tr>`).join("") ||
-    '<tr><td colspan="8" style="color:var(--mut)">Không có bài viết trong kỳ đã chọn.</td></tr>';
+    '<tr><td colspan="9" style="color:var(--mut)">Không có bài viết trong kỳ đã chọn.</td></tr>';
 
   document.querySelector("#dailyTable tbody").innerHTML = [...inRange].reverse().map(d =>
     `<tr><td>${d.label}</td><td class="num">${fmt(d.unique)}</td><td class="num">${fmt(d.views)}</td>` +
@@ -235,11 +248,16 @@ async function main(){
       follows: num(r[6]), unfollows: num(r[7]), pageViews: num(r[8]), eng: num(r[9]) }))
     .filter(d => d.date).sort((a,b) => a.date - b.date);
 
-  POSTS = posts.filter(r => r[0]).map(r => ({
-      when: r[1], date: parsePostDate(r[1]), type: r[2],
-      title: (r[3] || "").split("\n")[0], link: r[5] || r[4],
+  POSTS = posts.filter(r => r[0]).map(r => {
+      const link = r[5] || r[4] || "";
+      const rawType = String(r[2] || "").toLowerCase();
+      const isVideo = rawType.includes("video") || rawType.includes("reel") ||
+                      link.includes("/reel/") || link.includes("/videos/");
+      return {
+      when: r[1], date: parsePostDate(r[1]), type: r[2], dtype: isVideo ? "video" : "post",
+      title: (r[3] || "").split("\n")[0], link,
       reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]),
-      views: num(r[11]), rate: parseRate(r[12]) }));
+      views: num(r[11]), rate: parseRate(r[12]) }; });
 
   // month dropdown from available data
   const months = [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + (d.date.getMonth() + 1)))].sort();
@@ -273,11 +291,13 @@ async function main(){
     markActive(null);
     render(new Date(f + "T00:00:00"), new Date(t + "T00:00:00"));
   });
-  document.getElementById("sortSel").addEventListener("change", () => {
+  const rerender = () => {
     const f = new Date(document.getElementById("fromDate").value + "T00:00:00");
     const t = new Date(document.getElementById("toDate").value + "T00:00:00");
     render(f, t);
-  });
+  };
+  document.getElementById("sortSel").addEventListener("change", rerender);
+  document.getElementById("typeSel").addEventListener("change", rerender);
 
   document.getElementById("updated").textContent = "tải lúc " + new Date().toLocaleString("vi-VN");
   const f30 = new Date(last); f30.setDate(f30.getDate() - 29);
