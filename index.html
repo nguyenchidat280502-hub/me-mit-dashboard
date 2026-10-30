@@ -495,7 +495,7 @@ function renderLC(){
     `<tr><td style="white-space:nowrap">${r.date}</td><td>${r.deadline}</td><td>${r.pillarShort}</td><td>${r.angle}</td>` +
     `<td class="title-cell">${r.topic}</td><td>${linkOr(r.kb, "KB")}</td>` +
     `<td>${statusHtml(r.status)}</td>` +
-    `<td>${r.video ? "✔" : ""}</td><td>${r.drive ? linkOr(r.drive, "✔") : ""}</td><td>${r.caption ? "✔" : ""}</td></tr>`).join("") ||
+    `<td>${r.video ? linkOr(r.video, "▶ Mở") : ""}</td><td>${r.drive ? linkOr(r.drive, "📁 Mở") : ""}</td><td>${r.caption ? linkOr(r.caption, "✎ Mở") : ""}</td></tr>`).join("") ||
     '<tr><td colspan="10" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
 }
 
