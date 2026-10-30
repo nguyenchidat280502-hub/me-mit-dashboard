@@ -445,11 +445,12 @@ const linkOr = (s, txt) => isUrl(s) ? `<a href="${s}" target="_blank" rel="noope
 
 function shortPillar(p){
   const t = (p || "").toUpperCase();
+  if(t.includes("SERI")) return "Seri xây xưởng";
+  if(t.includes("MẸ BẦU")) return "Mẹ Bầu & Dinh Dưỡng";
+  if(t.includes("R&D")) return "R&D";
   if(t.includes("XƯỞNG")) return "Xưởng & Sản xuất";
   if(t.includes("THƯƠNG HIỆU")) return "Thương hiệu cá nhân";
   if(t.includes("KHỞI NGHIỆP")) return "Bài học khởi nghiệp";
-  if(t.includes("R&D")) return "R&D";
-  if(t.includes("SERI")) return "Seri xây xưởng";
   return (p || "").slice(0, 28);
 }
 function statusHtml(s){
@@ -486,6 +487,7 @@ const PILLAR_STYLES = {
   "Bài học khởi nghiệp": "background:rgba(139,92,246,.15);color:#c4b5fd;border-color:rgba(139,92,246,.45)",
   "R&D": "background:rgba(6,182,212,.13);color:#67e8f9;border-color:rgba(6,182,212,.45)",
   "Seri xây xưởng": "background:rgba(249,115,22,.13);color:#fdba74;border-color:rgba(249,115,22,.45)",
+  "Mẹ Bầu & Dinh Dưỡng": "background:rgba(244,114,182,.13);color:#f9a8d4;border-color:rgba(244,114,182,.45)",
 };
 function pillarBadge(short){
   const st = PILLAR_STYLES[short] || "background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.45)";
