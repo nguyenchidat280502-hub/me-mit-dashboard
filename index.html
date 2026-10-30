@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Fanpage NGŨ CỐC MẸ MÍT</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--acc2:#f59e0b;--acc3:#34d399}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:20px 24px 8px} h1{font-size:22px;margin:0} .sub{color:var(--mut);font-size:13px;margin-top:4px}
+  .wrap{max-width:1180px;margin:0 auto;padding:12px 16px 40px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .label{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .value{font-size:26px;font-weight:700;margin-top:6px}
+  .kpi .note{color:var(--mut);font-size:12px;margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+  .card h2{font-size:16px;margin:0 0 10px}
+  canvas{max-height:320px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--mut);font-weight:600;white-space:nowrap}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  .err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
+  .loading{color:var(--mut);padding:24px 0}
+  .title-cell{max-width:420px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Dashboard Fanpage NGŨ CỐC MẸ MÍT</h1>
+  <div class="sub">Nguồn dữ liệu: Google Sheet “Me Mit Dashboard” (tự cập nhật khi Sheet có số liệu mới) · <span id="updated">đang tải…</span></div>
+</header>
+<div class="wrap">
+  <div id="error"></div>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="card">
+    <h2>Xu hướng 35 ngày gần nhất — Lượt xem &amp; Người xem</h2>
+    <canvas id="chartViews"></canvas>
+  </div>
+  <div class="card">
+    <h2>Lượt tương tác theo ngày</h2>
+    <canvas id="chartEng"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>🏆 Top 10 bài viết theo lượt xem</h2>
+    <table id="topPosts"><thead><tr>
+      <th>#</th><th>Bài viết</th><th>Ngày đăng</th>
+      <th class="num">Lượt xem</th><th class="num">Reactions</th><th class="num">Bình luận</th><th class="num">Chia sẻ</th><th class="num">Tỷ lệ TT</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Số liệu theo ngày</h2>
+    <table id="dailyTable"><thead><tr>
+      <th>Ngày</th><th class="num">Người xem</th><th class="num">Lượt xem</th><th class="num">Tương tác</th>
+      <th class="num">Follow mới</th><th class="num">Unfollow</th><th class="num">Lượt vào trang</th><th class="num">Tỷ lệ TT</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+  <div class="loading" id="loading">Đang đọc dữ liệu từ Google Sheet…</div>
+</div>
+
+<script>
+const SHEET_ID = "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM";
+const TAB_INSIGHTS = "📉 Page Insights";
+const TAB_POSTS = "📝 Posts";
+const FOLLOWERS_SNAPSHOT = 4859; // followers tại 30/10/2026
+
+function gvizUrl(tab){
+  return "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+    "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(tab);
+}
+async function fetchTab(tab){
+  const res = await fetch(gvizUrl(tab));
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return json.table.rows.map(r => (r.c || []).map(c => {
+    if(!c) return null;
+    if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
+    return c.v;
+  }));
+}
+function num(x){ const n = Number(x); return isNaN(n) ? 0 : n; }
+function fmt(n){ return Math.round(n).toLocaleString("vi-VN"); }
+function parseDate(s){ // "30/10/2026"
+  if(!s) return null;
+  const p = String(s).split("/"); if(p.length !== 3) return null;
+  return new Date(+p[2], +p[1] - 1, +p[0]);
+}
+function parseRate(s){
+  if(typeof s === "number") return s <= 1 ? s * 100 : s;
+  const n = parseFloat(String(s || "").replace("%","").replace(",","."));
+  return isNaN(n) ? 0 : n;
+}
+
+async function main(){
+  let insights, posts;
+  try{
+    [insights, posts] = await Promise.all([fetchTab(TAB_INSIGHTS), fetchTab(TAB_POSTS)]);
+  }catch(e){
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("error").innerHTML =
+      '<div class="err">Chưa đọc được dữ liệu từ Google Sheet. Hãy chắc chắn Sheet “Me Mit Dashboard” đã bật chia sẻ ' +
+      '“Bất kỳ ai có đường liên kết đều có thể xem”. (' + e.message + ')</div>';
+    return;
+  }
+  document.getElementById("loading").style.display = "none";
+
+  // Page Insights columns: A Ngày, B Reach(unique), C Views, G NewFans, H Unfans, I PageViews, J Engagements
+  const days = insights
+    .filter(r => r[0])
+    .map(r => ({ date: parseDate(r[0]), label: r[0], unique: num(r[1]), views: num(r[2]),
+                 follows: num(r[6]), unfollows: num(r[7]), pageViews: num(r[8]), eng: num(r[9]) }))
+    .filter(d => d.date)
+    .sort((a,b) => a.date - b.date);
+
+  const last30 = days.slice(-30);
+  const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
+  const last = days[days.length - 1];
+
+  // Posts columns: A Id, B Ngày giờ, C Loại, D Tiêu đề, E Link(fallback), F Link, G Reactions, H Comments, I Shares, L Views, M Rate
+  const postRows = posts.filter(r => r[0]).map(r => ({
+    when: r[1], type: r[2], title: (r[3] || "").split("\n")[0],
+    link: r[5] || r[4], reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]),
+    views: num(r[11]), rate: parseRate(r[12])
+  }));
+  const top = [...postRows].sort((a,b) => b.views - a.views).slice(0, 10);
+  const best = top[0];
+
+  const kpis = [
+    { label: "Người theo dõi", value: fmt(FOLLOWERS_SNAPSHOT), note: "tại 30/10/2026" },
+    { label: "Lượt xem 30 ngày", value: fmt(sum(last30, "views")), note: "tổng Page Insights" },
+    { label: "Tương tác 30 ngày", value: fmt(sum(last30, "eng")), note: "post engagements" },
+    { label: "Người xem TB / ngày", value: fmt(sum(last30, "unique") / Math.max(last30.length, 1)), note: "30 ngày gần nhất" },
+    { label: "Ngày gần nhất", value: fmt(last ? last.views : 0) + " views", note: last ? last.label + " · " + fmt(last.unique) + " người xem" : "" },
+    { label: "Bài viết đã theo dõi", value: fmt(postRows.length), note: best ? "top: " + fmt(best.views) + " views" : "" },
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note}</div></div>`).join("");
+  document.getElementById("updated").textContent = "cập nhật: " + new Date().toLocaleString("vi-VN");
+
+  new Chart(document.getElementById("chartViews"), {
+    data: { labels: days.map(d => d.label), datasets: [
+      { type: "line", label: "Lượt xem", data: days.map(d => d.views), borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,.15)", fill: true, tension: .3, pointRadius: 0 },
+      { type: "line", label: "Người xem (unique)", data: days.map(d => d.unique), borderColor: "#f59e0b", tension: .3, pointRadius: 0 },
+    ]},
+    options: { responsive: true, interaction: { mode: "index", intersect: false },
+      scales: { x: { ticks: { color: "#94a3b8", maxTicksLimit: 12 }, grid: { color: "#1e293b" } },
+                y: { ticks: { color: "#94a3b8" }, grid: { color: "#334155" } } },
+      plugins: { legend: { labels: { color: "#e2e8f0" } } } }
+  });
+  new Chart(document.getElementById("chartEng"), {
+    type: "bar",
+    data: { labels: days.map(d => d.label), datasets: [
+      { label: "Lượt tương tác", data: days.map(d => d.eng), backgroundColor: "#34d399" } ]},
+    options: { responsive: true,
+      scales: { x: { ticks: { color: "#94a3b8", maxTicksLimit: 12 }, grid: { color: "#1e293b" } },
+                y: { ticks: { color: "#94a3b8" }, grid: { color: "#334155" } } },
+      plugins: { legend: { labels: { color: "#e2e8f0" } } } }
+  });
+
+  document.querySelector("#topPosts tbody").innerHTML = top.map((p, i) =>
+    `<tr><td>${i + 1}</td><td class="title-cell"><a href="${p.link}" target="_blank" rel="noopener">${p.title || "(không tiêu đề)"}</a></td>` +
+    `<td>${p.when || ""}</td><td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.reactions)}</td>` +
+    `<td class="num">${fmt(p.comments)}</td><td class="num">${fmt(p.shares)}</td><td class="num">${p.rate.toFixed(2)}%</td></tr>`).join("");
+
+  document.querySelector("#dailyTable tbody").innerHTML = [...days].reverse().map(d =>
+    `<tr><td>${d.label}</td><td class="num">${fmt(d.unique)}</td><td class="num">${fmt(d.views)}</td>` +
+    `<td class="num">${fmt(d.eng)}</td><td class="num">${fmt(d.follows)}</td><td class="num">${fmt(d.unfollows)}</td>` +
+    `<td class="num">${fmt(d.pageViews)}</td><td class="num">${d.views ? (d.eng / d.views * 100).toFixed(2) : "0.00"}%</td></tr>`).join("");
+}
+main();
+</script>
+</body>
+</html>
