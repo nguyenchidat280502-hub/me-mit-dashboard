@@ -41,10 +41,33 @@
   .err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
   .loading{color:var(--mut);padding:24px 0}
   .title-cell{max-width:430px}
+  .layout{display:flex;min-height:100vh}
+  aside{width:216px;flex:0 0 216px;background:#0b1220;border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh}
+  aside .brand{font-weight:700;font-size:15px;padding:4px 10px 14px;color:var(--txt)}
+  aside .brand small{display:block;color:var(--mut);font-weight:400;font-size:12px;margin-top:2px}
+  nav button{display:flex;width:100%;gap:8px;align-items:center;background:transparent;border:1px solid transparent;color:var(--txt);padding:10px;border-radius:10px;cursor:pointer;font-size:14px;text-align:left;margin-bottom:4px}
+  nav button:hover{border-color:var(--line)}
+  nav button.active{background:var(--card);border-color:var(--line);font-weight:600}
+  main{flex:1;min-width:0}
+  @media (max-width:760px){ .layout{flex-direction:column} aside{width:100%;flex:none;height:auto;position:static} nav{display:flex;flex-wrap:wrap;gap:6px} nav button{width:auto} }
+  .page{display:none} .page.show{display:block}
+  .bar{height:8px;background:#0b1220;border-radius:99px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--acc)}
+  .st-done{color:#34d399;font-weight:600} .st-doing{color:#f59e0b;font-weight:600} .st-todo{color:var(--mut)}
   .hint{color:var(--mut);font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
+<div class="layout">
+<aside>
+  <div class="brand">MẸ MÍT<small>Trung tâm kiểm soát nội dung & số liệu</small></div>
+  <nav id="sidenav">
+    <button data-page="page-overview" class="active">📊 Tổng quan số liệu</button>
+    <button data-page="page-plan">🗓 Media Plan tháng 11</button>
+    <button data-page="page-content">📝 List of Content</button>
+  </nav>
+</aside>
+<main>
 <header>
   <h1>📊 Dashboard Fanpage NGŨ CỐC MẸ MÍT</h1>
   <div class="sub">
@@ -54,6 +77,7 @@
   </div>
 </header>
 <div class="wrap">
+ <section class="page show" id="page-overview">
   <div id="error"></div>
 
   <div class="filters">
@@ -125,6 +149,52 @@
     <div class="hint">Bấm vào tiêu đề cột để sắp xếp tăng dần / giảm dần theo biến số đó.</div>
   </div>
   <div class="loading" id="loading">Đang đọc dữ liệu từ Google Sheet…</div>
+ </section>
+
+ <section class="page" id="page-plan">
+  <div class="card">
+    <h2>🗓 Media Plan tháng 11/2026 — lịch đăng & phân công</h2>
+    <section class="kpis" id="planKpis"></section>
+    <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+      <select id="planPicC"><option value="">PIC Content: tất cả</option></select>
+      <select id="planPicD"><option value="">PIC Design: tất cả</option></select>
+      <select id="planForm"><option value="">Hình thức: tất cả</option></select>
+      <select id="planAir"><option value="">Link Air: tất cả</option><option value="co">Đã có link</option><option value="chua">Chưa có link</option></select>
+      <input type="text" id="planSearch" placeholder="Tìm theo topic…" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px">
+    </div>
+    <div class="scroll" style="max-height:640px">
+    <table id="planTable"><thead><tr>
+      <th>Ngày đăng</th><th>Giờ</th><th>Hình thức</th><th>Nền tảng</th><th>Topic</th>
+      <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Check</th>
+    </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="hint">Dữ liệu đồng bộ từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx” qua Sheet cầu nối — nhân viên cập nhật file gốc, dashboard sẽ theo sau mỗi lần đồng bộ.</div>
+  </div>
+ </section>
+
+ <section class="page" id="page-content">
+  <div class="card">
+    <h2>🎯 Content Matrix Control — mục tiêu theo Pillar</h2>
+    <div id="matrixBox"></div>
+  </div>
+  <div class="card">
+    <h2>📝 List of Content — danh sách & tình trạng thực hiện</h2>
+    <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+      <select id="lcPillar"><option value="">Pillar: tất cả</option></select>
+      <select id="lcStatus"><option value="">Tình trạng: tất cả</option></select>
+      <input type="text" id="lcSearch" placeholder="Tìm theo topic…" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px">
+    </div>
+    <div class="scroll" style="max-height:640px">
+    <table id="lcTable"><thead><tr>
+      <th>Ngày</th><th>Deadline</th><th>Pillar</th><th>Angle</th><th>Topic</th>
+      <th>Link KB</th><th>Tình trạng</th><th>Video</th><th>Drive</th><th>Caption</th>
+    </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="hint">Trạng thái lấy trực tiếp từ cột TÌNH TRẠNG trong file kế hoạch.</div>
+  </div>
+ </section>
+</div>
+</main>
 </div>
 
 <script>
@@ -344,6 +414,161 @@ async function main(){
   setRange(f30, last);
 }
 main();
+</script>
+<script>
+const PLAN_ID = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
+let PLAN = [], LC = [], MATRIX = [];
+
+async function fetchTabFrom(id, tab){
+  const res = await fetch("https://docs.google.com/spreadsheets/d/" + id +
+    "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(tab));
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return json.table.rows.map(r => (r.c || []).map(c => {
+    if(!c) return null;
+    if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
+    return c.v;
+  }));
+}
+const cell = (r,i) => (r && r[i] != null) ? String(r[i]).trim() : "";
+const isUrl = s => /^https?:\/\//i.test(s || "");
+const linkOr = (s, txt) => isUrl(s) ? `<a href="${s}" target="_blank" rel="noopener">${txt}</a>` : (s || "");
+
+function shortPillar(p){
+  const t = (p || "").toUpperCase();
+  if(t.includes("XƯỞNG")) return "Xưởng & Sản xuất";
+  if(t.includes("THƯƠNG HIỆU")) return "Thương hiệu cá nhân";
+  if(t.includes("KHỞI NGHIỆP")) return "Bài học khởi nghiệp";
+  if(t.includes("R&D")) return "R&D";
+  if(t.includes("SERI")) return "Seri xây xưởng";
+  return (p || "").slice(0, 28);
+}
+function statusHtml(s){
+  const t = (s || "").toLowerCase();
+  if(t.includes("hoàn thành")) return `<span class="st-done">✔ Đã hoàn thành</span>`;
+  if(t.includes("đang")) return `<span class="st-doing">⏳ Đang thực hiện</span>`;
+  if(!t) return `<span class="st-todo">— Chưa làm</span>`;
+  return s;
+}
+
+function renderPlan(){
+  const fc = document.getElementById("planPicC").value;
+  const fd = document.getElementById("planPicD").value;
+  const ff = document.getElementById("planForm").value;
+  const fa = document.getElementById("planAir").value;
+  const q = document.getElementById("planSearch").value.toLowerCase();
+  const rows = PLAN.filter(r =>
+    (!fc || r.picC === fc) && (!fd || r.picD === fd) && (!ff || r.form === ff) &&
+    (!fa || (fa === "co" ? !!r.air : !r.air)) &&
+    (!q || r.topic.toLowerCase().includes(q)));
+  const withAir = PLAN.filter(r => r.air).length;
+  const videos = PLAN.filter(r => (r.form || "").toLowerCase().includes("video")).length;
+  const perPic = {};
+  PLAN.forEach(r => { if(r.picC) perPic[r.picC] = (perPic[r.picC] || 0) + 1; });
+  document.getElementById("planKpis").innerHTML = [
+    { label: "Tổng bài tháng 11", value: fmt(PLAN.length), note: "theo media plan" },
+    { label: "Đã có Link Air", value: fmt(withAir) + " / " + fmt(PLAN.length), note: PLAN.length ? Math.round(withAir/PLAN.length*100) + "% kế hoạch" : "" },
+    { label: "Số video", value: fmt(videos), note: "hình thức Video" },
+    ...Object.entries(perPic).map(([k,v]) => ({ label: "Bài của " + k, value: fmt(v), note: "PIC Content" })),
+  ].map(k => `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("");
+  document.querySelector("#planTable tbody").innerHTML = rows.map(r =>
+    `<tr><td style="white-space:nowrap">${r.date}${r.dow ? " (" + r.dow + ")" : ""}</td><td>${r.hour}</td><td>${r.form}</td>` +
+    `<td>${[r.plat1, r.plat2].filter(Boolean).join(" + ")}</td>` +
+    `<td class="title-cell">${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">${r.topic}</a>` : r.topic}</td>` +
+    `<td>${r.picC}</td><td>${r.picD}</td>` +
+    `<td>${linkOr(r.brief, "Brief")}</td>` +
+    `<td>${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">🔗 Đã air</a>` : '<span class="st-todo">chưa có</span>'}</td>` +
+    `<td>${r.check}</td></tr>`).join("") ||
+    '<tr><td colspan="10" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
+}
+
+function renderLC(){
+  const fp = document.getElementById("lcPillar").value;
+  const fs = document.getElementById("lcStatus").value;
+  const q = document.getElementById("lcSearch").value.toLowerCase();
+  const rows = LC.filter(r =>
+    (!fp || r.pillarShort === fp) &&
+    (!fs || r.statusGroup === fs) &&
+    (!q || r.topic.toLowerCase().includes(q)));
+  document.querySelector("#lcTable tbody").innerHTML = rows.map(r =>
+    `<tr><td style="white-space:nowrap">${r.date}</td><td>${r.deadline}</td><td>${r.pillarShort}</td><td>${r.angle}</td>` +
+    `<td class="title-cell">${r.topic}</td><td>${linkOr(r.kb, "KB")}</td>` +
+    `<td>${statusHtml(r.status)}</td>` +
+    `<td>${r.video ? "✔" : ""}</td><td>${r.drive ? linkOr(r.drive, "✔") : ""}</td><td>${r.caption ? "✔" : ""}</td></tr>`).join("") ||
+    '<tr><td colspan="10" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
+}
+
+function renderMatrix(){
+  document.getElementById("matrixBox").innerHTML = MATRIX.map(m => {
+    const pct = m.target > 0 ? Math.min(100, Math.round(m.actual / m.target * 100)) : 0;
+    return `<div style="margin:10px 0">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span>${m.name}</span><span style="color:var(--mut)">Mục tiêu ${m.target} bài (${m.targetPct}) · Đã có ${m.actual} · Gap ${m.gap}</span>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }).join("");
+}
+
+function fillSelect(id, values){
+  const sel = document.getElementById(id);
+  [...new Set(values.filter(Boolean))].sort().forEach(v => {
+    const o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o);
+  });
+}
+
+async function initPlanPages(){
+  try{
+    const [planRows, lcRows, mxRows] = await Promise.all([
+      fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 11"),
+      fetchTabFrom(PLAN_ID, "List of Content"),
+      fetchTabFrom(PLAN_ID, "Matrix Control"),
+    ]);
+    PLAN = planRows.filter(r => cell(r,6)).map(r => ({
+      dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
+      plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
+      picC: cell(r,8), caption: cell(r,9), picD: cell(r,10), brief: cell(r,11),
+      linkDesign: cell(r,12), air: cell(r,13), check: cell(r,14),
+    }));
+    LC = lcRows.filter(r => cell(r,4) || cell(r,2)).filter(r => !cell(r,0).toUpperCase().includes("CONTENT LIST")).map(r => {
+      const st = cell(r,7);
+      return {
+        date: cell(r,0), deadline: cell(r,1), pillar: cell(r,2), pillarShort: shortPillar(cell(r,2)),
+        angle: cell(r,3), topic: cell(r,4), kb: cell(r,5), upload: cell(r,6), status: st,
+        statusGroup: st.toLowerCase().includes("hoàn thành") ? "done" : st.toLowerCase().includes("đang") ? "doing" : "todo",
+        source: cell(r,8), video: cell(r,9), drive: cell(r,10), caption: cell(r,11), hashtags: cell(r,12),
+      };
+    });
+    MATRIX = mxRows.filter(r => cell(r,0) && cell(r,0) !== "TỔNG").map(r => ({
+      name: cell(r,0), targetPct: cell(r,1), target: num(r[2]), actual: num(r[3]), gap: cell(r,5),
+    }));
+    fillSelect("planPicC", PLAN.map(r => r.picC));
+    fillSelect("planPicD", PLAN.map(r => r.picD));
+    fillSelect("planForm", PLAN.map(r => r.form));
+    fillSelect("lcPillar", LC.map(r => r.pillarShort));
+    const lcStatus = document.getElementById("lcStatus");
+    [["done","✔ Đã hoàn thành"],["doing","⏳ Đang thực hiện"],["todo","— Chưa làm"]].forEach(([v,t]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = t; lcStatus.appendChild(o);
+    });
+    ["planPicC","planPicD","planForm","planAir"].forEach(id => document.getElementById(id).addEventListener("change", renderPlan));
+    document.getElementById("planSearch").addEventListener("input", renderPlan);
+    ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
+    document.getElementById("lcSearch").addEventListener("input", renderLC);
+    renderPlan(); renderLC(); renderMatrix();
+  }catch(e){
+    document.getElementById("matrixBox").innerHTML =
+      '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
+  }
+}
+
+document.getElementById("sidenav").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-page]"); if(!btn) return;
+  document.querySelectorAll("#sidenav button").forEach(b => b.classList.toggle("active", b === btn));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("show", p.id === btn.dataset.page));
+  window.dispatchEvent(new Event("resize"));
+});
+initPlanPages();
 </script>
 </body>
 </html>
