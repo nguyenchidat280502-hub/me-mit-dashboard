@@ -31,12 +31,17 @@
   .scroll{max-height:480px;overflow:auto}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  th{color:var(--mut);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--card)}
+  th{color:var(--mut);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--card);z-index:1}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--acc)}
+  th .arr{color:var(--acc);font-size:11px}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;white-space:nowrap}
   .err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
   .loading{color:var(--mut);padding:24px 0}
   .title-cell{max-width:430px}
+  .hint{color:var(--mut);font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -78,38 +83,46 @@
 
   <div class="card">
     <h2>🏆 Bài viết trong kỳ —
-      <label style="color:var(--mut);font-size:13px">loại</label>
+      <label style="color:var(--mut);font-size:13px">phân loại</label>
       <select id="typeSel">
         <option value="all">Tất cả</option>
         <option value="video">🎬 Video</option>
+        <option value="photo">🖼 Ảnh</option>
+        <option value="album">🗂 Album</option>
+        <option value="link">🔗 Link</option>
         <option value="post">📝 Bài viết</option>
-      </select>
-      <label style="color:var(--mut);font-size:13px">xếp theo</label>
-      <select id="sortSel">
-        <option value="views">Lượt xem</option>
-        <option value="reactions">Reactions</option>
-        <option value="comments">Bình luận</option>
-        <option value="shares">Chia sẻ</option>
-        <option value="rate">Tỷ lệ tương tác</option>
       </select>
       <span id="postsCount" style="color:var(--mut);font-size:13px"></span>
     </h2>
     <div class="scroll">
     <table id="postsTable"><thead><tr>
-      <th>#</th><th>Bài viết (bấm để mở Facebook)</th><th>Loại</th><th>Ngày đăng</th>
-      <th class="num">Lượt xem</th><th class="num">Reactions</th><th class="num">Bình luận</th><th class="num">Chia sẻ</th><th class="num">Tỷ lệ TT</th>
+      <th>#</th><th>Bài viết (bấm để mở Facebook)</th><th>Phân loại</th>
+      <th class="sortable" data-table="posts" data-key="date">Ngày đăng <span class="arr"></span></th>
+      <th class="num sortable" data-table="posts" data-key="views">Lượt xem <span class="arr"></span></th>
+      <th class="num sortable" data-table="posts" data-key="reactions">Reactions <span class="arr"></span></th>
+      <th class="num sortable" data-table="posts" data-key="comments">Bình luận <span class="arr"></span></th>
+      <th class="num sortable" data-table="posts" data-key="shares">Chia sẻ <span class="arr"></span></th>
+      <th class="num sortable" data-table="posts" data-key="rate">Tỷ lệ TT <span class="arr"></span></th>
     </tr></thead><tbody></tbody></table>
     </div>
+    <div class="hint">Bấm vào tiêu đề cột để sắp xếp tăng dần / giảm dần theo biến số đó.</div>
   </div>
 
   <div class="card">
     <h2>Số liệu chi tiết theo ngày</h2>
     <div class="scroll">
     <table id="dailyTable"><thead><tr>
-      <th>Ngày</th><th class="num">Người xem</th><th class="num">Lượt xem</th><th class="num">Tương tác</th>
-      <th class="num">Follow mới</th><th class="num">Unfollow</th><th class="num">Lượt vào trang</th><th class="num">Tỷ lệ TT</th>
+      <th class="sortable" data-table="daily" data-key="date">Ngày <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="unique">Người xem <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="views">Lượt xem <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="eng">Tương tác <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="follows">Follow mới <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="unfollows">Unfollow <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="pageViews">Lượt vào trang <span class="arr"></span></th>
+      <th class="num sortable" data-table="daily" data-key="rate">Tỷ lệ TT <span class="arr"></span></th>
     </tr></thead><tbody></tbody></table>
     </div>
+    <div class="hint">Bấm vào tiêu đề cột để sắp xếp tăng dần / giảm dần theo biến số đó.</div>
   </div>
   <div class="loading" id="loading">Đang đọc dữ liệu từ Google Sheet…</div>
 </div>
@@ -121,6 +134,7 @@ const TAB_POSTS = "📝 Posts";
 const FOLLOWERS_SNAPSHOT = 4859;
 
 let DAYS = [], POSTS = [], charts = {};
+const SORT = { posts: { key: "views", dir: -1 }, daily: { key: "date", dir: -1 } };
 
 function gvizUrl(tab){
   return "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
@@ -139,12 +153,12 @@ async function fetchTab(tab){
 }
 const num = x => { const n = Number(x); return isNaN(n) ? 0 : n; };
 const fmt = n => Math.round(n).toLocaleString("vi-VN");
-function parseDay(s){ // "30/10/2026"
+function parseDay(s){
   if(!s) return null;
   const p = String(s).trim().split("/"); if(p.length !== 3) return null;
   const d = new Date(+p[2], +p[1] - 1, +p[0]); return isNaN(d) ? null : d;
 }
-function parsePostDate(s){ // "30/10 19:00" or "30/10/2026 19:00"
+function parsePostDate(s){
   if(!s) return null;
   const m = String(s).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
   if(!m) return null;
@@ -157,8 +171,23 @@ function parseRate(s){
   return isNaN(n) ? 0 : n;
 }
 const iso = d => d.toISOString().slice(0,10);
-const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 
+function classify(rawType, link){
+  const t = String(rawType || "").toLowerCase();
+  if(t.includes("video") || t.includes("reel")) return { key: "video", label: "🎬 Video" };
+  if(t.includes("album")) return { key: "album", label: "🗂 Album" };
+  if(t.includes("ảnh") || t.includes("photo") || t.includes("image")) return { key: "photo", label: "🖼 Ảnh" };
+  if(t.includes("link")) return { key: "link", label: "🔗 Link" };
+  if(link && (link.includes("/reel/") || link.includes("/videos/"))) return { key: "video", label: "🎬 Video" };
+  return { key: "post", label: "📝 Bài viết" };
+}
+function updateArrows(){
+  document.querySelectorAll("th.sortable").forEach(th => {
+    const s = SORT[th.dataset.table];
+    th.querySelector(".arr").textContent =
+      (s && s.key === th.dataset.key) ? (s.dir === -1 ? "▼" : "▲") : "";
+  });
+}
 function setRange(from, to){
   document.getElementById("fromDate").value = iso(from);
   document.getElementById("toDate").value = iso(to);
@@ -171,7 +200,6 @@ function markActive(btn){
 function render(from, to){
   const inRange = DAYS.filter(d => d.date >= from && d.date <= to);
   const len = inRange.length;
-  // previous equal-length period right before "from"
   const prevEnd = new Date(from); prevEnd.setDate(prevEnd.getDate() - 1);
   const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - (len - 1));
   const prev = DAYS.filter(d => d.date >= prevStart && d.date <= prevEnd);
@@ -190,7 +218,7 @@ function render(from, to){
   ];
   document.getElementById("kpis").innerHTML = kpis.map(k =>
     `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div>` +
-    `<div class="note">${k.delta !== undefined && k.delta !== null || k.delta === null && k.label !== "Người theo dõi hiện tại" && k.label !== "Follow ròng trong kỳ" && k.label !== "Số ngày trong kỳ" ? deltaHtml(k.delta) : (k.note || "")}</div></div>`).join("");
+    `<div class="note">${k.delta !== undefined ? deltaHtml(k.delta) : (k.note || "")}</div></div>`).join("");
   document.getElementById("rangeInfo").textContent =
     `đang xem ${len} ngày` + (inRange.length ? ` (${inRange[0].label} – ${inRange[inRange.length-1].label})` : "");
 
@@ -210,25 +238,34 @@ function render(from, to){
       { type: "bar", label: "Unfollow", data: inRange.map(d => -d.unfollows), backgroundColor: "#f87171" } ] },
     options: { responsive: true, scales: ax, plugins: leg } });
 
-  const sortKey = document.getElementById("sortSel").value;
+  // Posts — per-post classification + sortable columns
   const typeKey = document.getElementById("typeSel").value;
+  const ps = SORT.posts;
   const postsIn = POSTS.filter(p => p.date && p.date >= from && p.date <= to)
-                       .filter(p => typeKey === "all" || p.dtype === typeKey)
-                       .sort((a,b) => b[sortKey] - a[sortKey]);
-  const nVideo = postsIn.filter(p => p.dtype === "video").length;
-  document.getElementById("postsCount").textContent =
-    `· ${postsIn.length} mục (${nVideo} video, ${postsIn.length - nVideo} bài viết)`;
-  document.querySelector("#postsTable tbody").innerHTML = postsIn.map((p,i) =>
+                       .filter(p => typeKey === "all" || p.cls.key === typeKey);
+  const counts = {};
+  postsIn.forEach(p => counts[p.cls.key] = (counts[p.cls.key] || 0) + 1);
+  const countTxt = Object.entries(counts).map(([k,v]) =>
+    `${({video:"🎬 Video", photo:"🖼 Ảnh", album:"🗂 Album", link:"🔗 Link", post:"📝 Bài viết"})[k]}: ${v}`).join(" · ");
+  document.getElementById("postsCount").textContent = `· ${postsIn.length} mục — ${countTxt}`;
+  const val = (p,k) => k === "date" ? (p.date ? p.date.getTime() : 0) : p[k];
+  const sortedPosts = [...postsIn].sort((a,b) => (val(a, ps.key) - val(b, ps.key)) * (ps.dir === -1 ? -1 : 1));
+  document.querySelector("#postsTable tbody").innerHTML = sortedPosts.map((p,i) =>
     `<tr><td>${i+1}</td><td class="title-cell"><a href="${p.link}" target="_blank" rel="noopener">${p.title || "(không tiêu đề)"}</a></td>` +
-    `<td>${p.dtype === "video" ? "🎬 Video" : "📝 Bài viết"}</td>` +
+    `<td><span class="badge">${p.cls.label}</span></td>` +
     `<td>${p.when || ""}</td><td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.reactions)}</td>` +
     `<td class="num">${fmt(p.comments)}</td><td class="num">${fmt(p.shares)}</td><td class="num">${p.rate.toFixed(2)}%</td></tr>`).join("") ||
     '<tr><td colspan="9" style="color:var(--mut)">Không có bài viết trong kỳ đã chọn.</td></tr>';
 
-  document.querySelector("#dailyTable tbody").innerHTML = [...inRange].reverse().map(d =>
+  // Daily — sortable columns
+  const ds = SORT.daily;
+  const dVal = (d,k) => k === "date" ? d.date.getTime() : k === "rate" ? (d.views ? d.eng/d.views*100 : 0) : d[k];
+  const sortedDays = [...inRange].sort((a,b) => (dVal(a, ds.key) - dVal(b, ds.key)) * (ds.dir === -1 ? -1 : 1));
+  document.querySelector("#dailyTable tbody").innerHTML = sortedDays.map(d =>
     `<tr><td>${d.label}</td><td class="num">${fmt(d.unique)}</td><td class="num">${fmt(d.views)}</td>` +
     `<td class="num">${fmt(d.eng)}</td><td class="num">${fmt(d.follows)}</td><td class="num">${fmt(d.unfollows)}</td>` +
     `<td class="num">${fmt(d.pageViews)}</td><td class="num">${d.views ? (d.eng/d.views*100).toFixed(2) : "0.00"}%</td></tr>`).join("");
+  updateArrows();
 }
 
 async function main(){
@@ -250,16 +287,12 @@ async function main(){
 
   POSTS = posts.filter(r => r[0]).map(r => {
       const link = r[5] || r[4] || "";
-      const rawType = String(r[2] || "").toLowerCase();
-      const isVideo = rawType.includes("video") || rawType.includes("reel") ||
-                      link.includes("/reel/") || link.includes("/videos/");
       return {
-      when: r[1], date: parsePostDate(r[1]), type: r[2], dtype: isVideo ? "video" : "post",
+      when: r[1], date: parsePostDate(r[1]), cls: classify(r[2], link),
       title: (r[3] || "").split("\n")[0], link,
       reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]),
       views: num(r[11]), rate: parseRate(r[12]) }; });
 
-  // month dropdown from available data
   const months = [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + (d.date.getMonth() + 1)))].sort();
   const mSel = document.getElementById("monthSel");
   months.forEach(m => {
@@ -296,8 +329,15 @@ async function main(){
     const t = new Date(document.getElementById("toDate").value + "T00:00:00");
     render(f, t);
   };
-  document.getElementById("sortSel").addEventListener("change", rerender);
   document.getElementById("typeSel").addEventListener("change", rerender);
+  document.querySelectorAll("th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const s = SORT[th.dataset.table];
+      if(s.key === th.dataset.key) s.dir = -s.dir;
+      else { s.key = th.dataset.key; s.dir = -1; }
+      rerender();
+    });
+  });
 
   document.getElementById("updated").textContent = "tải lúc " + new Date().toLocaleString("vi-VN");
   const f30 = new Date(last); f30.setDate(f30.getDate() - 29);
