@@ -176,7 +176,7 @@
       <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Check</th>
     </tr></thead><tbody></tbody></table>
     </div>
-    <div class="hint">Dữ liệu đồng bộ từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx” qua Sheet cầu nối — nhân viên cập nhật file gốc, dashboard sẽ theo sau mỗi lần đồng bộ.</div>
+    <div class="hint">Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút. <span id="planSyncInfo"></span></div>
   </div>
  </section>
 
@@ -198,7 +198,7 @@
       <th>Link KB</th><th>Tình trạng</th><th>Video</th><th>Drive</th><th>Caption</th>
     </tr></thead><tbody></tbody></table>
     </div>
-    <div class="hint">Trạng thái lấy trực tiếp từ cột TÌNH TRẠNG trong file kế hoạch.</div>
+    <div class="hint">Chỉ hiển thị mục <b>CONTENT LIST THÁNG 11</b>. Trạng thái lấy trực tiếp từ cột TÌNH TRẠNG trong file kế hoạch. <span id="lcSyncInfo"></span></div>
   </div>
  </section>
 </div>
@@ -560,11 +560,21 @@ function fillSelect(id, values){
 
 async function initPlanPages(){
   try{
-    const [planRows, lcRows, mxRows] = await Promise.all([
+    const [planRows, lcRows, mxRows, siRows] = await Promise.all([
       fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 11"),
       fetchTabFrom(PLAN_ID, "List of Content"),
       fetchTabFrom(PLAN_ID, "Matrix Control"),
+      fetchTabFrom(PLAN_ID, "Sync Info").catch(() => []),
     ]);
+    try {
+      const kv = {}; (siRows || []).forEach(r => { kv[cell(r,0)] = cell(r,1); });
+      const t = kv["Lần đồng bộ gần nhất"], n = kv["Số thay đổi lần này"];
+      if(t){
+        const txt = "⟳ Đồng bộ gần nhất: " + t + (n ? " · " + n + " thay đổi" : "") + ". Thay đổi của team (đổi tình trạng, đổi PIC...) được ghi ở tab “Log thay đổi” trong Sheet kế hoạch.";
+        const a = document.getElementById("planSyncInfo"), b = document.getElementById("lcSyncInfo");
+        if(a) a.textContent = txt; if(b) b.textContent = txt;
+      }
+    } catch(e){}
     PLAN = planRows.filter(r => cell(r,6)).map(r => ({
       dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
       plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
