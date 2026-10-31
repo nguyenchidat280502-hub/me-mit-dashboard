@@ -595,15 +595,11 @@ function renderKeyStats(){
     const m = MSG.find(x => x.date.getTime() === last.date.getTime());
     dayItems.push({ label: "Hội thoại", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
   }
-  const monthDays = DAYS.filter(d => d.date.getFullYear() === last.date.getFullYear() && d.date.getMonth() === last.date.getMonth());
-  const sum = k => monthDays.reduce((s,d) => s + (d[k] || 0), 0);
-  const monthItems = mets.map(([label,k]) => ({ label, value: fmt(sum(k)) }));
   const dNext = new Date(last.date); dNext.setDate(dNext.getDate() + 1);
   const dAfter = new Date(last.date); dAfter.setDate(dAfter.getDate() + 2);
   box.innerHTML =
     statGroup(`📅 Ngày số liệu mới nhất — ${last.label}`, dayItems) +
     `<div class="hint" style="margin:2px 0 4px">Facebook chốt số theo ngày giờ Mỹ, chậm hơn giờ Việt Nam 14 tiếng: “ngày ${last.label}” ở đây = 14:00 ${last.label} → 14:00 ${dstr(dNext)} giờ VN. Số của ngày ${dstr(dNext)} sẽ có sau 14:00 ${dstr(dAfter)}, và số ngày mới nhất còn được Facebook cập nhật thêm trong ít giờ sau khi chốt.</div>` +
-    statGroup(`🗓 Tháng ${last.date.getMonth()+1}/${last.date.getFullYear()} — cộng dồn ${monthDays.length} ngày có dữ liệu, tới ${last.label}`, monthItems) +
     vnTodayGroup();
 }
 
