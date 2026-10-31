@@ -864,15 +864,18 @@ function renderWeek(){
   if(!inWeek.length){ box.innerHTML = '<div class="hint">Tuần này không có bài nào trong kế hoạch.</div>'; return; }
   const lines = inWeek.map(r =>
     `<div class="radar-item">${planStatusChip(r)} <b>${r.date}${r.dow ? " (" + r.dow + ")" : ""}</b> · ${formBadge(r.form)} · <b>${r.topic}</b>` +
-    ` <span style="color:var(--mut)">· Content:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Design:</span> ${personChip(r.picD)}</div>`).join("");
-  const perC = {};
-  inWeek.forEach(r => { if(r.picC){ perC[r.picC] = perC[r.picC] || { n: 0, aired: 0 }; perC[r.picC].n++; if(r.air) perC[r.picC].aired++; } });
+    ` <span style="color:var(--mut)">· Brief:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Làm:</span> ${personChip(r.picD)}</div>`).join("");
+  const perD = {};
+  let unassigned = 0;
+  inWeek.forEach(r => { if(r.picD){ perD[r.picD] = perD[r.picD] || { n: 0, aired: 0 }; perD[r.picD].n++; if(r.air) perD[r.picD].aired++; } else unassigned++; });
   const debts = {};
-  all.forEach(r => { if(planStatus(r) === "over" && r.picC) debts[r.picC] = (debts[r.picC] || 0) + 1; });
-  const summary = Object.entries(perC).map(([k,v]) =>
+  let debtUnassigned = 0;
+  all.forEach(r => { if(planStatus(r) === "over"){ if(r.picD) debts[r.picD] = (debts[r.picD] || 0) + 1; else debtUnassigned++; } });
+  const summary = Object.entries(perD).map(([k,v]) =>
     `<div style="font-size:13px;margin:3px 0">${personChip(k)} <b>${v.n} bài</b> tuần này · đã đăng ${v.aired}` +
-    (debts[k] ? ` · <span style="color:var(--down)">⚠️ đang nợ ${debts[k]} bài quá hạn</span>` : "") + `</div>`).join("");
-  box.innerHTML = lines + (summary ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">Theo người phụ trách (Content):</div>${summary}</div>` : "");
+    (debts[k] ? ` · <span style="color:var(--down)">⚠️ đang nợ ${debts[k]} bài quá hạn</span>` : "") + `</div>`).join("") +
+    (unassigned ? `<div style="font-size:13px;margin:3px 0"><span style="color:var(--down)">⚠️ ${unassigned} bài tuần này chưa phân công người làm (PIC Design trống)</span>${debtUnassigned ? ` · trong đó quá hạn: ${debtUnassigned}` : ""}</div>` : "");
+  box.innerHTML = lines + (summary ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">Theo người làm (Design):</div>${summary}</div>` : "");
 }
 
 function renderLC(){
@@ -929,7 +932,7 @@ function renderDeadlineRadar(){
   }
   const line = r =>
     `<div class="radar-item">${planStatusChip(r)} <b>${r.date}${r.dow ? " (" + r.dow + ")" : ""}</b> · ${formBadge(r.form)} · <b>${r.topic}</b>` +
-    ` <span style="color:var(--mut)">· Content:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Design:</span> ${personChip(r.picD)}</div>`;
+    ` <span style="color:var(--mut)">· Brief:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Làm:</span> ${r.picD ? personChip(r.picD) : '<span style="color:var(--down)">chưa phân công</span>'}</div>`;
   box.innerHTML =
     (over.length ? `<div style="font-weight:600;color:var(--down);margin:4px 0">⛔ Đã quá ngày đăng, chưa có Link Air (${over.length})</div>` + over.map(line).join("") : "") +
     (soon.length ? `<div style="font-weight:600;color:#fcd34d;margin:10px 0 4px">⚠️ Đăng hôm nay / ngày mai, chưa có Link Air (${soon.length})</div>` + soon.map(line).join("") : "");
