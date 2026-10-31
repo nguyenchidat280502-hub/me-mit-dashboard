@@ -161,6 +161,7 @@
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
     <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
+    <button data-page="page-target" id="navTarget" style="display:none">🎯 Target</button>
   </nav>
   <div style="padding:12px 14px">
     <button id="syncNowBtn" type="button" style="width:100%;background:#1d4ed8;color:#fff;border:1px solid #1d4ed8;border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
@@ -188,6 +189,11 @@
   <div class="card">
     <h2>⭐ Chỉ số quan trọng</h2>
     <div id="keyStats"><div class="loading">Đang tổng hợp…</div></div>
+  </div>
+
+  <div class="card" id="ovTargetCard" style="display:none">
+    <h2>🎯 Tiến độ target tháng này</h2>
+    <div id="ovTarget"></div>
   </div>
 
   <div class="filters">
@@ -345,6 +351,40 @@
 
  <section class="page" id="page-mine">
   <div id="mineBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
+ </section>
+
+ <section class="page" id="page-target">
+  <div class="card">
+    <h2>🎯 Đặt target tháng — Quản Lí</h2>
+    <div class="hint">"Số lượng sản phẩm" = số bài đăng (content). Target được lưu vào tab "Targets" trong Sheet kế hoạch; trang Tổng quan và các báo cáo sẽ đối chiếu theo đúng các số này.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0">
+      <label style="font-size:13.5px">Tháng
+        <input type="month" id="tgMonth" min="2026-01" max="2026-12" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px">
+      </label>
+      <button class="chip" id="tgSuggest" type="button">↩️ Điền gợi ý (+10% so với tháng trước)</button>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <label style="font-size:13px;display:flex;flex-direction:column;gap:4px">Lượt xem
+        <input type="number" id="tgViews" min="0" step="100" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:150px"></label>
+      <label style="font-size:13px;display:flex;flex-direction:column;gap:4px">Tương tác
+        <input type="number" id="tgEng" min="0" step="10" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:150px"></label>
+      <label style="font-size:13px;display:flex;flex-direction:column;gap:4px">Follow mới
+        <input type="number" id="tgFollows" min="0" step="1" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:150px"></label>
+      <label style="font-size:13px;display:flex;flex-direction:column;gap:4px">Người xem
+        <input type="number" id="tgReach" min="0" step="100" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:150px"></label>
+      <label style="font-size:13px;display:flex;flex-direction:column;gap:4px">Số bài đăng (sản phẩm)
+        <input type="number" id="tgPosts" min="0" step="1" style="background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:150px"></label>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="chip" id="tgSave" type="button" style="font-weight:700">💾 Lưu target</button>
+      <span id="tgStatus" style="font-size:13px"></span>
+    </div>
+    <div class="hint" id="tgMeta" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h2>📈 Tiến độ tháng đang chọn so với target</h2>
+    <div id="tgProgress"><div class="hint">Đang tải…</div></div>
+  </div>
  </section>
 
  <section class="page" id="page-admin">
@@ -690,6 +730,7 @@ async function main(){
   document.getElementById("cmpBTo").value = isoLocal(new Date(last.getFullYear(), last.getMonth(), 0));
   document.getElementById("cmpApply").addEventListener("click", renderCompare);
   renderKeyStats();
+  if(typeof renderTargetStrip === "function") renderTargetStrip();
   renderCompare();
 
   document.getElementById("updated").textContent = "tải lúc " + new Date().toLocaleString("vi-VN");
@@ -967,14 +1008,122 @@ function setPlanMonth(key){
   renderPlan();
 }
 
+/* ===== Targets (tab "Targets" trong Sheet cầu nối; Quản Lí đặt qua Apps Script) ===== */
+let TARGETS = {};
+const TG_METS = [["Lượt xem","views"],["Tương tác","eng"],["Follow mới","follows"],["Người xem","reach"],["Số bài đăng","posts"]];
+function tgEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function tgCurKey(){ const n = new Date(); return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0"); }
+function parseTargets(rows){
+  TARGETS = {};
+  (rows || []).forEach(r => {
+    const m = String(cell(r,0) || "").trim();
+    if(!/^\d{4}-\d{2}$/.test(m)) return;
+    TARGETS[m] = { views: num(cell(r,1)), eng: num(cell(r,2)), follows: num(cell(r,3)), reach: num(cell(r,4)), posts: num(cell(r,5)), updated: cell(r,6), by: cell(r,7) };
+  });
+}
+function monthActuals(key){
+  const [y, m] = key.split("-").map(Number);
+  let views = 0, eng = 0, follows = 0, reach = 0;
+  if(typeof DAYS !== "undefined" && DAYS) DAYS.forEach(d => {
+    if(d.date && d.date.getFullYear() === y && d.date.getMonth() === m - 1){ views += d.views || 0; eng += d.eng || 0; follows += d.follows || 0; reach += d.unique || 0; }
+  });
+  const rowsM = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === y && d.getMonth() === m - 1; });
+  return { views, eng, follows, reach, posts: rowsM.filter(r => r.air).length, planTotal: rowsM.length };
+}
+function tgBars(key){
+  const t = TARGETS[key]; if(!t) return "";
+  const a = monthActuals(key);
+  return TG_METS.map(([label, k]) => {
+    const tv = t[k] || 0, av = a[k] || 0;
+    const pct = tv > 0 ? Math.round(av / tv * 100) : 0;
+    const w = Math.min(100, pct);
+    return `<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${label}</span><span style="color:var(--mut)">${fmt(av)} / ${fmt(tv)} · <b style="color:${pct >= 100 ? "var(--up)" : "var(--txt)"}">${pct}%</b></span></div><div class="bar"><i style="width:${w}%"></i></div></div>`;
+  }).join("");
+}
+function renderTargetStrip(){
+  const card = document.getElementById("ovTargetCard"), box = document.getElementById("ovTarget");
+  if(!card || !box) return;
+  const key = tgCurKey(), t = TARGETS[key];
+  if(!t){ card.style.display = "none"; return; }
+  card.style.display = "";
+  box.innerHTML = tgBars(key) +
+    `<div class="hint">Target tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " · do " + tgEsc(t.by) + " đặt" : ""}${t.updated ? " · cập nhật " + tgEsc(t.updated) : ""}. Số bài đăng = số bài trong Media Plan đã có Link Air.</div>`;
+}
+function tgKey(){ const el = document.getElementById("tgMonth"); return (el && el.value) ? el.value : tgCurKey(); }
+function tgSet(id, v){ const el = document.getElementById(id); if(el) el.value = (v == null || v === 0) ? "" : v; }
+function tgGet(id){ const el = document.getElementById(id); const n = el ? Number(el.value) : 0; return isNaN(n) || n < 0 ? 0 : Math.round(n); }
+function renderTargetPage(){
+  const monthEl = document.getElementById("tgMonth"); if(!monthEl) return;
+  if(window.MMAuth && MMAuth.ready !== false){
+    const r = MMAuth.effectiveRole;
+    if(MMAuth.user && r !== "owner" && r !== "manager"){
+      document.getElementById("tgProgress").innerHTML = '<div class="hint">Trang này chỉ dành cho Quản Lí.</div>';
+      return;
+    }
+  }
+  if(!monthEl.value) monthEl.value = tgCurKey();
+  const key = monthEl.value, t = TARGETS[key];
+  tgSet("tgViews", t ? t.views : null); tgSet("tgEng", t ? t.eng : null); tgSet("tgFollows", t ? t.follows : null);
+  tgSet("tgReach", t ? t.reach : null); tgSet("tgPosts", t ? t.posts : null);
+  const meta = document.getElementById("tgMeta");
+  if(meta) meta.textContent = t
+    ? `Target hiện tại của tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " — do " + t.by + " đặt" : ""}${t.updated ? ", cập nhật " + t.updated : ""}. Sửa số rồi bấm Lưu để cập nhật.`
+    : `Tháng ${key.slice(5)}/${key.slice(0,4)} chưa có target — nhập số rồi bấm Lưu, hoặc dùng nút điền gợi ý.`;
+  const prog = document.getElementById("tgProgress");
+  if(prog) prog.innerHTML = t ? tgBars(key) : '<div class="hint">Chưa có target cho tháng này nên chưa có tiến độ để đối chiếu.</div>';
+}
+function tgFillSuggest(){
+  const key = tgKey();
+  const [y, m] = key.split("-").map(Number);
+  const prev = new Date(y, m - 2, 1);
+  const pk = prev.getFullYear() + "-" + String(prev.getMonth() + 1).padStart(2, "0");
+  const a = monthActuals(pk);
+  const r100 = v => Math.max(0, Math.round(v * 1.1 / 100) * 100);
+  const r10 = v => Math.max(0, Math.round(v * 1.1 / 10) * 10);
+  const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === y && d.getMonth() === m - 1; }).length;
+  tgSet("tgViews", r100(a.views)); tgSet("tgEng", r10(a.eng)); tgSet("tgFollows", Math.max(0, Math.round(a.follows * 1.1)));
+  tgSet("tgReach", r100(a.reach)); tgSet("tgPosts", planN || Math.max(0, Math.round(a.posts * 1.1)));
+  const st = document.getElementById("tgStatus");
+  if(st) st.textContent = "Đã điền gợi ý theo thực tế tháng " + pk.slice(5) + "/" + pk.slice(0,4) + " (+10%) — kiểm tra lại rồi bấm Lưu target.";
+}
+async function tgSave(){
+  const st = document.getElementById("tgStatus");
+  if(window.MMAuth && MMAuth.preview){ if(st) st.textContent = "Đang ở chế độ XEM THỬ — thoát xem thử mới lưu được."; return; }
+  const key = tgKey();
+  const vals = { views: tgGet("tgViews"), eng: tgGet("tgEng"), follows: tgGet("tgFollows"), reach: tgGet("tgReach"), posts: tgGet("tgPosts") };
+  if(!vals.views && !vals.eng && !vals.follows && !vals.reach && !vals.posts){ if(st) st.textContent = "Chưa có số nào để lưu — nhập ít nhất một chỉ số."; return; }
+  const by = (window.MMAuth && MMAuth.email) ? MMAuth.email : "Quản Lí";
+  const url = SYNC_WEBAPP + "?action=targets&month=" + encodeURIComponent(key) +
+    "&views=" + vals.views + "&eng=" + vals.eng + "&follows=" + vals.follows + "&reach=" + vals.reach + "&posts=" + vals.posts +
+    "&by=" + encodeURIComponent(by);
+  if(st) st.textContent = "Đang lưu…";
+  try { await fetch(url, { mode: "no-cors" }); } catch(e){}
+  const before = TARGETS[key] ? String(TARGETS[key].updated || "") : "";
+  for(let i = 0; i < 9; i++){
+    await new Promise(r => setTimeout(r, 10000));
+    try {
+      const rows = await fetchTabFrom(PLAN_ID, "Targets");
+      parseTargets(rows);
+      if(TARGETS[key] && String(TARGETS[key].updated || "") !== before){
+        if(st) st.textContent = "✅ Đã lưu target tháng " + key.slice(5) + "/" + key.slice(0,4) + " lúc " + TARGETS[key].updated + ".";
+        renderTargetPage(); renderTargetStrip();
+        return;
+      }
+    } catch(e){}
+  }
+  if(st) st.textContent = "Đã gửi yêu cầu lưu — nếu sau 1 phút chưa thấy cập nhật, tải lại trang rồi kiểm tra.";
+}
+
 async function initPlanPages(){
   try{
-    const [plan10Rows, plan11Rows, lcRows, mxRows] = await Promise.all([
+    const [plan10Rows, plan11Rows, lcRows, mxRows, tgRows] = await Promise.all([
       fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 10").catch(() => []),
       fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 11"),
       fetchTabFrom(PLAN_ID, "List of Content"),
       fetchTabFrom(PLAN_ID, "Matrix Control"),
+      fetchTabFrom(PLAN_ID, "Targets").catch(() => []),
     ]);
+    parseTargets(tgRows);
     try {
       const kv = await syncInfoKV();
       const t = kv["Lần đồng bộ gần nhất"], n = kv["Số thay đổi lần này"];
@@ -1023,6 +1172,7 @@ async function initPlanPages(){
     ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
     document.getElementById("lcSearch").addEventListener("input", renderLC);
     renderLC(); renderMatrix(); renderDeadlineRadar(); renderWeek();
+    renderTargetStrip(); renderTargetPage();
   }catch(e){
     document.getElementById("matrixBox").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
@@ -1069,6 +1219,16 @@ document.getElementById("sidenav").addEventListener("click", e => {
   window.dispatchEvent(new Event("resize"));
 });
 initPlanPages();
+(function(){
+  const m = document.getElementById("tgMonth");
+  if(m) m.addEventListener("change", renderTargetPage);
+  const sg = document.getElementById("tgSuggest");
+  if(sg) sg.addEventListener("click", tgFillSuggest);
+  const sv = document.getElementById("tgSave");
+  if(sv) sv.addEventListener("click", tgSave);
+  const nv = document.getElementById("navTarget");
+  if(nv) nv.addEventListener("click", renderTargetPage);
+})();
 </script>
 <script>
 // ===== 🎬 Phân tích content chuyên sâu (tab Video Insights của Sheet chính) =====
@@ -1411,6 +1571,8 @@ loadDeep();
   function updateAdminNav(){
     var nav = document.getElementById("navAdmin");
     if(nav) nav.style.display = (effRole() === "owner") ? "" : "none";
+    var nt = document.getElementById("navTarget");
+    if(nt) nt.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
   }
   function emit(){
     updateAdminNav();
