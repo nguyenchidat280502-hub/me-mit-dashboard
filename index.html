@@ -63,6 +63,11 @@
   .avatar{width:22px;height:22px;border-radius:50%;color:#0b1220;font-weight:700;font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px}
   .pbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
   .hint{color:var(--mut);font-size:12px;margin-top:6px}
+  .f-warn{background:rgba(245,158,11,.14);color:#fcd34d;border-color:rgba(245,158,11,.45)}
+  .radar-item{padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;background:#0b1220;font-size:13px;line-height:1.7}
+  th.deepth{cursor:pointer;user-select:none}
+  th.deepth:hover{color:var(--acc)}
+  #deepTable tbody tr:hover{background:#16233c}
 </style>
 </head>
 <body>
@@ -73,6 +78,7 @@
     <button data-page="page-overview" class="active">📊 Tổng quan số liệu</button>
     <button data-page="page-plan">🗓 Media Plan tháng 11</button>
     <button data-page="page-content">📝 List of Content</button>
+    <button data-page="page-deep">🎬 Phân tích content</button>
   </nav>
 </aside>
 <main>
@@ -88,8 +94,14 @@
  <section class="page show" id="page-overview">
   <div id="error"></div>
 
+  <div class="card">
+    <h2>⭐ Chỉ số quan trọng</h2>
+    <div id="keyStats"><div class="loading">Đang tổng hợp…</div></div>
+  </div>
+
   <div class="filters">
     <div class="grp" id="presets">
+      <button class="chip" data-preset="today">Hôm nay</button>
       <button class="chip" data-preset="7">7 ngày</button>
       <button class="chip active" data-preset="30">30 ngày</button>
       <button class="chip" data-preset="90">90 ngày</button>
@@ -105,9 +117,27 @@
       <label>Đến</label><input type="date" id="toDate">
       <button class="chip" id="applyRange">Áp dụng</button>
     </div>
+    <span id="dataAsOf" style="color:var(--mut);font-size:13px"></span>
   </div>
 
   <section class="kpis" id="kpis"></section>
+
+  <div class="card">
+    <h2>🔀 So sánh kỳ — chỉ số cũ vs mới</h2>
+    <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <label style="color:var(--mut);font-size:13px">Kỳ A (mới): từ</label><input type="date" id="cmpAFrom">
+      <label style="color:var(--mut);font-size:13px">đến</label><input type="date" id="cmpATo">
+      <label style="color:var(--mut);font-size:13px">Kỳ B (cũ): từ</label><input type="date" id="cmpBFrom">
+      <label style="color:var(--mut);font-size:13px">đến</label><input type="date" id="cmpBTo">
+      <button class="chip" id="cmpApply">Áp dụng</button>
+    </div>
+    <div style="overflow:auto">
+    <table id="cmpTable"><thead><tr>
+      <th>Chỉ số</th><th class="num" id="cmpHeadB">Kỳ B (cũ)</th><th class="num" id="cmpHeadA">Kỳ A (mới)</th><th class="num">Thay đổi</th><th class="num">% thay đổi</th>
+    </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="hint">Mặc định: Kỳ A = tháng hiện tại (tới ngày mới nhất có dữ liệu), Kỳ B = tháng trước. Với Unfollow, giảm là tốt (xanh), tăng là xấu (đỏ).</div>
+  </div>
 
   <div class="card"><h2>Lượt xem &amp; Người xem theo ngày</h2><canvas id="chartViews"></canvas></div>
   <div class="card"><h2>Lượt tương tác theo ngày</h2><canvas id="chartEng"></canvas></div>
@@ -161,6 +191,11 @@
 
  <section class="page" id="page-plan">
   <div class="card">
+    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
+    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
+    <div class="hint">Lấy từ cột Deadline của List of Content: đã quá hạn mà chưa hoàn thành (đỏ) và tới hạn hôm nay/ngày mai (vàng).</div>
+  </div>
+  <div class="card">
     <h2>🗓 Media Plan tháng 11/2026 — lịch đăng & phân công</h2>
     <section class="kpis" id="planKpis"></section>
     <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
@@ -201,6 +236,14 @@
     <div class="hint">Chỉ hiển thị mục <b>CONTENT LIST THÁNG 11</b>. Trạng thái lấy trực tiếp từ cột TÌNH TRẠNG trong file kế hoạch. <span id="lcSyncInfo"></span></div>
   </div>
  </section>
+
+ <section class="page" id="page-deep">
+  <div class="card">
+    <h2>🎬 Phân tích content chuyên sâu — chất lượng video &amp; giữ chân khán giả</h2>
+    <div id="deepBox"><div class="loading">Đang tải dữ liệu video…</div></div>
+    <div id="deepDetail"></div>
+  </div>
+ </section>
 </div>
 </main>
 </div>
@@ -211,7 +254,7 @@ const TAB_INSIGHTS = "📉 Page Insights";
 const TAB_POSTS = "📝 Posts";
 const FOLLOWERS_SNAPSHOT = 4859;
 
-let DAYS = [], POSTS = [], charts = {};
+let DAYS = [], POSTS = [], MSG = [], charts = {};
 const SORT = { posts: { key: "views", dir: -1 }, daily: { key: "date", dir: -1 } };
 
 function gvizUrl(tab){
@@ -346,14 +389,75 @@ function render(from, to){
   updateArrows();
 }
 
+const dstr = d => String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
+const isoLocal = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+
+function statGroup(title, items){
+  return `<div style="font-weight:600;margin:12px 0 2px">${title}</div>` +
+    `<section class="kpis" style="margin:6px 0 2px">` + items.map(k =>
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("") + `</section>`;
+}
+function renderKeyStats(){
+  const box = document.getElementById("keyStats");
+  if(!DAYS.length){ box.innerHTML = '<div class="hint">Chưa có dữ liệu.</div>'; return; }
+  const last = DAYS[DAYS.length - 1];
+  const mets = [["Lượt xem","views"],["Người xem","unique"],["Tương tác","eng"],
+                ["Follow mới","follows"],["Unfollow","unfollows"],["Lượt xem trang","pageViews"]];
+  const todayItems = mets.map(([label,k]) => ({ label, value: fmt(last[k] || 0) }));
+  if(MSG.length){
+    const m = MSG.find(x => x.date.getTime() === last.date.getTime());
+    todayItems.push({ label: "Hội thoại hôm nay", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
+  }
+  const monthDays = DAYS.filter(d => d.date.getFullYear() === last.date.getFullYear() && d.date.getMonth() === last.date.getMonth());
+  const sum = k => monthDays.reduce((s,d) => s + (d[k] || 0), 0);
+  const monthItems = mets.map(([label,k]) => ({ label, value: fmt(sum(k)) }));
+  box.innerHTML =
+    statGroup(`📅 Hôm nay — ngày ${last.label} (ngày mới nhất có dữ liệu, Facebook chốt số theo ngày)`, todayItems) +
+    statGroup(`🗓 Tháng này — tháng ${last.date.getMonth()+1}/${last.date.getFullYear()} (cộng dồn ${monthDays.length} ngày, tới ${last.label})`, monthItems);
+}
+
+const CMP_METS = [
+  { label: "Lượt xem", key: "views", good: "up" },
+  { label: "Người xem", key: "unique", good: "up" },
+  { label: "Tương tác", key: "eng", good: "up" },
+  { label: "Follow mới", key: "follows", good: "up" },
+  { label: "Unfollow", key: "unfollows", good: "down" },
+  { label: "Lượt xem trang", key: "pageViews", good: "up" },
+];
+function renderCompare(){
+  const af = document.getElementById("cmpAFrom").value, at = document.getElementById("cmpATo").value;
+  const bf = document.getElementById("cmpBFrom").value, bt = document.getElementById("cmpBTo").value;
+  if(!af || !at || !bf || !bt) return;
+  const A0 = new Date(af + "T00:00:00"), A1 = new Date(at + "T00:00:00");
+  const B0 = new Date(bf + "T00:00:00"), B1 = new Date(bt + "T00:00:00");
+  const sumIn = (f,t,k) => DAYS.filter(d => d.date >= f && d.date <= t).reduce((s,d) => s + (d[k] || 0), 0);
+  document.getElementById("cmpHeadA").textContent = `Kỳ A (mới) · ${dstr(A0)} – ${dstr(A1)}`;
+  document.getElementById("cmpHeadB").textContent = `Kỳ B (cũ) · ${dstr(B0)} – ${dstr(B1)}`;
+  document.querySelector("#cmpTable tbody").innerHTML = CMP_METS.map(m => {
+    const a = sumIn(A0, A1, m.key), b = sumIn(B0, B1, m.key);
+    const diff = a - b;
+    const good = m.good === "up" ? diff >= 0 : diff <= 0;
+    const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "—";
+    const diffHtml = `<span class="delta ${good ? "up" : "down"}">${diff > 0 ? "+" : ""}${fmt(diff)}</span>`;
+    const pctHtml = b > 0
+      ? `<span class="delta ${good ? "up" : "down"}">${arrow} ${Math.abs(diff / b * 100).toFixed(1)}%</span>`
+      : (a > 0 ? `<span class="delta ${good ? "up" : "down"}">mới phát sinh</span>` : '<span class="delta">—</span>');
+    return `<tr><td>${m.label}</td><td class="num">${fmt(b)}</td><td class="num">${fmt(a)}</td><td class="num">${diffHtml}</td><td class="num">${pctHtml}</td></tr>`;
+  }).join("");
+}
+
 async function main(){
-  let insights, posts;
+  let insights, posts, msgRows;
   try{
-    [insights, posts] = await Promise.all([fetchTab(TAB_INSIGHTS), fetchTab(TAB_POSTS)]);
+    [insights, posts, msgRows] = await Promise.all([
+      fetchTab(TAB_INSIGHTS), fetchTab(TAB_POSTS),
+      fetchTab("💬 Messages Daily").catch(() => null),
+    ]);
   }catch(e){
     document.getElementById("loading").style.display = "none";
     document.getElementById("error").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu từ Google Sheet. Kiểm tra Sheet đã bật chia sẻ “Bất kỳ ai có đường liên kết đều có thể xem”. (' + e.message + ')</div>';
+    document.getElementById("keyStats").innerHTML = "";
     return;
   }
   document.getElementById("loading").style.display = "none";
@@ -371,6 +475,13 @@ async function main(){
       reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]),
       views: num(r[11]), rate: parseRate(r[12]) }; });
 
+  MSG = (msgRows || []).filter(r => r && r[0]).map(r => {
+    const raw = String(r[0]);
+    const d = parseDay(raw) ||
+      (/^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(raw.slice(0,10) + "T00:00:00") : parsePostDate(raw));
+    return { date: d, conv: num(r[1]) };
+  }).filter(m => m.date);
+
   const months = [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + (d.date.getMonth() + 1)))].sort();
   const mSel = document.getElementById("monthSel");
   months.forEach(m => {
@@ -387,6 +498,7 @@ async function main(){
     markActive(btn);
     const p = btn.dataset.preset;
     if(p === "all") setRange(first, last);
+    else if(p === "today") setRange(last, last);
     else if(p === "year") setRange(new Date(2026, 0, 1), last);
     else { const f = new Date(last); f.setDate(f.getDate() - (+p - 1)); setRange(f, last); }
   });
@@ -416,6 +528,15 @@ async function main(){
       rerender();
     });
   });
+
+  document.getElementById("dataAsOf").textContent = "Dữ liệu tới ngày " + DAYS[DAYS.length - 1].label;
+  document.getElementById("cmpAFrom").value = isoLocal(new Date(last.getFullYear(), last.getMonth(), 1));
+  document.getElementById("cmpATo").value = isoLocal(last);
+  document.getElementById("cmpBFrom").value = isoLocal(new Date(last.getFullYear(), last.getMonth() - 1, 1));
+  document.getElementById("cmpBTo").value = isoLocal(new Date(last.getFullYear(), last.getMonth(), 0));
+  document.getElementById("cmpApply").addEventListener("click", renderCompare);
+  renderKeyStats();
+  renderCompare();
 
   document.getElementById("updated").textContent = "tải lúc " + new Date().toLocaleString("vi-VN");
   const f30 = new Date(last); f30.setDate(f30.getDate() - 29);
@@ -560,6 +681,39 @@ function fillSelect(id, values){
   });
 }
 
+function renderDeadlineRadar(){
+  const box = document.getElementById("deadlineRadar");
+  if(!box) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const over = [], soon = [];
+  LC.forEach(r => {
+    if(!r.deadline || r.statusGroup === "done") return;
+    const dl = parsePostDate(r.deadline);
+    if(!dl) return;
+    dl.setHours(0,0,0,0);
+    const diff = Math.round((dl - today) / 86400000);
+    const item = { r, dl, diff };
+    if(diff < 0) over.push(item);
+    else if(diff <= 1) soon.push(item);
+  });
+  over.sort((a,b) => a.dl - b.dl);
+  soon.sort((a,b) => a.dl - b.dl);
+  if(!over.length && !soon.length){
+    box.innerHTML = '<div style="color:var(--up);font-weight:600">Không có việc trễ/sắp trễ 🎉</div>';
+    return;
+  }
+  const line = (it, kind) => {
+    const tag = kind === "over"
+      ? `<span class="fbadge f-video">⛔ Quá hạn ${Math.abs(it.diff)} ngày</span>`
+      : `<span class="fbadge f-warn">${it.diff === 0 ? "⚠️ Hạn hôm nay" : "⚠️ Hạn ngày mai"}</span>`;
+    return `<div class="radar-item">${tag} <b>${it.r.topic || "(không có topic)"}</b>` +
+      ` <span style="color:var(--mut)">· Deadline: ${it.r.deadline} · ${statusHtml(it.r.status)} · ${pillarBadge(it.r.pillarShort)}</span></div>`;
+  };
+  box.innerHTML =
+    (over.length ? `<div style="font-weight:600;color:var(--down);margin:4px 0">⛔ Đã quá hạn, chưa hoàn thành (${over.length})</div>` + over.map(it => line(it, "over")).join("") : "") +
+    (soon.length ? `<div style="font-weight:600;color:#fcd34d;margin:10px 0 4px">⚠️ Tới hạn hôm nay / ngày mai (${soon.length})</div>` + soon.map(it => line(it, "soon")).join("") : "");
+}
+
 async function initPlanPages(){
   try{
     const [planRows, lcRows, mxRows, siRows] = await Promise.all([
@@ -607,7 +761,7 @@ async function initPlanPages(){
     document.getElementById("planSearch").addEventListener("input", renderPlan);
     ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
     document.getElementById("lcSearch").addEventListener("input", renderLC);
-    renderPlan(); renderLC(); renderMatrix();
+    renderPlan(); renderLC(); renderMatrix(); renderDeadlineRadar();
   }catch(e){
     document.getElementById("matrixBox").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
@@ -621,6 +775,170 @@ document.getElementById("sidenav").addEventListener("click", e => {
   window.dispatchEvent(new Event("resize"));
 });
 initPlanPages();
+</script>
+<script>
+// ===== 🎬 Phân tích content chuyên sâu (tab Video Insights của Sheet chính) =====
+let VIDEOS = [];
+const DEEP_SORT = { key: "avg", dir: -1 };
+
+function parseRetention(raw){
+  if(raw == null || raw === "") return [];
+  let obj = raw;
+  if(typeof raw === "string"){
+    try { obj = JSON.parse(raw); } catch(e){ return []; }
+  }
+  const pts = [];
+  if(Array.isArray(obj)){
+    obj.forEach((p, i) => { const v = Number(p); if(!isNaN(v)) pts.push({ t: i, p: v }); });
+  } else if(obj && typeof obj === "object"){
+    Object.keys(obj).forEach(k => {
+      const t = Number(k), v = Number(obj[k]);
+      if(!isNaN(t) && !isNaN(v)) pts.push({ t, p: v });
+    });
+  }
+  return pts.sort((a,b) => a.t - b.t);
+}
+function retAt(pts, sec){
+  if(!pts.length) return null;
+  let v = null;
+  for(const p of pts){ if(p.t <= sec) v = p.p; else break; }
+  return v === null ? pts[0].p : v;
+}
+function qualityOf(v){
+  const r15 = retAt(v.ret, 15);
+  if(r15 === null) return '<span class="fbadge f-other">— chưa có dữ liệu giữ chân</span>';
+  if(r15 >= 35) return '<span class="fbadge f-group">🟢 Giữ chân tốt</span>';
+  return '<span class="fbadge f-warn">🟡 Rớt sớm — xem lại hook</span>';
+}
+function fbLink(postId){
+  const s = String(postId || "");
+  const i = s.indexOf("_");
+  if(i > 0) return "https://www.facebook.com/" + s.slice(0, i) + "/posts/" + s.slice(i + 1);
+  return "https://www.facebook.com/" + s;
+}
+function renderDeepTable(){
+  const val = (v,k) => k === "date" ? (v.date ? v.date.getTime() : 0) : v[k];
+  const rows = [...VIDEOS].sort((a,b) => {
+    const x = val(a, DEEP_SORT.key), y = val(b, DEEP_SORT.key);
+    return ((x < y ? -1 : x > y ? 1 : 0)) * (DEEP_SORT.dir === -1 ? -1 : 1);
+  });
+  document.querySelectorAll("#deepTable th.deepth").forEach(th => {
+    const a = th.querySelector(".arr");
+    if(a) a.textContent = DEEP_SORT.key === th.dataset.key ? (DEEP_SORT.dir === -1 ? "▼" : "▲") : "";
+  });
+  document.querySelector("#deepTable tbody").innerHTML = rows.map(v =>
+    `<tr data-pid="${v.postId}" style="cursor:pointer" title="Bấm để xem chi tiết">` +
+    `<td style="white-space:nowrap">${v.dateStr || ""}</td>` +
+    `<td class="title-cell">${v.title || "(không tiêu đề)"}</td>` +
+    `<td class="num">${fmt(v.views)}</td><td class="num">${fmt(v.minutes)}</td><td class="num">${fmt(v.avg)}</td>` +
+    `<td>${qualityOf(v)}</td></tr>`).join("") ||
+    '<tr><td colspan="6" style="color:var(--mut)">Chưa có video nào.</td></tr>';
+}
+function biggestEarlyDrop(pts){
+  let best = null;
+  for(let i = 1; i < pts.length; i++){
+    if(pts[i].t > 10) break;
+    const drop = pts[i-1].p - pts[i].p;
+    if(drop > 0 && (!best || drop > best.drop)) best = { from: pts[i-1].t, to: pts[i].t, drop };
+  }
+  return best;
+}
+function drawRetention(pts){
+  const cv = document.getElementById("retCanvas");
+  if(!cv || !pts.length) return;
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, L = 46, R = 14, T = 14, B = 28;
+  ctx.clearRect(0, 0, W, H);
+  const maxT = Math.max(10, pts[pts.length - 1].t);
+  const X = t => L + (W - L - R) * (t / maxT);
+  const Y = p => T + (H - T - B) * (1 - Math.max(0, Math.min(100, p)) / 100);
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.lineWidth = 1;
+  [0, 25, 50, 75, 100].forEach(p => {
+    ctx.strokeStyle = "#334155";
+    ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - R, Y(p)); ctx.stroke();
+    ctx.fillStyle = "#94a3b8"; ctx.fillText(p + "%", 10, Y(p) + 4);
+  });
+  const step = maxT <= 45 ? 5 : maxT <= 120 ? 15 : 30;
+  ctx.fillStyle = "#94a3b8";
+  for(let t = 0; t <= maxT; t += step) ctx.fillText(Math.round(t) + "s", X(t) - 8, H - 9);
+  if(maxT > 15){
+    ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(X(15), T); ctx.lineTo(X(15), H - B); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#f59e0b"; ctx.fillText("15s", X(15) + 4, T + 11);
+  }
+  ctx.beginPath();
+  pts.forEach((p, i) => { if(i) ctx.lineTo(X(p.t), Y(p.p)); else ctx.moveTo(X(p.t), Y(p.p)); });
+  ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.lineTo(X(pts[pts.length - 1].t), Y(0)); ctx.lineTo(X(pts[0].t), Y(0)); ctx.closePath();
+  ctx.fillStyle = "rgba(56,189,248,.15)"; ctx.fill();
+}
+function showDeepDetail(postId){
+  const v = VIDEOS.find(x => x.postId === postId);
+  if(!v) return;
+  const r15 = retAt(v.ret, 15), r30 = retAt(v.ret, 30), r60 = retAt(v.ret, 60);
+  const drop = biggestEarlyDrop(v.ret);
+  const pct = x => x === null ? "—" : (Math.round(x * 10) / 10) + "%";
+  const hours = v.minutes >= 120 ? ` (≈ ${(v.minutes / 60).toFixed(1)} giờ)` : "";
+  document.getElementById("deepDetail").innerHTML =
+    `<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">` +
+    `<h3 style="margin:0 0 4px;font-size:15px">${v.title || "(không tiêu đề)"}</h3>` +
+    `<div class="hint" style="margin:0 0 6px">Đăng ngày ${v.dateStr || "—"} · <a href="${fbLink(v.postId)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>${v.updated ? " · Cập nhật: " + v.updated : ""}</div>` +
+    `<section class="kpis" style="margin:8px 0">` + [
+      { label: "Lượt xem", value: fmt(v.views) },
+      { label: "Tổng thời gian xem", value: fmt(v.minutes) + " phút" + hours },
+      { label: "TB xem", value: fmt(v.avg) + " giây" },
+      { label: "Còn xem tại 15s", value: pct(r15) },
+      { label: "Còn xem tại 30s", value: pct(r30) },
+      { label: "Còn xem tại 60s", value: pct(r60) },
+      { label: "Điểm rớt mạnh nhất (10s đầu)", value: drop ? `giây ${drop.from}→${drop.to}: −${Math.round(drop.drop * 10) / 10}%` : "—" },
+    ].map(k => `<div class="kpi"><div class="label">${k.label}</div><div class="value" style="font-size:19px">${k.value}</div></div>`).join("") +
+    `</section>` +
+    (v.ret.length
+      ? `<canvas id="retCanvas" width="920" height="300" style="width:100%;height:auto"></canvas>` +
+        `<div class="hint">Đường giữ chân khán giả: % người xem còn ở lại theo từng mốc giây. Vạch vàng = mốc 15 giây — chuẩn “giữ chân tốt” là còn ≥ 35% tại mốc này.</div>`
+      : '<div class="hint">Video này chưa có dữ liệu đường giữ chân.</div>') +
+    `</div>`;
+  drawRetention(v.ret);
+}
+async function loadDeep(){
+  const box = document.getElementById("deepBox");
+  let rows = null;
+  try { rows = await fetchTabFrom(SHEET_ID, "🎬 Video Insights"); } catch(e){ rows = null; }
+  const data = (rows || []).filter(r => r && (r[0] || r[2]));
+  if(!data.length){
+    box.innerHTML = '<div style="padding:14px 4px;color:var(--mut)">🎬 Dữ liệu video chuyên sâu đang được hệ thống kéo về… Khi tab “Video Insights” có dữ liệu, bảng xếp hạng video và biểu đồ giữ chân của từng video sẽ hiện tại đây.</div>';
+    return;
+  }
+  VIDEOS = data.map(r => ({
+    postId: cell(r, 0), dateStr: cell(r, 1), date: parsePostDate(cell(r, 1)),
+    title: cell(r, 2), views: num(r[3]), minutes: num(r[4]), avg: num(r[5]),
+    ret: parseRetention(r[6]), updated: cell(r, 7),
+  }));
+  box.innerHTML =
+    `<div class="scroll" style="max-height:560px"><table id="deepTable"><thead><tr>` +
+    `<th class="deepth" data-key="date">Ngày <span class="arr"></span></th>` +
+    `<th class="deepth" data-key="title">Tiêu đề <span class="arr"></span></th>` +
+    `<th class="num deepth" data-key="views">Views <span class="arr"></span></th>` +
+    `<th class="num deepth" data-key="minutes">Tổng phút xem <span class="arr"></span></th>` +
+    `<th class="num deepth" data-key="avg">TB xem (giây) <span class="arr"></span></th>` +
+    `<th>Nhãn chất lượng</th></tr></thead><tbody></tbody></table></div>` +
+    `<div class="hint">Mặc định xếp theo TB xem giảm dần; bấm tiêu đề cột để đổi cách xếp. Bấm vào một video để xem biểu đồ giữ chân và số liệu chi tiết bên dưới. Nhãn “Giữ chân tốt” = tại giây 15 còn ≥ 35% người xem.</div>`;
+  document.querySelectorAll("#deepTable th.deepth").forEach(th => {
+    th.addEventListener("click", () => {
+      if(DEEP_SORT.key === th.dataset.key) DEEP_SORT.dir = -DEEP_SORT.dir;
+      else { DEEP_SORT.key = th.dataset.key; DEEP_SORT.dir = th.dataset.key === "title" ? 1 : -1; }
+      renderDeepTable();
+    });
+  });
+  document.querySelector("#deepTable tbody").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-pid]");
+    if(tr) showDeepDetail(tr.dataset.pid);
+  });
+  renderDeepTable();
+}
+loadDeep();
 </script>
 </body>
 </html>
