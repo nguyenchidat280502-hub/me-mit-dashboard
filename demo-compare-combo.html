@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo phối 1 + 4 — So sánh kỳ · MẸ MÍT</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--up:#34d399;--down:#f87171;--grey:#64748b}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:21px;margin:0 0 4px} h2{font-size:16px;margin:0 0 10px} h3{font-size:14.5px;margin:18px 0 6px;color:var(--txt)}
+  .sub{color:var(--mut);font-size:13px;line-height:1.6}
+  .sub a,.note a{color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+  .grp{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .grp label{color:var(--mut);font-size:13px}
+  input[type=date]{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  button.chip{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.chip:hover{border-color:var(--acc)}
+  .summary{font-size:13px;margin:2px 0 4px}
+  .verdict{border-left:4px solid var(--acc);background:rgba(56,189,248,.07);border-radius:8px;padding:10px 14px;margin-top:12px}
+  .verdict .vt{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);margin-bottom:3px}
+  .verdict p{margin:0;font-size:14.5px;line-height:1.65}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
+  .tile{background:#16233c;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .tile .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tile .label{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .tile .big{font-size:27px;font-weight:700;margin:6px 0 2px}
+  .tile .ratio{color:var(--acc);font-size:12.5px;font-weight:600}
+  .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .chip.up{background:rgba(52,211,153,.15);color:var(--up);border:1px solid rgba(52,211,153,.4)}
+  .chip.down{background:rgba(248,113,113,.13);color:var(--down);border:1px solid rgba(248,113,113,.4)}
+  .brow{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12px}
+  .brow .tag{flex:0 0 34px;color:var(--mut);font-weight:600}
+  .track{flex:1;height:12px;background:#0b1220;border-radius:99px;overflow:hidden}
+  .track>i{display:block;height:100%;border-radius:99px}
+  .fillA{background:linear-gradient(90deg,#0284c7,var(--acc))}
+  .fillB{background:var(--grey)}
+  .brow .val{font-variant-numeric:tabular-nums}
+  .brow .val.b{color:var(--mut)}
+  .metchips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+  button.mchip{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.mchip:hover{border-color:var(--acc)}
+  button.mchip.active{background:var(--acc);color:#082f49;border-color:var(--acc);font-weight:600}
+  .legend{display:flex;gap:18px;font-size:13px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
+  .legend b{color:var(--txt)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .statline{font-size:13.5px;color:var(--mut);margin-top:10px;line-height:1.7}
+  .statline b{color:var(--txt)}
+  .note{color:var(--mut);font-size:12.5px;line-height:1.6}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:18px 0 4px}
+  canvas{max-height:320px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧪 Demo bản PHỐI 1 + 4 — ô So sánh kỳ hoàn chỉnh</h1>
+  <div class="sub">
+    Đây là hình dáng ô so sánh kỳ sau khi phối: <b style="color:var(--txt)">chọn kỳ ở trên → dòng kết luận → thẻ thanh tỷ lệ (phương án 1) → biểu đồ đường theo ngày (phương án 4)</b>, tất cả trong một khối thống nhất.<br>
+    Demo chạy trên dữ liệu thật 01/09/2026 – 30/10/2026 (chọn kỳ tự do trong khoảng này, bấm Áp dụng là mọi thứ bên dưới tính lại). <a href="./">Dashboard chính</a> · <a href="./demo-compare.html">Demo từng phương án riêng</a>
+  </div>
+
+  <div class="card">
+    <h2>🔀 So sánh kỳ — chỉ số cũ vs mới</h2>
+    <div class="grp">
+      <label>Kỳ A (mới): từ</label><input type="date" id="cmpAFrom" min="2026-09-01" max="2026-10-30" value="2026-10-01">
+      <label>đến</label><input type="date" id="cmpATo" min="2026-09-01" max="2026-10-30" value="2026-10-30">
+      <label>Kỳ B (cũ): từ</label><input type="date" id="cmpBFrom" min="2026-09-01" max="2026-10-30" value="2026-09-01">
+      <label>đến</label><input type="date" id="cmpBTo" min="2026-09-01" max="2026-10-30" value="2026-09-30">
+      <button class="chip" id="cmpApply">Áp dụng</button>
+    </div>
+    <div class="summary" id="cmpSummary"></div>
+
+    <div class="verdict">
+      <div class="vt">⚡ Kết luận nhanh</div>
+      <p id="verdict">Đang tính…</p>
+    </div>
+
+    <div class="grid" id="tiles"></div>
+
+    <hr class="sep">
+    <h3>📈 Diễn biến theo ngày của 2 kỳ</h3>
+    <div class="note">Hai kỳ được căn theo thứ tự ngày trong kỳ (Ngày 1, Ngày 2, …). Đưa chuột vào biểu đồ để xem số từng ngày; bấm chip để đổi chỉ số:</div>
+    <div class="metchips" id="metChips"></div>
+    <canvas id="cmpChart"></canvas>
+    <div class="legend" id="chartLegend"></div>
+    <div class="statline" id="chartStats"></div>
+    <div class="note" id="lenNote" style="margin-top:6px"></div>
+  </div>
+
+  <div class="note">Bản demo dùng số liệu chụp tại thời điểm tạo. Khi tích hợp vào dashboard chính, ô này sẽ chạy trên dữ liệu trực tiếp (tự cập nhật mỗi 30 phút) và chọn được mọi kỳ trong toàn bộ dữ liệu, thay thế hẳn bảng số thô hiện tại.</div>
+</div>
+
+<script>
+const ALL = [{"iso": "2026-09-01", "label": "01/09/2026", "views": 417.0, "unique": 128.0, "eng": 23.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 26.0}, {"iso": "2026-09-02", "label": "02/09/2026", "views": 234.0, "unique": 65.0, "eng": 5.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 29.0}, {"iso": "2026-09-03", "label": "03/09/2026", "views": 234.0, "unique": 37.0, "eng": 2.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 28.0}, {"iso": "2026-09-04", "label": "04/09/2026", "views": 216.0, "unique": 36.0, "eng": 1.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 28.0}, {"iso": "2026-09-05", "label": "05/09/2026", "views": 281.0, "unique": 36.0, "eng": 3.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 72.0}, {"iso": "2026-09-06", "label": "06/09/2026", "views": 371.0, "unique": 60.0, "eng": 8.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 23.0}, {"iso": "2026-09-07", "label": "07/09/2026", "views": 418.0, "unique": 65.0, "eng": 5.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 80.0}, {"iso": "2026-09-08", "label": "08/09/2026", "views": 147.0, "unique": 36.0, "eng": 43.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 60.0}, {"iso": "2026-09-09", "label": "09/09/2026", "views": 356.0, "unique": 68.0, "eng": 18.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 59.0}, {"iso": "2026-09-10", "label": "10/09/2026", "views": 600.0, "unique": 104.0, "eng": 22.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 192.0}, {"iso": "2026-09-11", "label": "11/09/2026", "views": 319.0, "unique": 69.0, "eng": 7.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 37.0}, {"iso": "2026-09-12", "label": "12/09/2026", "views": 179.0, "unique": 88.0, "eng": 1.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 8.0}, {"iso": "2026-09-13", "label": "13/09/2026", "views": 305.0, "unique": 36.0, "eng": 3.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 41.0}, {"iso": "2026-09-14", "label": "14/09/2026", "views": 201.0, "unique": 31.0, "eng": 2.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 9.0}, {"iso": "2026-09-15", "label": "15/09/2026", "views": 377.0, "unique": 101.0, "eng": 8.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 21.0}, {"iso": "2026-09-16", "label": "16/09/2026", "views": 369.0, "unique": 145.0, "eng": 6.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 11.0}, {"iso": "2026-09-17", "label": "17/09/2026", "views": 701.0, "unique": 39.0, "eng": 10.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 286.0}, {"iso": "2026-09-18", "label": "18/09/2026", "views": 276.0, "unique": 39.0, "eng": 2.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 60.0}, {"iso": "2026-09-19", "label": "19/09/2026", "views": 138.0, "unique": 18.0, "eng": 2.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 113.0}, {"iso": "2026-09-20", "label": "20/09/2026", "views": 225.0, "unique": 36.0, "eng": 3.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 13.0}, {"iso": "2026-09-21", "label": "21/09/2026", "views": 435.0, "unique": 20.0, "eng": 10.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 37.0}, {"iso": "2026-09-22", "label": "22/09/2026", "views": 220.0, "unique": 49.0, "eng": 12.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 9.0}, {"iso": "2026-09-23", "label": "23/09/2026", "views": 1075.0, "unique": 535.0, "eng": 294.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 78.0}, {"iso": "2026-09-24", "label": "24/09/2026", "views": 698.0, "unique": 232.0, "eng": 119.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 72.0}, {"iso": "2026-09-25", "label": "25/09/2026", "views": 318.0, "unique": 60.0, "eng": 11.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 33.0}, {"iso": "2026-09-26", "label": "26/09/2026", "views": 610.0, "unique": 300.0, "eng": 6.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 15.0}, {"iso": "2026-09-27", "label": "27/09/2026", "views": 995.0, "unique": 220.0, "eng": 6.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 73.0}, {"iso": "2026-09-28", "label": "28/09/2026", "views": 437.0, "unique": 90.0, "eng": 3.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 73.0}, {"iso": "2026-09-29", "label": "29/09/2026", "views": 657.0, "unique": 69.0, "eng": 10.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 75.0}, {"iso": "2026-09-30", "label": "30/09/2026", "views": 245.0, "unique": 74.0, "eng": 6.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 10.0}, {"iso": "2026-10-01", "label": "01/10/2026", "views": 245.0, "unique": 75.0, "eng": 3.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 40.0}, {"iso": "2026-10-02", "label": "02/10/2026", "views": 180.0, "unique": 29.0, "eng": 2.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 52.0}, {"iso": "2026-10-03", "label": "03/10/2026", "views": 60.0, "unique": 31.0, "eng": 0.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 8.0}, {"iso": "2026-10-04", "label": "04/10/2026", "views": 262.0, "unique": 41.0, "eng": 18.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 38.0}, {"iso": "2026-10-05", "label": "05/10/2026", "views": 279.0, "unique": 63.0, "eng": 7.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 51.0}, {"iso": "2026-10-06", "label": "06/10/2026", "views": 331.0, "unique": 75.0, "eng": 12.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 64.0}, {"iso": "2026-10-07", "label": "07/10/2026", "views": 512.0, "unique": 166.0, "eng": 3.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 42.0}, {"iso": "2026-10-08", "label": "08/10/2026", "views": 1282.0, "unique": 642.0, "eng": 126.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 79.0}, {"iso": "2026-10-09", "label": "09/10/2026", "views": 2785.0, "unique": 1518.0, "eng": 150.0, "follows": 5.0, "unfollows": 0.0, "pageViews": 106.0}, {"iso": "2026-10-10", "label": "10/10/2026", "views": 3312.0, "unique": 1799.0, "eng": 335.0, "follows": 2.0, "unfollows": 1.0, "pageViews": 94.0}, {"iso": "2026-10-11", "label": "11/10/2026", "views": 2501.0, "unique": 1339.0, "eng": 177.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 103.0}, {"iso": "2026-10-12", "label": "12/10/2026", "views": 3036.0, "unique": 1347.0, "eng": 171.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 136.0}, {"iso": "2026-10-13", "label": "13/10/2026", "views": 2147.0, "unique": 756.0, "eng": 99.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 206.0}, {"iso": "2026-10-14", "label": "14/10/2026", "views": 1204.0, "unique": 296.0, "eng": 32.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 151.0}, {"iso": "2026-10-15", "label": "15/10/2026", "views": 1084.0, "unique": 314.0, "eng": 20.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 62.0}, {"iso": "2026-10-16", "label": "16/10/2026", "views": 518.0, "unique": 201.0, "eng": 4.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 50.0}, {"iso": "2026-10-17", "label": "17/10/2026", "views": 165.0, "unique": 45.0, "eng": 3.0, "follows": 0.0, "unfollows": 1.0, "pageViews": 13.0}, {"iso": "2026-10-18", "label": "18/10/2026", "views": 470.0, "unique": 127.0, "eng": 12.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 74.0}, {"iso": "2026-10-19", "label": "19/10/2026", "views": 1069.0, "unique": 281.0, "eng": 39.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 170.0}, {"iso": "2026-10-20", "label": "20/10/2026", "views": 667.0, "unique": 309.0, "eng": 14.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 74.0}, {"iso": "2026-10-21", "label": "21/10/2026", "views": 1444.0, "unique": 412.0, "eng": 55.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 120.0}, {"iso": "2026-10-22", "label": "22/10/2026", "views": 1272.0, "unique": 227.0, "eng": 39.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 121.0}, {"iso": "2026-10-23", "label": "23/10/2026", "views": 1416.0, "unique": 657.0, "eng": 98.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 126.0}, {"iso": "2026-10-24", "label": "24/10/2026", "views": 1036.0, "unique": 466.0, "eng": 53.0, "follows": 0.0, "unfollows": 1.0, "pageViews": 92.0}, {"iso": "2026-10-25", "label": "25/10/2026", "views": 517.0, "unique": 199.0, "eng": 21.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 66.0}, {"iso": "2026-10-26", "label": "26/10/2026", "views": 1329.0, "unique": 456.0, "eng": 34.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 129.0}, {"iso": "2026-10-27", "label": "27/10/2026", "views": 900.0, "unique": 166.0, "eng": 18.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 108.0}, {"iso": "2026-10-28", "label": "28/10/2026", "views": 831.0, "unique": 200.0, "eng": 21.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 89.0}, {"iso": "2026-10-29", "label": "29/10/2026", "views": 1053.0, "unique": 154.0, "eng": 30.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 173.0}, {"iso": "2026-10-30", "label": "30/10/2026", "views": 757.0, "unique": 329.0, "eng": 47.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 42.0}];
+const METS = [
+  { key: "views",     label: "Lượt xem",       good: "up" },
+  { key: "unique",    label: "Người xem",      good: "up" },
+  { key: "eng",       label: "Tương tác",      good: "up" },
+  { key: "follows",   label: "Follow mới",     good: "up" },
+  { key: "unfollows", label: "Unfollow",       good: "down" },
+  { key: "pageViews", label: "Lượt xem trang", good: "up" },
+];
+const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const pctTxt = p => (p >= 0 ? "+" : "−") + Math.abs(p).toFixed(1).replace(".", ",") + "%";
+const dstr = iso => { const p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; };
+const inRange = (f, t) => ALL.filter(r => r.iso >= f && r.iso <= t);
+const sum = (rows, k) => rows.reduce((s, r) => s + (r[k] || 0), 0);
+
+let rowsA = [], rowsB = [], chart = null, curKey = "views";
+
+function totals(rows){ const o = {}; METS.forEach(m => o[m.key] = sum(rows, m.key)); return o; }
+function dInfo(m, TA, TB){
+  const a = TA[m.key], b = TB[m.key], diff = a - b;
+  const good = m.good === "up" ? diff >= 0 : diff <= 0;
+  let txt;
+  if (b > 0) txt = (diff > 0 ? "▲ " : diff < 0 ? "▼ " : "— ") + pctTxt(diff / b * 100);
+  else txt = a > 0 ? "mới phát sinh" : "—";
+  return { a, b, diff, good, pct: b > 0 ? diff / b * 100 : null, txt };
+}
+
+function render(){
+  const af = document.getElementById("cmpAFrom").value, at = document.getElementById("cmpATo").value;
+  const bf = document.getElementById("cmpBFrom").value, bt = document.getElementById("cmpBTo").value;
+  if (!af || !at || !bf || !bt) return;
+  rowsA = inRange(af, at); rowsB = inRange(bf, bt);
+  const TA = totals(rowsA), TB = totals(rowsB);
+
+  document.getElementById("cmpSummary").textContent =
+    `Đang so sánh: Kỳ A (mới) ${dstr(af)} – ${dstr(at)} (${rowsA.length} ngày) ↔ Kỳ B (cũ) ${dstr(bf)} – ${dstr(bt)} (${rowsB.length} ngày).`;
+
+  /* Kết luận nhanh */
+  const infos = METS.map(m => ({ m, ...dInfo(m, TA, TB) }));
+  const gainers = infos.filter(i => i.pct !== null && i.good && i.diff > 0).sort((x, y) => y.pct - x.pct);
+  const losers = infos.filter(i => i.diff !== 0 && !i.good);
+  const parts = [];
+  if (gainers.length)
+    parts.push(`Kỳ A tăng mạnh nhất ở ${gainers.slice(0, 2).map(i => `<b>${i.m.label.toLowerCase()} ${pctTxt(i.pct)}</b>`).join(" và ")} so với Kỳ B.`);
+  losers.forEach(i => {
+    if (i.m.key === "unfollows" && i.b === 0) parts.push(`⚠️ Cần chú ý: <b>Unfollow phát sinh ${fmt(i.a)}</b> trong khi Kỳ B không có.`);
+    else parts.push(`⚠️ Cần chú ý: <b>${i.m.label} ${i.diff > 0 ? "tăng" : "giảm"} ${fmt(Math.abs(i.diff))}</b> (${i.txt}) — bất lợi cho kênh.`);
+  });
+  if (!gainers.length && !losers.length) parts.push("Hai kỳ gần như tương đương ở mọi chỉ số.");
+  else if (!losers.length) parts.push("Không có chỉ số nào diễn biến bất lợi trong kỳ này.");
+  document.getElementById("verdict").innerHTML = parts.join(" ");
+
+  /* Phương án 1: thẻ + thanh tỷ lệ */
+  document.getElementById("tiles").innerHTML = METS.map(m => {
+    const i = dInfo(m, TA, TB);
+    const mx = Math.max(i.a, i.b, 1);
+    const wA = Math.max(i.a / mx * 100, i.a > 0 ? 2 : 0);
+    const wB = Math.max(i.b / mx * 100, i.b > 0 ? 2 : 0);
+    const ratio = i.b > 0 && i.a > i.b ? `<span class="ratio">gấp ${(i.a / i.b).toFixed(1).replace(".", ",")} lần Kỳ B</span>` : "";
+    return `<div class="tile">
+      <div class="top"><span class="label">${m.label}</span><span class="chip ${i.good ? "up" : "down"}">${i.txt}</span></div>
+      <div class="big">${fmt(i.a)}</div>
+      <div>${ratio}</div>
+      <div class="brow"><span class="tag">Kỳ A</span><div class="track"><i class="fillA" style="width:${wA}%"></i></div><span class="val">${fmt(i.a)}</span></div>
+      <div class="brow"><span class="tag">Kỳ B</span><div class="track"><i class="fillB" style="width:${wB}%"></i></div><span class="val b">${fmt(i.b)}</span></div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("chartLegend").innerHTML =
+    `<span><span class="dot" style="background:var(--acc)"></span><b>Kỳ A (mới)</b> · ${dstr(af)} – ${dstr(at)}</span>` +
+    `<span><span class="dot" style="background:var(--grey)"></span><b>Kỳ B (cũ)</b> · ${dstr(bf)} – ${dstr(bt)}</span>`;
+  document.getElementById("lenNote").textContent = rowsA.length !== rowsB.length
+    ? `Lưu ý: hai kỳ dài khác nhau (Kỳ A ${rowsA.length} ngày, Kỳ B ${rowsB.length} ngày) — biểu đồ căn theo thứ tự ngày trong kỳ, đường ngắn hơn sẽ kết thúc sớm hơn.` : "";
+
+  renderChart(TA, TB);
+}
+
+function renderChart(TA, TB){
+  TA = TA || totals(rowsA); TB = TB || totals(rowsB);
+  const m = METS.find(x => x.key === curKey);
+  const n = Math.max(rowsA.length, rowsB.length);
+  const labels = Array.from({ length: n }, (_, i) => "Ngày " + (i + 1));
+  const ctx = document.getElementById("cmpChart").getContext("2d");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Kỳ A (mới)", data: rowsA.map(r => r[curKey]), borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,.14)", fill: true, tension: .3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
+      { label: "Kỳ B (cũ)", data: rowsB.map(r => r[curKey]), borderColor: "#64748b", borderDash: [6, 4], fill: false, tension: .3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
+    ]},
+    options: {
+      responsive: true, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: items => items.length ? "Ngày thứ " + (items[0].dataIndex + 1) + " của kỳ" : "",
+        label: c => { const rows = c.datasetIndex === 0 ? rowsA : rowsB; const r = rows[c.dataIndex]; return r ? " " + c.dataset.label + " · " + r.label + ": " + fmt(c.parsed.y) : ""; },
+      } } },
+      scales: {
+        x: { ticks: { color: "#94a3b8", maxTicksLimit: 10 }, grid: { color: "rgba(148,163,184,.08)" } },
+        y: { beginAtZero: true, ticks: { color: "#94a3b8", callback: v => fmt(v) }, grid: { color: "rgba(148,163,184,.12)" } },
+      },
+    },
+  });
+  const i = dInfo(m, TA, TB);
+  const peak = rows => rows.reduce((best, r, idx) => r[curKey] > rows[best][curKey] ? idx : best, 0);
+  const pA = peak(rowsA), pB = peak(rowsB);
+  document.getElementById("chartStats").innerHTML =
+    `<b>${m.label}</b> — Tổng Kỳ A: <b>${fmt(i.a)}</b> · Tổng Kỳ B: <b>${fmt(i.b)}</b> · Thay đổi: <b>${i.txt}</b><br>` +
+    `Ngày cao nhất của Kỳ A: <b>ngày thứ ${pA + 1} (${rowsA[pA].label}) — ${fmt(rowsA[pA][curKey])}</b> · của Kỳ B: <b>ngày thứ ${pB + 1} (${rowsB[pB].label}) — ${fmt(rowsB[pB][curKey])}</b>`;
+}
+
+document.getElementById("metChips").innerHTML = METS.map(m =>
+  `<button class="mchip ${m.key === curKey ? "active" : ""}" data-k="${m.key}">${m.label}</button>`).join("");
+document.querySelectorAll(".mchip").forEach(b => b.addEventListener("click", () => {
+  curKey = b.dataset.k;
+  document.querySelectorAll(".mchip").forEach(x => x.classList.toggle("active", x === b));
+  renderChart();
+}));
+document.getElementById("cmpApply").addEventListener("click", render);
+render();
+</script>
+</body>
+</html>
