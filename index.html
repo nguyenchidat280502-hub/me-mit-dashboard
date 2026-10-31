@@ -131,9 +131,10 @@
       <label style="color:var(--mut);font-size:13px">đến</label><input type="date" id="cmpBTo">
       <button class="chip" id="cmpApply">Áp dụng</button>
     </div>
+    <div id="cmpSummary" style="font-size:13px;margin:-2px 0 10px"></div>
     <div style="overflow:auto">
     <table id="cmpTable"><thead><tr>
-      <th>Chỉ số</th><th class="num" id="cmpHeadB">Kỳ B (cũ)</th><th class="num" id="cmpHeadA">Kỳ A (mới)</th><th class="num">Thay đổi</th><th class="num">% thay đổi</th>
+      <th>Chỉ số</th><th class="num" id="cmpHeadA">Kỳ A (mới)</th><th class="num" id="cmpHeadB">Kỳ B (cũ)</th><th class="num">Thay đổi</th><th class="num">% thay đổi</th>
     </tr></thead><tbody></tbody></table>
     </div>
     <div class="hint">Mặc định: Kỳ A = tháng hiện tại (tới ngày mới nhất có dữ liệu), Kỳ B = tháng trước. Với Unfollow, giảm là tốt (xanh), tăng là xấu (đỏ).</div>
@@ -431,8 +432,10 @@ function renderCompare(){
   const A0 = new Date(af + "T00:00:00"), A1 = new Date(at + "T00:00:00");
   const B0 = new Date(bf + "T00:00:00"), B1 = new Date(bt + "T00:00:00");
   const sumIn = (f,t,k) => DAYS.filter(d => d.date >= f && d.date <= t).reduce((s,d) => s + (d[k] || 0), 0);
-  document.getElementById("cmpHeadA").textContent = `Kỳ A (mới) · ${dstr(A0)} – ${dstr(A1)}`;
-  document.getElementById("cmpHeadB").textContent = `Kỳ B (cũ) · ${dstr(B0)} – ${dstr(B1)}`;
+  const daysIn = (f,t) => Math.round((t - f) / 86400000) + 1;
+  document.getElementById("cmpHeadA").textContent = `Kỳ A (mới) · ${dstr(A0)} – ${dstr(A1)} · ${daysIn(A0,A1)} ngày`;
+  document.getElementById("cmpHeadB").textContent = `Kỳ B (cũ) · ${dstr(B0)} – ${dstr(B1)} · ${daysIn(B0,B1)} ngày`;
+  document.getElementById("cmpSummary").textContent = `Đang so sánh: Kỳ A (mới) ${dstr(A0)} – ${dstr(A1)} (${daysIn(A0,A1)} ngày) ↔ Kỳ B (cũ) ${dstr(B0)} – ${dstr(B1)} (${daysIn(B0,B1)} ngày). Cột "Thay đổi" = Kỳ A − Kỳ B.`;
   document.querySelector("#cmpTable tbody").innerHTML = CMP_METS.map(m => {
     const a = sumIn(A0, A1, m.key), b = sumIn(B0, B1, m.key);
     const diff = a - b;
@@ -442,7 +445,7 @@ function renderCompare(){
     const pctHtml = b > 0
       ? `<span class="delta ${good ? "up" : "down"}">${arrow} ${Math.abs(diff / b * 100).toFixed(1)}%</span>`
       : (a > 0 ? `<span class="delta ${good ? "up" : "down"}">mới phát sinh</span>` : '<span class="delta">—</span>');
-    return `<tr><td>${m.label}</td><td class="num">${fmt(b)}</td><td class="num">${fmt(a)}</td><td class="num">${diffHtml}</td><td class="num">${pctHtml}</td></tr>`;
+    return `<tr><td>${m.label}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td><td class="num">${diffHtml}</td><td class="num">${pctHtml}</td></tr>`;
   }).join("");
 }
 
