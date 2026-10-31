@@ -156,13 +156,16 @@
   <div class="brand">MẸ MÍT<small>Trung tâm kiểm soát nội dung & số liệu</small></div>
   <nav id="sidenav">
     <button data-page="page-overview" class="active">📊 Tổng quan số liệu</button>
-    <button data-page="page-plan">🗓 Media Plan tháng 11</button>
+    <button data-page="page-plan">🗓 Media Plan</button>
     <button data-page="page-content">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
-    <button data-page="page-review" id="navReview" style="display:none">📥 Duyệt bài</button>
     <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
   </nav>
+  <div style="padding:12px 14px">
+    <button id="syncNowBtn" type="button" style="width:100%;background:#1d4ed8;color:#fff;border:1px solid #1d4ed8;border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
+    <div id="syncNowStatus" style="font-size:12px;color:var(--mut);margin-top:6px;line-height:1.5"></div>
+  </div>
 </aside>
 <main>
 <header>
@@ -280,13 +283,19 @@
 
  <section class="page" id="page-plan">
   <div class="card">
-    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
-    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
-    <div class="hint">Lấy từ cột Deadline của List of Content: đã quá hạn mà chưa hoàn thành (đỏ) và tới hạn hôm nay/ngày mai (vàng).</div>
+    <h2>📅 Công việc tuần này <span id="weekRange" style="color:var(--mut);font-size:14px"></span></h2>
+    <div id="weekBox"><div class="loading">Đang tải kế hoạch tuần…</div></div>
   </div>
   <div class="card">
-    <h2>🗓 Media Plan tháng 11/2026 — lịch đăng & phân công</h2>
+    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
+    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
+    <div class="hint">Lấy từ Media Plan cả 2 tháng (ngày đăng + Link Air): bài đã qua ngày đăng mà chưa có Link Air là quá hạn (đỏ); bài đăng hôm nay/ngày mai chưa có link là sắp tới hạn (vàng).</div>
+  </div>
+  <div class="card">
+    <h2 id="planTitle">🗓 Media Plan — lịch đăng & phân công</h2>
+    <div class="grp" id="planMonths" style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px"></div>
     <section class="kpis" id="planKpis"></section>
+    <div id="planProgress" style="margin:10px 0 2px"></div>
     <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
       <select id="planPicC"><option value="">PIC Content: tất cả</option></select>
       <select id="planPicD"><option value="">PIC Design: tất cả</option></select>
@@ -297,7 +306,7 @@
     <div class="scroll" style="max-height:640px">
     <table id="planTable"><thead><tr>
       <th>Ngày đăng</th><th>Giờ</th><th>Hình thức</th><th>Nền tảng</th><th>Topic</th>
-      <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Check</th>
+      <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Trạng thái</th><th>Check</th>
     </tr></thead><tbody></tbody></table>
     </div>
     <div class="hint">Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút. <span id="planSyncInfo"></span></div>
@@ -336,10 +345,6 @@
 
  <section class="page" id="page-mine">
   <div id="mineBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
- </section>
-
- <section class="page" id="page-review">
-  <div id="reviewBox"><div class="card"><h2>📥 Duyệt bài</h2><div style="color:var(--mut)">Chỉ Quản Lí mới xem được mục này.</div></div></div>
  </section>
 
  <section class="page" id="page-admin">
@@ -696,6 +701,8 @@ main();
 <script>
 const PLAN_ID = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
 let PLAN = [], LC = [], MATRIX = [];
+let PLAN10 = [], PLAN11 = [], PLAN_ALL = [], PLAN_MONTHS = [], PLAN_MONTH = null;
+window.PLAN_MONTH_LABEL = "tháng 11/2026";
 
 async function fetchTabFrom(id, tab){
   const res = await fetch("https://docs.google.com/spreadsheets/d/" + id +
@@ -708,6 +715,24 @@ async function fetchTabFrom(id, tab){
     if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
     return c.v;
   }));
+}
+async function syncInfoKV(){
+  const res = await fetch("https://docs.google.com/spreadsheets/d/" + PLAN_ID +
+    "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent("Sync Info"));
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  const kv = {};
+  const cols = json.table.cols || [];
+  if(cols.length >= 2 && cols[0] && cols[0].label) kv[cols[0].label] = cols[1].label || "";
+  (json.table.rows || []).forEach(r => {
+    const c = (r.c || []).map(x => {
+      if(!x) return "";
+      if(x.f != null && typeof x.v === "string" && x.v.startsWith("Date(")) return x.f;
+      return x.v == null ? "" : String(x.v);
+    });
+    if(c[0]) kv[c[0]] = c[1] || "";
+  });
+  return kv;
 }
 const cell = (r,i) => (r && r[i] != null) ? String(r[i]).trim() : "";
 const isUrl = s => /^https?:\/\//i.test(s || "");
@@ -764,6 +789,27 @@ function pillarBadge(short){
   return `<span class="pbadge" style="${st}">${short}</span>`;
 }
 
+function planDayDiff(r){
+  const d = parsePostDate(r.date); if(!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+function planStatus(r){
+  if(r.air) return "done";
+  const diff = planDayDiff(r);
+  if(diff === null) return "soon";
+  if(diff < 0) return "over";
+  if(diff === 0) return "today";
+  return "soon";
+}
+function planStatusChip(r){
+  const s = planStatus(r);
+  if(s === "done") return '<span class="fbadge" style="background:rgba(34,197,94,.14);color:#4ade80;border-color:rgba(34,197,94,.45)">✅ Đã đăng</span>';
+  if(s === "over") return '<span class="fbadge f-video">⚠️ Quá hạn ' + Math.abs(planDayDiff(r)) + ' ngày</span>';
+  if(s === "today") return '<span class="fbadge f-warn">📌 Đăng hôm nay</span>';
+  return '<span class="fbadge" style="background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.45)">⏳ Sắp đăng</span>';
+}
+
 function renderPlan(){
   const fc = document.getElementById("planPicC").value;
   const fd = document.getElementById("planPicD").value;
@@ -779,11 +825,20 @@ function renderPlan(){
   const perPic = {};
   PLAN.forEach(r => { if(r.picC) perPic[r.picC] = (perPic[r.picC] || 0) + 1; });
   document.getElementById("planKpis").innerHTML = [
-    { label: "Tổng bài tháng 11", value: fmt(PLAN.length), note: "theo media plan" },
+    { label: "Tổng bài " + (PLAN_MONTH ? PLAN_MONTH.label : ""), value: fmt(PLAN.length), note: "theo media plan" },
     { label: "Đã có Link Air", value: fmt(withAir) + " / " + fmt(PLAN.length), note: PLAN.length ? Math.round(withAir/PLAN.length*100) + "% kế hoạch" : "" },
     { label: "Số video", value: fmt(videos), note: "hình thức Video" },
     ...Object.entries(perPic).map(([k,v]) => ({ label: "● Bài của " + k, value: fmt(v), note: "PIC Content", color: personColor(k) })),
   ].map(k => `<div class="kpi" ${k.color ? `style="border-top:3px solid ${k.color}"` : ""}><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("");
+  const nOver = PLAN.filter(r => planStatus(r) === "over").length;
+  const nToday = PLAN.filter(r => planStatus(r) === "today").length;
+  const pct = PLAN.length ? Math.round(withAir / PLAN.length * 100) : 0;
+  document.getElementById("planProgress").innerHTML =
+    `<div style="display:flex;justify-content:space-between;font-size:13px"><span>📈 Tiến độ đăng bài ${PLAN_MONTH ? PLAN_MONTH.label : ""}</span>` +
+    `<span style="color:var(--mut)">Đã đăng <b style="color:var(--txt)">${withAir}/${PLAN.length}</b> (${pct}%)` +
+    (nOver ? ` · <span style="color:var(--down)">⚠️ ${nOver} bài quá hạn chưa đăng</span>` : "") +
+    (nToday ? ` · <span style="color:#fcd34d">📌 ${nToday} bài đăng hôm nay</span>` : "") + `</span></div>` +
+    `<div class="bar"><i style="width:${pct}%"></i></div>`;
   document.querySelector("#planTable tbody").innerHTML = rows.map(r =>
     `<tr><td style="white-space:nowrap">${r.date}${r.dow ? " (" + r.dow + ")" : ""}</td><td>${r.hour}</td><td>${formBadge(r.form)}</td>` +
     `<td>${[r.plat1, r.plat2].filter(Boolean).join(" + ")}</td>` +
@@ -791,8 +846,33 @@ function renderPlan(){
     `<td>${personChip(r.picC)}</td><td>${personChip(r.picD)}</td>` +
     `<td>${linkOr(r.brief, "Brief")}</td>` +
     `<td>${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">🔗 Đã air</a>` : '<span class="st-todo">chưa có</span>'}</td>` +
+    `<td>${planStatusChip(r)}</td>` +
     `<td>${r.check}</td></tr>`).join("") ||
-    '<tr><td colspan="10" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
+    '<tr><td colspan="11" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
+}
+
+function renderWeek(){
+  const box = document.getElementById("weekBox"); if(!box) return;
+  const now = new Date();
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+  const rg = document.getElementById("weekRange");
+  if(rg) rg.textContent = "(" + dstr(mon) + " – " + dstr(sun) + ")";
+  const all = PLAN_ALL.length ? PLAN_ALL : PLAN;
+  const inWeek = all.filter(r => { const d = parsePostDate(r.date); return d && d >= mon && d <= sun; })
+    .sort((a,b) => parsePostDate(a.date) - parsePostDate(b.date));
+  if(!inWeek.length){ box.innerHTML = '<div class="hint">Tuần này không có bài nào trong kế hoạch.</div>'; return; }
+  const lines = inWeek.map(r =>
+    `<div class="radar-item">${planStatusChip(r)} <b>${r.date}${r.dow ? " (" + r.dow + ")" : ""}</b> · ${formBadge(r.form)} · <b>${r.topic}</b>` +
+    ` <span style="color:var(--mut)">· Content:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Design:</span> ${personChip(r.picD)}</div>`).join("");
+  const perC = {};
+  inWeek.forEach(r => { if(r.picC){ perC[r.picC] = perC[r.picC] || { n: 0, aired: 0 }; perC[r.picC].n++; if(r.air) perC[r.picC].aired++; } });
+  const debts = {};
+  all.forEach(r => { if(planStatus(r) === "over" && r.picC) debts[r.picC] = (debts[r.picC] || 0) + 1; });
+  const summary = Object.entries(perC).map(([k,v]) =>
+    `<div style="font-size:13px;margin:3px 0">${personChip(k)} <b>${v.n} bài</b> tuần này · đã đăng ${v.aired}` +
+    (debts[k] ? ` · <span style="color:var(--down)">⚠️ đang nợ ${debts[k]} bài quá hạn</span>` : "") + `</div>`).join("");
+  box.innerHTML = lines + (summary ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">Theo người phụ trách (Content):</div>${summary}</div>` : "");
 }
 
 function renderLC(){
@@ -833,46 +913,67 @@ function fillSelect(id, values){
 function renderDeadlineRadar(){
   const box = document.getElementById("deadlineRadar");
   if(!box) return;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const all = PLAN_ALL.length ? PLAN_ALL : PLAN;
   const over = [], soon = [];
-  LC.forEach(r => {
-    if(!r.deadline || r.statusGroup === "done") return;
-    const dl = parsePostDate(r.deadline);
-    if(!dl) return;
-    dl.setHours(0,0,0,0);
-    const diff = Math.round((dl - today) / 86400000);
-    const item = { r, dl, diff };
-    if(diff < 0) over.push(item);
-    else if(diff <= 1) soon.push(item);
+  all.forEach(r => {
+    const s = planStatus(r);
+    if(s === "over") over.push(r);
+    else if(s === "today") soon.push(r);
+    else if(s === "soon" && planDayDiff(r) === 1) soon.push(r);
   });
-  over.sort((a,b) => a.dl - b.dl);
-  soon.sort((a,b) => a.dl - b.dl);
+  const byDate = (a,b) => parsePostDate(a.date) - parsePostDate(b.date);
+  over.sort(byDate); soon.sort(byDate);
   if(!over.length && !soon.length){
     box.innerHTML = '<div style="color:var(--up);font-weight:600">Không có việc trễ/sắp trễ 🎉</div>';
     return;
   }
-  const line = (it, kind) => {
-    const tag = kind === "over"
-      ? `<span class="fbadge f-video">⛔ Quá hạn ${Math.abs(it.diff)} ngày</span>`
-      : `<span class="fbadge f-warn">${it.diff === 0 ? "⚠️ Hạn hôm nay" : "⚠️ Hạn ngày mai"}</span>`;
-    return `<div class="radar-item">${tag} <b>${it.r.topic || "(không có topic)"}</b>` +
-      ` <span style="color:var(--mut)">· Deadline: ${it.r.deadline} · ${statusHtml(it.r.status)} · ${pillarBadge(it.r.pillarShort)}</span></div>`;
-  };
+  const line = r =>
+    `<div class="radar-item">${planStatusChip(r)} <b>${r.date}${r.dow ? " (" + r.dow + ")" : ""}</b> · ${formBadge(r.form)} · <b>${r.topic}</b>` +
+    ` <span style="color:var(--mut)">· Content:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Design:</span> ${personChip(r.picD)}</div>`;
   box.innerHTML =
-    (over.length ? `<div style="font-weight:600;color:var(--down);margin:4px 0">⛔ Đã quá hạn, chưa hoàn thành (${over.length})</div>` + over.map(it => line(it, "over")).join("") : "") +
-    (soon.length ? `<div style="font-weight:600;color:#fcd34d;margin:10px 0 4px">⚠️ Tới hạn hôm nay / ngày mai (${soon.length})</div>` + soon.map(it => line(it, "soon")).join("") : "");
+    (over.length ? `<div style="font-weight:600;color:var(--down);margin:4px 0">⛔ Đã quá ngày đăng, chưa có Link Air (${over.length})</div>` + over.map(line).join("") : "") +
+    (soon.length ? `<div style="font-weight:600;color:#fcd34d;margin:10px 0 4px">⚠️ Đăng hôm nay / ngày mai, chưa có Link Air (${soon.length})</div>` + soon.map(line).join("") : "");
+}
+
+function refillPlanFilters(){
+  ["planPicC","planPicD","planForm"].forEach(id => {
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const first = sel.options[0];
+    sel.innerHTML = "";
+    if(first) sel.appendChild(first);
+  });
+  fillSelect("planPicC", PLAN.map(r => r.picC));
+  fillSelect("planPicD", PLAN.map(r => r.picD));
+  fillSelect("planForm", PLAN.map(r => r.form));
+}
+function renderMonthChips(){
+  const box = document.getElementById("planMonths"); if(!box) return;
+  box.innerHTML = PLAN_MONTHS.map(m =>
+    `<button type="button" class="chip" data-month="${m.key}" style="${PLAN_MONTH && PLAN_MONTH.key === m.key ? "background:#1d4ed8;color:#fff;border-color:#1d4ed8" : ""}">${m.chip}</button>`).join("");
+  box.querySelectorAll("button[data-month]").forEach(b => b.addEventListener("click", () => setPlanMonth(b.getAttribute("data-month"))));
+}
+function setPlanMonth(key){
+  const m = PLAN_MONTHS.find(x => x.key === key); if(!m) return;
+  PLAN_MONTH = m; PLAN = m.rows;
+  window.PLAN_MONTH_LABEL = m.label;
+  const t = document.getElementById("planTitle");
+  if(t) t.textContent = "🗓 Media Plan " + m.label + " — lịch đăng & phân công";
+  renderMonthChips();
+  refillPlanFilters();
+  renderPlan();
 }
 
 async function initPlanPages(){
   try{
-    const [planRows, lcRows, mxRows, siRows] = await Promise.all([
+    const [plan10Rows, plan11Rows, lcRows, mxRows] = await Promise.all([
+      fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 10").catch(() => []),
       fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 11"),
       fetchTabFrom(PLAN_ID, "List of Content"),
       fetchTabFrom(PLAN_ID, "Matrix Control"),
-      fetchTabFrom(PLAN_ID, "Sync Info").catch(() => []),
     ]);
     try {
-      const kv = {}; (siRows || []).forEach(r => { kv[cell(r,0)] = cell(r,1); });
+      const kv = await syncInfoKV();
       const t = kv["Lần đồng bộ gần nhất"], n = kv["Số thay đổi lần này"];
       if(t){
         const txt = "⟳ Đồng bộ gần nhất: " + t + (n ? " · " + n + " thay đổi" : "") + ". Thay đổi của team (đổi tình trạng, đổi PIC...) được ghi ở tab “Log thay đổi” trong Sheet kế hoạch.";
@@ -880,12 +981,23 @@ async function initPlanPages(){
         if(a) a.textContent = txt; if(b) b.textContent = txt;
       }
     } catch(e){}
-    PLAN = planRows.filter(r => cell(r,6)).map(r => ({
+    const mapPlan = rows => rows.filter(r => cell(r,6)).map(r => ({
       dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
       plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
       picC: cell(r,8), caption: cell(r,9), picD: cell(r,10), brief: cell(r,11),
       linkDesign: cell(r,12), air: cell(r,13), check: cell(r,14),
     }));
+    PLAN10 = mapPlan(plan10Rows);
+    PLAN11 = mapPlan(plan11Rows);
+    PLAN_ALL = [...PLAN10, ...PLAN11];
+    PLAN_MONTHS = [
+      { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", rows: PLAN10 },
+      { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", rows: PLAN11 },
+    ].filter(m => m.rows.length);
+    const nowD = new Date();
+    const curKey = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0");
+    const defMonth = PLAN_MONTHS.find(m => m.key === curKey) || PLAN_MONTHS[PLAN_MONTHS.length - 1];
+    if(defMonth) setPlanMonth(defMonth.key);
     LC = lcRows.filter(r => cell(r,4) || cell(r,2)).filter(r => !cell(r,0).toUpperCase().includes("CONTENT LIST")).map(r => {
       const st = cell(r,7);
       return {
@@ -898,9 +1010,6 @@ async function initPlanPages(){
     MATRIX = mxRows.filter(r => cell(r,0) && cell(r,0) !== "TỔNG").map(r => ({
       name: cell(r,0), targetPct: cell(r,1), target: num(r[2]), actual: num(r[3]), gap: cell(r,5),
     }));
-    fillSelect("planPicC", PLAN.map(r => r.picC));
-    fillSelect("planPicD", PLAN.map(r => r.picD));
-    fillSelect("planForm", PLAN.map(r => r.form));
     fillSelect("lcPillar", LC.map(r => r.pillarShort));
     const lcStatus = document.getElementById("lcStatus");
     [["done","✔ Đã hoàn thành"],["doing","⏳ Đang thực hiện"],["todo","— Chưa làm"]].forEach(([v,t]) => {
@@ -910,12 +1019,45 @@ async function initPlanPages(){
     document.getElementById("planSearch").addEventListener("input", renderPlan);
     ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
     document.getElementById("lcSearch").addEventListener("input", renderLC);
-    renderPlan(); renderLC(); renderMatrix(); renderDeadlineRadar();
+    renderLC(); renderMatrix(); renderDeadlineRadar(); renderWeek();
   }catch(e){
     document.getElementById("matrixBox").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
   }
 }
+
+const SYNC_WEBAPP = "https://script.google.com/macros/s/AKfycbyllYvfqp7y9g6V7pmazNhSkwUWTty29CIzguRRF9JtZazcSiaWoFgbiSx-B8aWdpcO/exec";
+function parseStampVN(s){
+  const m = String(s || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(!m) return null;
+  return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0));
+}
+async function manualSync(){
+  const btn = document.getElementById("syncNowBtn");
+  const st = document.getElementById("syncNowStatus");
+  if(!btn || btn.disabled || !st) return;
+  btn.disabled = true;
+  const t0 = Date.now();
+  st.textContent = "Đang gửi yêu cầu đồng bộ…";
+  try { await fetch(SYNC_WEBAPP, { mode: "no-cors" }); } catch(e){}
+  st.textContent = "Đã gửi yêu cầu — đang chờ hệ thống chạy đồng bộ (thường 1–2 phút)…";
+  const deadline = Date.now() + 240000;
+  while(Date.now() < deadline){
+    await new Promise(r => setTimeout(r, 15000));
+    try {
+      const kv = await syncInfoKV();
+      const done = parseStampVN(kv["Đồng bộ tay hoàn tất"]);
+      if(done && done.getTime() >= t0 - 10000){
+        st.textContent = "✅ Đồng bộ xong: " + kv["Đồng bộ tay hoàn tất"] + " — đang tải lại dữ liệu…";
+        setTimeout(() => location.reload(), 1200);
+        return;
+      }
+    } catch(e){}
+  }
+  st.textContent = "Chưa thấy tem hoàn tất sau 4 phút. Dữ liệu vẫn tự đồng bộ mỗi 30 phút — thử tải lại trang sau ít phút.";
+  btn.disabled = false;
+}
+(function(){ const b = document.getElementById("syncNowBtn"); if(b) b.addEventListener("click", manualSync); })();
 
 document.getElementById("sidenav").addEventListener("click", e => {
   const btn = e.target.closest("button[data-page]"); if(!btn) return;
@@ -1125,10 +1267,6 @@ loadDeep();
   var listeners = [];
   var db = null, auth = null, fbReady = false;
   var adminBuilt = false, adminUnsub = null;
-  // 📥 Nộp file + duyệt 2 bước: submissions của chính user (theo email thật) + trạng thái trang Duyệt bài
-  var mySubs = {}, mySubUnsub = null, mySubEmail = "";
-  var mineOpen = null, mineFlash = "", mineFlashErr = false;
-  var reviewBuilt = false, reviewSubUnsub = null, reviewActUnsub = null, allSubs = [], actDocs = [];
 
   window.MMAuth = {
     get user(){ return state.user; },
@@ -1273,13 +1411,10 @@ loadDeep();
   }
   function emit(){
     updateAdminNav();
-    updateReviewNav();
     renderBanner();
     renderPreview();
-    syncMySub();
     renderMine();
     renderAdmin();
-    renderReview();
     listeners.forEach(function(cb){ try { cb(state); } catch(e){} });
     try { window.dispatchEvent(new CustomEvent("mmauth", { detail: state })); } catch(e){}
   }
@@ -1342,27 +1477,15 @@ loadDeep();
       return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
     });
     var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
-    var cnt = { none: 0, pending: 0, approved: 0, changes: 0 };
+    var stCnt = { done: 0, over: 0, today: 0, soon: 0 };
     rows.forEach(function(r){
-      var rs = [];
-      if(r.picC === pic) rs.push("Content");
-      if(r.picD === pic) rs.push("Design");
-      rs.forEach(function(mr){
-        var rec = subFor(r, mr);
-        var st = rec ? (rec.data.status || "pending") : "none";
-        if(cnt[st] == null) st = "pending";
-        cnt[st]++;
-      });
+      var s = (typeof planStatus === "function") ? planStatus(r) : "soon";
+      stCnt[s] = (stCnt[s] || 0) + 1;
     });
     var body = sorted.map(function(r){
       var role = (r.picC === pic && r.picD === pic) ? "Content + Design" : (r.picC === pic ? "Content" : "Design");
       var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
-      var myRoles = [];
-      if(r.picC === pic) myRoles.push("Content");
-      if(r.picD === pic) myRoles.push("Design");
-      var statusCell = myRoles.length > 1
-        ? myRoles.map(function(mr){ return '<div style="margin-bottom:6px"><b style="font-size:12px;color:var(--mut)">' + mr + ':</b> ' + subBlockHtml(r, mr) + '</div>'; }).join("")
-        : subBlockHtml(r, myRoles[0]);
+      var statusCell = (typeof planStatusChip === "function") ? planStatusChip(r) : "";
       var topicHtml = r.air
         ? '<a href="' + esc(r.air) + '" target="_blank" rel="noopener">' + esc(r.topic) + '</a>'
         : esc(r.topic);
@@ -1372,246 +1495,17 @@ loadDeep();
         '<td>' + role + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
     }).join("");
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
-      '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài trong Media Plan tháng 11 · ' +
+      '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài trong Media Plan ' + esc(window.PLAN_MONTH_LABEL || "tháng 11/2026") + ' · ' +
       'PIC Content: <b>' + asContent + '</b> · PIC Design: <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
-      '<div style="font-size:13.5px;line-height:1.7">Tình trạng nộp: Chưa nộp <b>' + cnt.none + '</b> · ⏳ Chờ duyệt <b>' + cnt.pending + '</b> · ✅ Đã duyệt <b>' + cnt.approved + '</b> · ↩️ Yêu cầu sửa <b>' + cnt.changes + '</b>.</div>' +
-      (mineFlash ? '<div style="font-size:13.5px;margin-top:6px;color:' + (mineFlashErr ? "var(--down)" : "var(--up)") + '">' + esc(mineFlash) + '</div>' : "") +
+      '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' +
       (rows.length
-        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Trạng thái nộp</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
-        : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan tháng 11.</div>') +
+        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan ' + esc(window.PLAN_MONTH_LABEL || "tháng 11/2026") + '.</div>') +
       '</div>';
   }
   function gotoPage(id){
     var btn = document.querySelector('#sidenav button[data-page="' + id + '"]');
     if(btn) btn.click();
-  }
-
-  // ---------- 📥 Nộp file + duyệt bài 2 bước (submissions / activity) ----------
-  function planKeyOf(r){ return (r.date || "") + "|" + (r.topic || ""); }
-  function subMapKey(planKey, myRole){ return String(planKey) + "\u0001" + String(myRole || ""); }
-  function subKey(r, myRole){ return subMapKey(planKeyOf(r), myRole); }
-  function subFor(r, myRole){ return mySubs[subKey(r, myRole)] || null; }
-  function subChip(st){
-    if(st === "pending") return '<span class="subchip sub-pending">⏳ Chờ duyệt</span>';
-    if(st === "approved") return '<span class="subchip sub-approved">✅ Đã duyệt</span>';
-    if(st === "changes") return '<span class="subchip sub-changes">↩️ Yêu cầu sửa</span>';
-    return '<span class="subchip sub-none">Chưa nộp</span>';
-  }
-  function subErr(e){
-    if(e && e.code === "permission-denied") return "Firestore từ chối quyền (permission-denied) — tài khoản của bạn có thể chưa được cấp quyền hoặc chưa đăng nhập đúng tài khoản.";
-    return "Lỗi: " + (e && e.message ? e.message : e);
-  }
-  function fmtTs(ts){
-    if(!ts) return "";
-    var d = null;
-    try { d = ts.toDate ? ts.toDate() : new Date(ts); } catch(e){}
-    if(!d || isNaN(d.getTime())) return "";
-    function p(n){ return (n < 10 ? "0" : "") + n; }
-    return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
-  }
-  function tsMs(ts){
-    try { if(ts && ts.toMillis) return ts.toMillis(); if(ts && ts.toDate) return ts.toDate().getTime(); } catch(e){}
-    return 0;
-  }
-  // Theo dõi submissions của CHÍNH user (email thật) — kể cả khi đang xem thử, trạng thái vẫn là của tài khoản thật.
-  function syncMySub(){
-    var em = state.user ? state.email : "";
-    if(mySubEmail === em) return;
-    if(mySubUnsub){ try { mySubUnsub(); } catch(e){} mySubUnsub = null; }
-    mySubs = {};
-    mySubEmail = em;
-    if(!em || !db) return;
-    mySubUnsub = db.collection("submissions").where("byEmail", "==", em).onSnapshot(function(snap){
-      var m = {};
-      snap.forEach(function(d){
-        var v = d.data() || {};
-        if(v.planKey) m[subMapKey(v.planKey, v.myRole)] = { id: d.id, data: v };
-      });
-      mySubs = m;
-      if(!mineOpen) renderMine(); // đang mở form nộp thì không vẽ lại, tránh mất nội dung đang gõ
-    }, function(e){ console.warn("mySubs onSnapshot", e); });
-  }
-  function subBlockHtml(r, myRole){
-    var pk = planKeyOf(r);
-    var rec = subFor(r, myRole);
-    var sub = rec ? rec.data : null;
-    var st = sub ? (sub.status || "pending") : "";
-    var html = subChip(st);
-    if(sub && sub.link) html += ' <a href="' + esc(sub.link) + '" target="_blank" rel="noopener" title="Mở file đã nộp">🔗</a>';
-    if(sub && sub.reviewNote && (st === "changes" || st === "approved"))
-      html += '<div style="color:' + (st === "changes" ? "var(--down)" : "var(--mut)") + ';font-size:12px;margin-top:2px">💬 ' + esc(sub.reviewNote) + '</div>';
-    if(!preview && mineOpen && mineOpen.pk === pk && mineOpen.role === myRole){
-      html += '<form data-sub-form data-pk="' + esc(pk) + '" data-role="' + esc(myRole) + '" class="sub-form">' +
-        '<input type="url" name="lk" required placeholder="Dán link file (Drive, bài đã đăng…)" value="' + esc(sub ? (sub.link || "") : "") + '">' +
-        '<input type="text" name="nt" placeholder="Ghi chú (tuỳ chọn)" value="">' +
-        '<span style="display:flex;gap:6px"><button class="chip" type="submit">Gửi</button>' +
-        '<button class="chip" type="button" data-sub-cancel>Huỷ</button></span></form>';
-    } else if(!sub || st === "changes"){
-      if(preview){
-        html += '<div class="hint" style="margin-top:4px">Đang xem thử — thoát xem thử để thao tác thật.</div>';
-      } else {
-        html += ' <button class="chip" type="button" data-sub-open data-pk="' + esc(pk) + '" data-role="' + esc(myRole) + '">' + (sub ? "Nộp lại" : "Nộp file") + '</button>';
-      }
-    }
-    return html;
-  }
-  function doSubmit(pk, myRole, link, note){
-    if(preview || !db || !state.user) return; // xem thử → không ghi thật
-    var r = null;
-    planRows().forEach(function(x){ if(planKeyOf(x) === pk) r = x; });
-    if(!r){ mineFlash = "Không tìm thấy bài trong Media Plan."; mineFlashErr = true; renderMine(); return; }
-    var rec = subFor(r, myRole);
-    var isRe = !!rec;
-    var payload = {
-      planKey: pk, itemDate: r.date || "", itemTopic: r.topic || "", itemForm: r.form || "",
-      myRole: myRole, pic: state.pic, byEmail: state.email, byName: displayName(),
-      link: link, note: note, status: "pending",
-      reviewedBy: null, reviewedAt: null, reviewNote: "",
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    var p;
-    if(isRe){
-      p = db.collection("submissions").doc(rec.id).update(payload);
-    } else {
-      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      p = db.collection("submissions").add(payload);
-    }
-    p.then(function(){
-      db.collection("activity").add({
-        byEmail: state.email, byName: displayName(), pic: state.pic,
-        action: isRe ? "resubmit" : "submit", planKey: pk, itemTopic: r.topic || "",
-        at: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function(e){ console.warn("activity add", e); });
-      mineOpen = null;
-      mineFlash = isRe ? "Đã nộp lại — bài đang chờ duyệt." : "Đã nộp file — bài đang chờ duyệt.";
-      mineFlashErr = false;
-      renderMine();
-    }).catch(function(e){
-      console.warn("submit", e);
-      mineFlash = subErr(e);
-      mineFlashErr = true;
-      renderMine();
-    });
-  }
-
-  // ---------- Trang "Duyệt bài" (Quản Lí / chủ kênh) ----------
-  function updateReviewNav(){
-    var nav = document.getElementById("navReview");
-    if(nav) nav.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
-  }
-  function actLabel(a){
-    return { submit: "nộp file", resubmit: "nộp lại", approve: "duyệt bài", changes: "yêu cầu sửa" }[a] || a || "";
-  }
-  function revStatus(msg, isErr){
-    var el = document.getElementById("revStatus");
-    if(el){ el.textContent = msg || ""; el.style.color = isErr ? "var(--down)" : "var(--up)"; }
-  }
-  function renderReview(){
-    var box = document.getElementById("reviewBox");
-    if(!box) return;
-    var er = effRole();
-    if(er !== "owner" && er !== "manager"){
-      if(reviewSubUnsub){ try { reviewSubUnsub(); } catch(e){} reviewSubUnsub = null; }
-      if(reviewActUnsub){ try { reviewActUnsub(); } catch(e){} reviewActUnsub = null; }
-      reviewBuilt = false; allSubs = []; actDocs = [];
-      box.innerHTML = '<div class="card"><h2>📥 Duyệt bài</h2><div style="color:var(--mut)">Chỉ Quản Lí mới xem được mục này.</div></div>';
-      return;
-    }
-    if(reviewBuilt || !db) return;
-    reviewBuilt = true;
-    box.innerHTML =
-      '<div class="card"><h2>📥 Hàng chờ duyệt</h2><div id="revStatus" style="font-size:13px;min-height:18px"></div><div id="revQueueList"><div class="loading">Đang tải…</div></div></div>' +
-      '<div class="card"><h2>✔️ Đã xử lý gần đây</h2><div id="revDoneList"><div class="loading">Đang tải…</div></div></div>' +
-      '<div class="card"><h2>🕘 Nhật ký hoạt động</h2><div id="revActList"><div class="loading">Đang tải…</div></div></div>';
-    // Đọc toàn bộ submissions rồi lọc/sắp xếp phía client (quy mô nhỏ, tránh cần composite index).
-    reviewSubUnsub = db.collection("submissions").onSnapshot(function(snap){
-      var arr = [];
-      snap.forEach(function(d){ var v = d.data() || {}; v.__id = d.id; arr.push(v); });
-      allSubs = arr;
-      renderReviewLists();
-    }, function(e){
-      console.warn("subs onSnapshot", e);
-      var el = document.getElementById("revQueueList");
-      if(el) el.innerHTML = '<div style="color:var(--down)">' + esc(subErr(e)) + '</div>';
-    });
-    reviewActUnsub = db.collection("activity").onSnapshot(function(snap){
-      var arr = [];
-      snap.forEach(function(d){ var v = d.data() || {}; v.__id = d.id; arr.push(v); });
-      actDocs = arr;
-      renderReviewLists();
-    }, function(e){ console.warn("activity onSnapshot", e); });
-  }
-  function renderReviewLists(){
-    var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
-    var q = document.getElementById("revQueueList");
-    if(q){
-      var pend = allSubs.filter(function(s){ return s.status === "pending"; })
-        .sort(function(a, b){ return tsMs(b.createdAt) - tsMs(a.createdAt); });
-      if(!pend.length) q.innerHTML = '<div class="hint">Không có bài nào đang chờ duyệt. 🎉</div>';
-      else q.innerHTML = pend.map(function(s){
-        var html = '<div class="radar-item"><div><b>' + esc(s.itemDate || "") + '</b> · ' + badge(s.itemForm) + ' · <b>' + esc(s.itemTopic || "") + '</b></div>' +
-          '<div style="color:var(--mut);font-size:12.5px">Người nộp: <b style="color:var(--txt)">' + esc(s.byName || s.byEmail || "") + '</b>' +
-          (s.pic ? ' · PIC ' + esc(s.pic) : "") + ' · Vai trò ' + esc(s.myRole || "") +
-          (s.createdAt ? ' · Nộp lúc ' + esc(fmtTs(s.createdAt)) : "") + '</div>' +
-          (s.link ? '<div>🔗 <a href="' + esc(s.link) + '" target="_blank" rel="noopener">' + esc(s.link) + '</a></div>' : "") +
-          (s.note ? '<div>📝 ' + esc(s.note) + '</div>' : "");
-        if(preview){
-          html += '<div class="hint" style="margin-top:6px">Đang xem thử — thoát xem thử để thao tác thật.</div>';
-        } else {
-          html += '<div class="sub-actions"><input type="text" id="revNote-' + s.__id + '" placeholder="Ghi chú duyệt / lý do yêu cầu sửa (bắt buộc khi yêu cầu sửa)">' +
-            '<button class="chip" type="button" data-approve="' + s.__id + '">✅ Duyệt</button>' +
-            '<button class="chip" type="button" data-changes="' + s.__id + '">↩️ Yêu cầu sửa</button></div>';
-        }
-        return html + '</div>';
-      }).join("");
-    }
-    var dn = document.getElementById("revDoneList");
-    if(dn){
-      var done = allSubs.filter(function(s){ return s.status === "approved" || s.status === "changes"; })
-        .sort(function(a, b){ return tsMs(b.reviewedAt || b.updatedAt) - tsMs(a.reviewedAt || a.updatedAt); }).slice(0, 10);
-      if(!done.length) dn.innerHTML = '<div class="hint">Chưa có bài nào được xử lý.</div>';
-      else dn.innerHTML = done.map(function(s){
-        return '<div class="radar-item"><div>' + subChip(s.status) + ' <b>' + esc(s.itemDate || "") + '</b> · ' + badge(s.itemForm) + ' · <b>' + esc(s.itemTopic || "") + '</b></div>' +
-          '<div style="color:var(--mut);font-size:12.5px">Người nộp: ' + esc(s.byName || s.byEmail || "") + (s.pic ? ' · PIC ' + esc(s.pic) : "") + ' · ' + esc(s.myRole || "") +
-          ' · Xử lý bởi ' + esc(s.reviewedBy || "") + (s.reviewedAt ? ' · ' + esc(fmtTs(s.reviewedAt)) : "") + '</div>' +
-          (s.reviewNote ? '<div>💬 ' + esc(s.reviewNote) + '</div>' : "") + '</div>';
-      }).join("");
-    }
-    var ac = document.getElementById("revActList");
-    if(ac){
-      var acts = actDocs.slice().sort(function(a, b){ return tsMs(b.at) - tsMs(a.at); }).slice(0, 30);
-      if(!acts.length) ac.innerHTML = '<div class="hint">Chưa có hoạt động nào.</div>';
-      else ac.innerHTML = acts.map(function(a){
-        return '<div style="padding:6px 2px;border-bottom:1px solid var(--line);font-size:13px">' +
-          '<span style="color:var(--mut)">' + esc(fmtTs(a.at)) + '</span> · <b>' + esc(a.byName || a.byEmail || "") + '</b> ' +
-          esc(actLabel(a.action)) + (a.itemTopic ? ' — <b>' + esc(a.itemTopic) + '</b>' : "") + '</div>';
-      }).join("");
-    }
-  }
-  function doReview(id, kind){
-    if(preview || !db || !state.user) return; // xem thử → không ghi thật
-    var noteEl = document.getElementById("revNote-" + id);
-    var note = noteEl ? noteEl.value.trim() : "";
-    if(kind === "changes" && !note){ revStatus("Yêu cầu sửa bắt buộc phải nhập ghi chú / lý do.", true); return; }
-    revStatus("Đang xử lý…", false);
-    db.collection("submissions").doc(id).update({
-      status: kind, reviewedBy: state.email,
-      reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      reviewNote: note
-    }).then(function(){
-      var s = null;
-      allSubs.forEach(function(x){ if(x.__id === id) s = x; });
-      db.collection("activity").add({
-        byEmail: state.email, byName: displayName(), pic: state.pic,
-        action: kind === "approved" ? "approve" : "changes",
-        planKey: s ? (s.planKey || "") : "", itemTopic: s ? (s.itemTopic || "") : "",
-        at: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function(e){ console.warn("activity add", e); });
-      revStatus(kind === "approved" ? "Đã duyệt bài. ✅" : "Đã gửi yêu cầu sửa. ↩️", false);
-    }).catch(function(e){
-      console.warn("review", e);
-      revStatus(subErr(e), true);
-    });
   }
 
   // ---------- Trang "Tài khoản & phân quyền" (chỉ chủ kênh) ----------
@@ -1778,40 +1672,9 @@ loadDeep();
     if(nav) nav.addEventListener("click", function(e){
       var btn = e.target.closest("button[data-page]");
       if(btn && btn.dataset.page === "page-mine") setTimeout(renderMine, 0);
-      if(btn && btn.dataset.page === "page-review") setTimeout(renderReview, 0);
     });
-    // 📥 Uỷ quyền sự kiện cho form nộp file trong "Việc của tôi" (mineBox chỉ thay innerHTML, listener gắn 1 lần)
-    var mb = document.getElementById("mineBox");
-    if(mb){
-      mb.addEventListener("click", function(e){
-        var open = e.target.closest("button[data-sub-open]");
-        if(open){ mineOpen = { pk: open.getAttribute("data-pk"), role: open.getAttribute("data-role") }; mineFlash = ""; renderMine(); return; }
-        if(e.target.closest("button[data-sub-cancel]")){ mineOpen = null; renderMine(); }
-      });
-      mb.addEventListener("submit", function(e){
-        var f = e.target.closest("form[data-sub-form]");
-        if(!f) return;
-        e.preventDefault();
-        var link = (f.elements.lk.value || "").trim();
-        var note = (f.elements.nt.value || "").trim();
-        if(!link){ mineFlash = "Hãy dán link file trước khi gửi."; mineFlashErr = true; renderMine(); return; }
-        mineFlash = "Đang gửi…"; mineFlashErr = false;
-        doSubmit(f.getAttribute("data-pk"), f.getAttribute("data-role"), link, note);
-      });
-    }
-    // 📥 Uỷ quyền sự kiện cho nút Duyệt / Yêu cầu sửa trong trang "Duyệt bài"
-    var rb = document.getElementById("reviewBox");
-    if(rb){
-      rb.addEventListener("click", function(e){
-        var ap = e.target.closest("button[data-approve]");
-        if(ap){ doReview(ap.getAttribute("data-approve"), "approved"); return; }
-        var ch = e.target.closest("button[data-changes]");
-        if(ch) doReview(ch.getAttribute("data-changes"), "changes");
-      });
-    }
     renderMine();
     updateAdminNav();
-    updateReviewNav();
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
