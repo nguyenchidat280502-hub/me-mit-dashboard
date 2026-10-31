@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Fanpage NGŨ CỐC MẸ MÍT</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--up:#34d399;--down:#f87171}
   *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
@@ -68,6 +71,21 @@
   th.deepth{cursor:pointer;user-select:none}
   th.deepth:hover{color:var(--acc)}
   #deepTable tbody tr:hover{background:#16233c}
+  .hdr-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .hdr-left{min-width:0}
+  .acct{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+  .acct img.av{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px}
+  .acct .avc{width:34px;height:34px;border-radius:50%;color:#0b1220;font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;background:var(--acc)}
+  .acct .aname{font-weight:600;font-size:13.5px;line-height:1.25;white-space:nowrap}
+  .acct .amail{color:var(--mut);font-size:11.5px;line-height:1.25;white-space:nowrap}
+  .acct .apos{margin-top:3px}
+  .acct .aerr{color:var(--down);font-size:12px;max-width:280px;line-height:1.4}
+  .role-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;border:1px solid;white-space:nowrap}
+  .role-manager{background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.5)}
+  .role-staff{background:rgba(56,189,248,.13);color:#7dd3fc;border-color:rgba(56,189,248,.5)}
+  .role-guest{background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.5)}
+  .adm-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+  .adm-form input[type=email],.adm-form input[type=text]{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
 </style>
 </head>
 <body>
@@ -79,16 +97,23 @@
     <button data-page="page-plan">🗓 Media Plan tháng 11</button>
     <button data-page="page-content">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
+    <button data-page="page-mine">✅ Việc của tôi</button>
+    <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
   </nav>
 </aside>
 <main>
 <header>
+ <div class="hdr-row">
+  <div class="hdr-left">
   <h1>📊 Dashboard Fanpage NGŨ CỐC MẸ MÍT</h1>
   <div class="sub">
     <a href="https://www.facebook.com/224645764799502" target="_blank" rel="noopener">Mở Fanpage</a> ·
     <a href="https://docs.google.com/spreadsheets/d/1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM/edit" target="_blank" rel="noopener">Google Sheet nguồn</a> ·
     Dữ liệu: <span id="rangeInfo">đang tải…</span> · <span id="updated"></span>
   </div>
+  </div>
+  <div id="accountBox"></div>
+ </div>
 </header>
 <div class="wrap">
  <section class="page show" id="page-overview">
@@ -243,6 +268,17 @@
     <h2>🎬 Phân tích content chuyên sâu — chất lượng video &amp; giữ chân khán giả</h2>
     <div id="deepBox"><div class="loading">Đang tải dữ liệu video…</div></div>
     <div id="deepDetail"></div>
+  </div>
+ </section>
+
+ <section class="page" id="page-mine">
+  <div id="mineBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
+ </section>
+
+ <section class="page" id="page-admin">
+  <div class="card">
+    <h2>👥 Tài khoản &amp; phân quyền</h2>
+    <div id="adminBox"><div style="color:var(--mut)">Chỉ chủ kênh mới xem được mục này.</div></div>
   </div>
  </section>
 </div>
@@ -948,6 +984,360 @@ async function loadDeep(){
   renderDeepTable();
 }
 loadDeep();
+</script>
+<script>
+// ===== 🔐 Đăng nhập Google + phân quyền 2 cấp (Firebase) =====
+(function(){
+  "use strict";
+  var OWNER_EMAIL = "nguyenchidat280502@gmail.com";
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBihPcac4eDIcOPfMXUDHS6yZPNd8sRCz0",
+    authDomain: "me-mit-dashboard.firebaseapp.com",
+    projectId: "me-mit-dashboard",
+    storageBucket: "me-mit-dashboard.firebasestorage.app",
+    messagingSenderId: "1040734874067",
+    appId: "1:1040734874067:web:2bb96f56ded1337493a726",
+    measurementId: "G-F6SYHR1R5H"
+  };
+  var PIC_LIST = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
+  var state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: false };
+  var listeners = [];
+  var db = null, auth = null, fbReady = false;
+  var adminBuilt = false, adminUnsub = null;
+
+  window.MMAuth = {
+    get user(){ return state.user; },
+    get email(){ return state.email; },
+    get role(){ return state.role; },
+    get pic(){ return state.pic; },
+    onChange: function(cb){ listeners.push(cb); }
+  };
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function planRows(){
+    try { return (typeof PLAN !== "undefined" && PLAN) ? PLAN : []; } catch(e){ return []; }
+  }
+  function planReady(){ return planRows().length > 0; }
+  function positionHtml(){
+    if(state.role === "owner") return '<span class="role-badge role-manager">Quản Lí · Chủ kênh</span>';
+    if(state.role === "manager") return '<span class="role-badge role-manager">Quản Lí</span>';
+    if(state.role === "staff") return '<span class="role-badge role-staff">Nhân viên' + (state.pic ? " · " + esc(state.pic) : "") + '</span>';
+    if(state.role === "guest") return '<span class="role-badge role-guest">Chỉ xem — chưa được cấp quyền</span>';
+    return "";
+  }
+  function displayName(){
+    if(state.user && state.user.displayName) return state.user.displayName;
+    if(state.staffName) return state.staffName;
+    return state.email;
+  }
+
+  function renderAccount(errMsg){
+    var box = document.getElementById("accountBox");
+    if(!box) return;
+    if(!fbReady){ box.innerHTML = ""; return; }
+    if(!state.user){
+      box.innerHTML = '<div class="acct"><button class="chip" id="acctLogin">🔐 Đăng nhập Google</button>' +
+        (errMsg ? '<div class="aerr">' + esc(errMsg) + '</div>' : "") + '</div>';
+      var b = document.getElementById("acctLogin");
+      if(b) b.addEventListener("click", signIn);
+      return;
+    }
+    var name = displayName();
+    var initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
+    var av = (state.user.photoURL)
+      ? '<img class="av" src="' + esc(state.user.photoURL) + '" alt="" referrerpolicy="no-referrer">'
+      : '<span class="avc">' + esc(initial) + '</span>';
+    box.innerHTML = '<div class="acct">' + av +
+      '<div><div class="aname">' + esc(name) + '</div>' +
+      (name !== state.email ? '<div class="amail">' + esc(state.email) + '</div>' : "") +
+      '<div class="apos">' + positionHtml() + '</div></div>' +
+      '<button class="chip" id="acctLogout">Đăng xuất</button></div>' +
+      (errMsg ? '<div class="aerr" style="margin-top:6px">' + esc(errMsg) + '</div>' : "");
+    var lo = document.getElementById("acctLogout");
+    if(lo) lo.addEventListener("click", function(){ if(auth) auth.signOut(); });
+  }
+
+  function signIn(){
+    if(!auth) return;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(function(e){
+      console.warn("signIn error", e);
+      var msg = "Đăng nhập thất bại: " + (e && e.message ? e.message : e);
+      if(e && e.code === "auth/popup-blocked") msg = "Trình duyệt đã chặn cửa sổ đăng nhập — hãy cho phép popup cho trang này rồi thử lại.";
+      if(e && e.code === "auth/popup-closed-by-user") msg = "Bạn đã đóng cửa sổ đăng nhập trước khi hoàn tất.";
+      if(e && e.code === "auth/unauthorized-domain") msg = "Tên miền này chưa được phép dùng đăng nhập Firebase (cần thêm vào Authorized domains).";
+      renderAccount(msg);
+      renderMine(msg);
+    });
+  }
+
+  function updateAdminNav(){
+    var nav = document.getElementById("navAdmin");
+    if(nav) nav.style.display = (state.role === "owner") ? "" : "none";
+  }
+  function emit(){
+    updateAdminNav();
+    renderMine();
+    renderAdmin();
+    listeners.forEach(function(cb){ try { cb(state); } catch(e){} });
+    try { window.dispatchEvent(new CustomEvent("mmauth", { detail: state })); } catch(e){}
+  }
+  function finishAuth(){
+    state.ready = true;
+    renderAccount();
+    emit();
+  }
+
+  // ---------- Trang "Việc của tôi" ----------
+  function renderMine(signInErr){
+    var box = document.getElementById("mineBox");
+    if(!box) return;
+    if(!state.user){
+      box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2>' +
+        '<div style="color:var(--mut);line-height:1.6">Bạn cần đăng nhập bằng tài khoản Google đã được cấp quyền để xem các việc được phân cho mình trong Media Plan.</div>' +
+        (fbReady ? '<div style="margin-top:12px"><button class="chip" id="mineLogin">🔐 Đăng nhập Google</button></div>' : "") +
+        (signInErr ? '<div class="aerr" style="margin-top:8px">' + esc(signInErr) + '</div>' : "") + '</div>';
+      var b = document.getElementById("mineLogin");
+      if(b) b.addEventListener("click", signIn);
+      return;
+    }
+    if(state.role === "guest" || state.role === "anon"){
+      box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2>' +
+        '<div style="line-height:1.6">Tài khoản <b>' + esc(state.email) + '</b> hiện ở chế độ <b>chỉ xem</b> — chưa được cấp quyền Nhân viên/Quản Lí nên chưa có việc được phân.' +
+        '<br><span style="color:var(--mut)">Hãy liên hệ chủ kênh để được thêm vào danh sách tài khoản và gắn PIC của bạn.</span></div></div>';
+      return;
+    }
+    if(!state.pic){
+      box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2>' +
+        '<div style="line-height:1.6">Tab này liệt kê các bài trong Media Plan theo <b>PIC được liên kết</b> với tài khoản của bạn. ' +
+        (state.role === "owner"
+          ? 'Tài khoản chủ kênh chưa gắn PIC nào. Bạn quản lý việc gắn email ↔ PIC trong mục <b>👥 Tài khoản &amp; phân quyền</b>.'
+          : 'Tài khoản của bạn chưa được gắn PIC — hãy liên hệ chủ kênh để được gắn PIC.') +
+        '</div><div style="margin-top:12px"><button class="chip" id="mineGoPlan">🗓 Mở Media Plan tháng 11</button>' +
+        (state.role === "owner" ? ' <button class="chip" id="mineGoAdmin">👥 Tài khoản &amp; phân quyền</button>' : "") + '</div></div>';
+      var gp = document.getElementById("mineGoPlan");
+      if(gp) gp.addEventListener("click", function(){ gotoPage("page-plan"); });
+      var ga = document.getElementById("mineGoAdmin");
+      if(ga) ga.addEventListener("click", function(){ gotoPage("page-admin"); });
+      return;
+    }
+    if(!planReady()){
+      box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2><div class="loading">Đang tải dữ liệu Media Plan…</div></div>';
+      return;
+    }
+    var pic = state.pic;
+    var rows = planRows().filter(function(r){ return r.picC === pic || r.picD === pic; });
+    var asContent = rows.filter(function(r){ return r.picC === pic; }).length;
+    var asDesign = rows.filter(function(r){ return r.picD === pic; }).length;
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var upcoming = rows.filter(function(r){
+      var d = (typeof parsePostDate === "function") ? parsePostDate(r.date) : null;
+      return d && d >= today;
+    }).length;
+    var sorted = rows.slice().sort(function(a, b){
+      var da = (typeof parsePostDate === "function") ? parsePostDate(a.date) : null;
+      var db = (typeof parsePostDate === "function") ? parsePostDate(b.date) : null;
+      return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+    });
+    var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
+    var body = sorted.map(function(r){
+      var role = (r.picC === pic && r.picD === pic) ? "Content + Design" : (r.picC === pic ? "Content" : "Design");
+      var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
+      var topicHtml = r.air
+        ? '<a href="' + esc(r.air) + '" target="_blank" rel="noopener">' + esc(r.topic) + '</a>'
+        : esc(r.topic);
+      return '<tr><td style="white-space:nowrap">' + esc(r.date) + (r.dow ? " (" + esc(r.dow) + ")" : "") + '</td>' +
+        '<td>' + badge(r.form) + '</td>' +
+        '<td class="title-cell">' + topicHtml + (r.content ? '<div style="color:var(--mut);font-size:12px;margin-top:2px">' + esc(r.content) + '</div>' : "") + '</td>' +
+        '<td>' + role + '</td><td>' + esc(plat) + '</td></tr>';
+    }).join("");
+    box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
+      '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài trong Media Plan tháng 11 · ' +
+      'PIC Content: <b>' + asContent + '</b> · PIC Design: <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
+      (rows.length
+        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan tháng 11.</div>') +
+      '</div>';
+  }
+  function gotoPage(id){
+    var btn = document.querySelector('#sidenav button[data-page="' + id + '"]');
+    if(btn) btn.click();
+  }
+
+  // ---------- Trang "Tài khoản & phân quyền" (chỉ chủ kênh) ----------
+  function admStatus(msg, isErr){
+    var el = document.getElementById("admStatus");
+    if(el){ el.textContent = msg || ""; el.style.color = isErr ? "var(--down)" : "var(--up)"; }
+  }
+  function fsErr(e){
+    if(e && e.code === "permission-denied") return "Firestore từ chối quyền ghi (permission-denied) — chỉ tài khoản chủ kênh mới thêm/sửa/xoá được tài khoản.";
+    return "Lỗi: " + (e && e.message ? e.message : e);
+  }
+  function renderAdmin(){
+    var box = document.getElementById("adminBox");
+    if(!box) return;
+    if(state.role !== "owner"){
+      if(adminUnsub){ try { adminUnsub(); } catch(e){} adminUnsub = null; }
+      adminBuilt = false;
+      box.innerHTML = '<div style="color:var(--mut)">Chỉ chủ kênh mới xem được mục này.</div>';
+      return;
+    }
+    if(adminBuilt || !db) return;
+    adminBuilt = true;
+    var picOpts = '<option value="">— trống —</option>' + PIC_LIST.map(function(p){
+      return '<option value="' + esc(p) + '">' + esc(p) + '</option>';
+    }).join("");
+    box.innerHTML =
+      '<table><thead><tr><th>Tên</th><th>Email</th><th>PIC liên kết</th><th>Cấp</th><th>Thao tác</th></tr></thead>' +
+      '<tbody><tr><td><b>Đạt Nguyễn</b> 🔒</td><td>' + OWNER_EMAIL + '</td><td>—</td>' +
+      '<td><span class="role-badge role-manager">Quản Lí · Chủ kênh</span></td><td><span style="color:var(--mut)">Tài khoản gốc — không sửa/xoá</span></td></tr></tbody>' +
+      '<tbody id="staffTbody"></tbody></table>' +
+      '<div id="staffEmpty" class="hint">Chưa có tài khoản nhân viên nào — thêm ở form bên dưới.</div>' +
+      '<h3 style="font-size:14px;margin:18px 0 4px">Thêm / cập nhật tài khoản</h3>' +
+      '<form class="adm-form" id="admForm">' +
+        '<input type="email" id="admEmail" placeholder="Email Google của nhân viên" required style="min-width:230px">' +
+        '<input type="text" id="admName" placeholder="Tên hiển thị" style="min-width:150px">' +
+        '<select id="admPic">' + picOpts + '</select>' +
+        '<select id="admRole"><option value="staff">Nhân viên</option><option value="manager">Quản Lí</option></select>' +
+        '<button class="chip" type="submit">Lưu tài khoản</button>' +
+      '</form>' +
+      '<div id="admStatus" style="font-size:13px;min-height:18px"></div>' +
+      '<div class="hint">Chỉ chủ kênh mới thêm/sửa/xoá được tài khoản. Thay đổi có hiệu lực ở lần đăng nhập kế tiếp của người đó (hoặc khi họ tải lại trang).</div>';
+
+    document.getElementById("admForm").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var email = document.getElementById("admEmail").value.toLowerCase().trim();
+      var name = document.getElementById("admName").value.trim();
+      var pic = document.getElementById("admPic").value;
+      var role = document.getElementById("admRole").value;
+      if(!email || email.indexOf("@") < 0){ admStatus("Email chưa hợp lệ.", true); return; }
+      if(email === OWNER_EMAIL){ admStatus("Đây là email của chủ kênh — tài khoản gốc luôn là Quản Lí, không cần thêm.", true); return; }
+      admStatus("Đang lưu…", false);
+      db.collection("staff").doc(email).set({
+        name: name, pic: pic, role: role,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: OWNER_EMAIL
+      }, { merge: true }).then(function(){
+        admStatus("Đã lưu tài khoản " + email + ".", false);
+        document.getElementById("admForm").reset();
+      }).catch(function(e){ console.warn("staff set", e); admStatus(fsErr(e), true); });
+    });
+
+    var tbody = document.getElementById("staffTbody");
+    tbody.addEventListener("change", function(ev){
+      var sel = ev.target.closest("select[data-role-for]");
+      if(!sel) return;
+      var email = sel.getAttribute("data-role-for");
+      admStatus("Đang đổi cấp cho " + email + "…", false);
+      db.collection("staff").doc(email).set({
+        role: sel.value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: OWNER_EMAIL
+      }, { merge: true }).then(function(){
+        admStatus("Đã đổi cấp của " + email + " thành " + (sel.value === "manager" ? "Quản Lí" : "Nhân viên") + ".", false);
+      }).catch(function(e){ console.warn("staff role", e); admStatus(fsErr(e), true); });
+    });
+    tbody.addEventListener("click", function(ev){
+      var btn = ev.target.closest("button[data-del-for]");
+      if(!btn) return;
+      var email = btn.getAttribute("data-del-for");
+      if(!confirm("Xoá tài khoản " + email + " khỏi danh sách phân quyền?")) return;
+      db.collection("staff").doc(email).delete().then(function(){
+        admStatus("Đã xoá tài khoản " + email + ".", false);
+      }).catch(function(e){ console.warn("staff delete", e); admStatus(fsErr(e), true); });
+    });
+
+    adminUnsub = db.collection("staff").onSnapshot(function(snap){
+      var docs = [];
+      snap.forEach(function(d){ var v = d.data() || {}; docs.push({ email: d.id, name: v.name || "", pic: v.pic || "", role: v.role === "manager" ? "manager" : "staff" }); });
+      docs.sort(function(a, b){ return (a.name || a.email).localeCompare(b.name || b.email, "vi"); });
+      var empty = document.getElementById("staffEmpty");
+      if(empty) empty.style.display = docs.length ? "none" : "";
+      tbody.innerHTML = docs.map(function(s){
+        return '<tr><td>' + esc(s.name || "—") + '</td><td>' + esc(s.email) + '</td><td>' + esc(s.pic || "—") + '</td>' +
+          '<td>' + (s.role === "manager"
+            ? '<span class="role-badge role-manager">Quản Lí</span>'
+            : '<span class="role-badge role-staff">Nhân viên</span>') + '</td>' +
+          '<td style="white-space:nowrap"><select data-role-for="' + esc(s.email) + '">' +
+            '<option value="staff"' + (s.role === "staff" ? " selected" : "") + '>Nhân viên</option>' +
+            '<option value="manager"' + (s.role === "manager" ? " selected" : "") + '>Quản Lí</option></select> ' +
+          '<button class="chip" data-del-for="' + esc(s.email) + '">Xoá</button></td></tr>';
+      }).join("");
+    }, function(e){
+      console.warn("staff onSnapshot", e);
+      admStatus(fsErr(e), true);
+    });
+  }
+
+  // ---------- Khởi tạo ----------
+  function init(){
+    if(!window.firebase || !firebase.auth || !firebase.firestore){
+      // Firebase CDN không tải được → dashboard hoạt động như cũ, không hiện ô tài khoản.
+      return;
+    }
+    try {
+      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      auth = firebase.auth();
+      db = firebase.firestore();
+      fbReady = true;
+    } catch(e){
+      console.warn("Firebase init failed", e);
+      return;
+    }
+    renderAccount();
+    auth.onAuthStateChanged(function(user){
+      if(!user){
+        state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: true };
+        renderAccount();
+        emit();
+        return;
+      }
+      state.user = user;
+      state.email = (user.email || "").toLowerCase();
+      if(state.email === OWNER_EMAIL){
+        state.role = "owner"; state.pic = ""; state.staffName = "";
+        finishAuth();
+        return;
+      }
+      db.collection("staff").doc(state.email).get().then(function(doc){
+        if(doc.exists){
+          var d = doc.data() || {};
+          state.role = (d.role === "manager") ? "manager" : "staff";
+          state.pic = d.pic || "";
+          state.staffName = d.name || "";
+        } else {
+          state.role = "guest"; state.pic = ""; state.staffName = "";
+        }
+        finishAuth();
+      }).catch(function(e){
+        console.warn("staff doc read failed — treating as guest", e);
+        state.role = "guest"; state.pic = ""; state.staffName = "";
+        finishAuth();
+      });
+    });
+    // Khi dữ liệu Media Plan tải xong thì vẽ lại tab "Việc của tôi"
+    var tries = 0;
+    var iv = setInterval(function(){
+      tries++;
+      if(planReady()){ renderMine(); clearInterval(iv); }
+      else if(tries > 40) clearInterval(iv);
+    }, 800);
+    // Mở tab "Việc của tôi" thì vẽ lại theo dữ liệu/quyền hiện tại
+    var nav = document.getElementById("sidenav");
+    if(nav) nav.addEventListener("click", function(e){
+      var btn = e.target.closest("button[data-page]");
+      if(btn && btn.dataset.page === "page-mine") setTimeout(renderMine, 0);
+    });
+    renderMine();
+    updateAdminNav();
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
 </script>
 </body>
 </html>
