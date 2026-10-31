@@ -1486,23 +1486,26 @@ loadDeep();
       stCnt[s] = (stCnt[s] || 0) + 1;
     });
     var body = sorted.map(function(r){
-      var role = (r.picC === pic && r.picD === pic) ? "Content + Design" : (r.picC === pic ? "Content" : "Design");
+      var role = (r.picC === pic && r.picD === pic) ? "Brief + Làm" : (r.picC === pic ? "Brief" : "Làm");
       var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
       var statusCell = (typeof planStatusChip === "function") ? planStatusChip(r) : "";
+      var briefCell = r.brief
+        ? '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>'
+        : '<span style="color:var(--down);font-weight:600">⚠️ Chưa có brief</span>';
       var topicHtml = r.air
         ? '<a href="' + esc(r.air) + '" target="_blank" rel="noopener">' + esc(r.topic) + '</a>'
         : esc(r.topic);
       return '<tr><td style="white-space:nowrap">' + esc(r.date) + (r.dow ? " (" + esc(r.dow) + ")" : "") + '</td>' +
         '<td>' + badge(r.form) + '</td>' +
         '<td class="title-cell">' + topicHtml + (r.content ? '<div style="color:var(--mut);font-size:12px;margin-top:2px">' + esc(r.content) + '</div>' : "") + '</td>' +
-        '<td>' + role + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
+        '<td>' + role + '</td><td>' + briefCell + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
     }).join("");
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
       '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài trong Media Plan ' + esc(window.PLAN_MONTH_LABEL || "tháng 11/2026") + ' · ' +
-      'PIC Content: <b>' + asContent + '</b> · PIC Design: <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
+      'Việc brief (Content): <b>' + asContent + '</b> · Việc làm (Design): <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
       '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' +
       (rows.length
-        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan ' + esc(window.PLAN_MONTH_LABEL || "tháng 11/2026") + '.</div>') +
       '</div>';
   }
