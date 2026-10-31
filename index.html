@@ -189,7 +189,7 @@
 
   <div class="filters">
     <div class="grp" id="presets">
-      <button class="chip" data-preset="today">Hôm nay</button>
+      <button class="chip" data-preset="today">Ngày mới nhất</button>
       <button class="chip" data-preset="7">7 ngày</button>
       <button class="chip active" data-preset="30">30 ngày</button>
       <button class="chip" data-preset="90">90 ngày</button>
@@ -359,7 +359,7 @@ const TAB_INSIGHTS = "📉 Page Insights";
 const TAB_POSTS = "📝 Posts";
 const FOLLOWERS_SNAPSHOT = 4859;
 
-let DAYS = [], POSTS = [], MSG = [], charts = {};
+let DAYS = [], POSTS = [], MSG = [], SNAP = [], charts = {};
 const SORT = { posts: { key: "views", dir: -1 }, daily: { key: "date", dir: -1 } };
 
 function gvizUrl(tab){
@@ -502,23 +502,59 @@ function statGroup(title, items){
     `<section class="kpis" style="margin:6px 0 2px">` + items.map(k =>
     `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("") + `</section>`;
 }
+function vnTodayGroup(){
+  if(!SNAP.length) return "";
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tLabel = dstr(today0);
+  const times = [...new Set(SNAP.map(s => s.date.getTime()))].sort((a,b) => a - b);
+  const todayRows = SNAP.filter(s => s.date.getTime() === today0.getTime());
+  const prevTimes = times.filter(t => t < today0.getTime());
+  if(!todayRows.length){
+    return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại)`,
+      [{ label: "Chưa có mốc hôm nay", value: "—", note: "Dữ liệu bài viết được chốt mốc mỗi 30 phút — quay lại sau ít phút." }]);
+  }
+  if(!prevTimes.length){
+    return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại)`,
+      [{ label: "Đang ghi mốc đầu tiên", value: "—", note: "Hệ thống mới bắt đầu chốt mốc từng bài từ 31/10/2026 — phần “tăng trong ngày” sẽ hiện từ ngày mai (01/11), khi đã có mốc hôm qua để đối chiếu." }]);
+  }
+  const prevT = prevTimes[prevTimes.length - 1];
+  const prevMap = {};
+  SNAP.filter(s => s.date.getTime() === prevT).forEach(s => { prevMap[s.id] = s; });
+  const sum = k => todayRows.reduce((acc, s) => {
+    const b = prevMap[s.id];
+    return acc + Math.max(0, b ? (s[k] - b[k]) : s[k]);
+  }, 0);
+  const items = [
+    { label: "Lượt xem tăng", value: fmt(sum("views")), note: "trên các bài viết" },
+    { label: "Reaction mới", value: fmt(sum("reactions")) },
+    { label: "Bình luận mới", value: fmt(sum("comments")) },
+    { label: "Chia sẻ mới", value: fmt(sum("shares")) },
+  ];
+  return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại, đối chiếu mốc cuối ngày ${dstr(new Date(prevT))})`, items) +
+    `<div class="hint" style="margin:2px 0 4px">Số tạm, tự cập nhật mỗi 30 phút — chỉ tính phần tăng trên bài viết. Số toàn Page theo ngày của Facebook ở khối ngay trên.</div>`;
+}
 function renderKeyStats(){
   const box = document.getElementById("keyStats");
   if(!DAYS.length){ box.innerHTML = '<div class="hint">Chưa có dữ liệu.</div>'; return; }
   const last = DAYS[DAYS.length - 1];
   const mets = [["Lượt xem","views"],["Người xem","unique"],["Tương tác","eng"],
                 ["Follow mới","follows"],["Unfollow","unfollows"],["Lượt xem trang","pageViews"]];
-  const todayItems = mets.map(([label,k]) => ({ label, value: fmt(last[k] || 0) }));
+  const dayItems = mets.map(([label,k]) => ({ label, value: fmt(last[k] || 0) }));
   if(MSG.length){
     const m = MSG.find(x => x.date.getTime() === last.date.getTime());
-    todayItems.push({ label: "Hội thoại hôm nay", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
+    dayItems.push({ label: "Hội thoại", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
   }
   const monthDays = DAYS.filter(d => d.date.getFullYear() === last.date.getFullYear() && d.date.getMonth() === last.date.getMonth());
   const sum = k => monthDays.reduce((s,d) => s + (d[k] || 0), 0);
   const monthItems = mets.map(([label,k]) => ({ label, value: fmt(sum(k)) }));
+  const dNext = new Date(last.date); dNext.setDate(dNext.getDate() + 1);
+  const dAfter = new Date(last.date); dAfter.setDate(dAfter.getDate() + 2);
   box.innerHTML =
-    statGroup(`📅 Hôm nay — ngày ${last.label} (ngày mới nhất có dữ liệu, Facebook chốt số theo ngày)`, todayItems) +
-    statGroup(`🗓 Tháng này — tháng ${last.date.getMonth()+1}/${last.date.getFullYear()} (cộng dồn ${monthDays.length} ngày, tới ${last.label})`, monthItems);
+    statGroup(`📅 Ngày số liệu mới nhất — ${last.label}`, dayItems) +
+    `<div class="hint" style="margin:2px 0 4px">Facebook chốt số theo ngày giờ Mỹ, chậm hơn giờ Việt Nam 14 tiếng: “ngày ${last.label}” ở đây = 14:00 ${last.label} → 14:00 ${dstr(dNext)} giờ VN. Số của ngày ${dstr(dNext)} sẽ có sau 14:00 ${dstr(dAfter)}, và số ngày mới nhất còn được Facebook cập nhật thêm trong ít giờ sau khi chốt.</div>` +
+    statGroup(`🗓 Tháng ${last.date.getMonth()+1}/${last.date.getFullYear()} — cộng dồn ${monthDays.length} ngày có dữ liệu, tới ${last.label}`, monthItems) +
+    vnTodayGroup();
 }
 
 const CMP_METS = [
@@ -554,11 +590,12 @@ function renderCompare(){
 }
 
 async function main(){
-  let insights, posts, msgRows;
+  let insights, posts, msgRows, snapRows;
   try{
-    [insights, posts, msgRows] = await Promise.all([
+    [insights, posts, msgRows, snapRows] = await Promise.all([
       fetchTab(TAB_INSIGHTS), fetchTab(TAB_POSTS),
       fetchTab("💬 Messages Daily").catch(() => null),
+      fetchTab("📸 Post Snapshots").catch(() => null),
     ]);
   }catch(e){
     document.getElementById("loading").style.display = "none";
@@ -588,6 +625,11 @@ async function main(){
       (/^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(raw.slice(0,10) + "T00:00:00") : parsePostDate(raw));
     return { date: d, conv: num(r[1]) };
   }).filter(m => m.date);
+
+  SNAP = (snapRows || []).filter(r => r && r[0] && r[1]).map(r => ({
+    date: parseDay(r[0]), id: String(r[1]),
+    views: num(r[2]), reactions: num(r[3]), comments: num(r[4]), shares: num(r[5])
+  })).filter(s => s.date);
 
   const months = [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + (d.date.getMonth() + 1)))].sort();
   const mSel = document.getElementById("monthSel");
