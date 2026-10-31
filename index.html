@@ -835,15 +835,15 @@ function formBadge(form){
   return `<span class="fbadge f-other">${form || "—"}</span>`;
 }
 const PILLAR_STYLES = {
-  "Xưởng & Sản xuất": "background:rgba(245,158,11,.14);color:#fcd34d;border-color:rgba(245,158,11,.45)",
-  "Thương hiệu cá nhân": "background:rgba(236,72,153,.13);color:#f9a8d4;border-color:rgba(236,72,153,.45)",
-  "Bài học khởi nghiệp": "background:rgba(139,92,246,.15);color:#c4b5fd;border-color:rgba(139,92,246,.45)",
-  "R&D": "background:rgba(6,182,212,.13);color:#67e8f9;border-color:rgba(6,182,212,.45)",
-  "Seri xây xưởng": "background:rgba(249,115,22,.13);color:#fdba74;border-color:rgba(249,115,22,.45)",
-  "Mẹ Bầu & Dinh Dưỡng": "background:rgba(244,114,182,.13);color:#f9a8d4;border-color:rgba(244,114,182,.45)",
+  "Xưởng & Sản xuất": "background:rgba(217,119,6,.12);color:#b45309;border-color:rgba(217,119,6,.40)",
+  "Thương hiệu cá nhân": "background:rgba(219,39,119,.10);color:#be185d;border-color:rgba(219,39,119,.40)",
+  "Bài học khởi nghiệp": "background:rgba(124,58,237,.10);color:#7c3aed;border-color:rgba(124,58,237,.40)",
+  "R&D": "background:rgba(8,145,178,.10);color:#0e7490;border-color:rgba(8,145,178,.40)",
+  "Seri xây xưởng": "background:rgba(249,115,22,.10);color:#ea580c;border-color:rgba(249,115,22,.40)",
+  "Mẹ Bầu & Dinh Dưỡng": "background:rgba(219,39,119,.10);color:#be185d;border-color:rgba(219,39,119,.40)",
 };
 function pillarBadge(short){
-  const st = PILLAR_STYLES[short] || "background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.45)";
+  const st = PILLAR_STYLES[short] || "background:rgba(100,116,139,.10);color:#475569;border-color:rgba(100,116,139,.35)";
   return `<span class="pbadge" style="${st}">${short}</span>`;
 }
 
@@ -895,7 +895,7 @@ function renderPlan(){
     `<div style="display:flex;justify-content:space-between;font-size:13px"><span>📈 Tiến độ đăng bài ${PLAN_MONTH ? PLAN_MONTH.label : ""}</span>` +
     `<span style="color:var(--mut)">Đã đăng <b style="color:var(--txt)">${withAir}/${PLAN.length}</b> (${pct}%)` +
     (nOver ? ` · <span style="color:var(--down)">⚠️ ${nOver} bài quá hạn chưa đăng</span>` : "") +
-    (nToday ? ` · <span style="color:#fcd34d">📌 ${nToday} bài đăng hôm nay</span>` : "") + `</span></div>` +
+    (nToday ? ` · <span style="color:#b45309">📌 ${nToday} bài đăng hôm nay</span>` : "") + `</span></div>` +
     `<div class="bar"><i style="width:${pct}%"></i></div>`;
   document.querySelector("#planTable tbody").innerHTML = rows.map(r =>
     `<tr><td style="white-space:nowrap">${r.date}${r.dow ? " (" + r.dow + ")" : ""}</td><td>${r.hour}</td><td>${formBadge(r.form)}</td>` +
@@ -993,7 +993,7 @@ function renderDeadlineRadar(){
     ` <span style="color:var(--mut)">· Brief:</span> ${personChip(r.picC)} <span style="color:var(--mut)">· Làm:</span> ${r.picD ? personChip(r.picD) : '<span style="color:var(--down)">chưa phân công</span>'}</div>`;
   box.innerHTML =
     (over.length ? `<div style="font-weight:600;color:var(--down);margin:4px 0">⛔ Đã quá ngày đăng, chưa có Link Air (${over.length})</div>` + over.map(line).join("") : "") +
-    (soon.length ? `<div style="font-weight:600;color:#fcd34d;margin:10px 0 4px">⚠️ Đăng hôm nay / ngày mai, chưa có Link Air (${soon.length})</div>` + soon.map(line).join("") : "");
+    (soon.length ? `<div style="font-weight:600;color:#b45309;margin:10px 0 4px">⚠️ Đăng hôm nay / ngày mai, chưa có Link Air (${soon.length})</div>` + soon.map(line).join("") : "");
 }
 
 function refillPlanFilters(){
