@@ -90,6 +90,15 @@
   #previewBanner button{background:#231303;color:#fcd34d;border:1px solid #231303;border-radius:999px;padding:5px 14px;cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
   .preview-mark{font-size:10.5px;color:var(--mut);font-weight:600}
   .pv-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .subchip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
+  .sub-pending{background:rgba(245,158,11,.14);color:#fcd34d;border-color:rgba(245,158,11,.5)}
+  .sub-approved{background:rgba(52,211,153,.13);color:#6ee7b7;border-color:rgba(52,211,153,.5)}
+  .sub-changes{background:rgba(248,113,113,.13);color:#fca5a5;border-color:rgba(248,113,113,.5)}
+  .sub-none{background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.5)}
+  .sub-form{display:flex;flex-direction:column;gap:6px;margin-top:8px;min-width:230px}
+  .sub-form input{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;width:100%}
+  .sub-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .sub-actions input{flex:1;min-width:220px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
 </style>
 </head>
 <body>
@@ -102,6 +111,7 @@
     <button data-page="page-content">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
+    <button data-page="page-review" id="navReview" style="display:none">📥 Duyệt bài</button>
     <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
   </nav>
 </aside>
@@ -277,6 +287,10 @@
 
  <section class="page" id="page-mine">
   <div id="mineBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
+ </section>
+
+ <section class="page" id="page-review">
+  <div id="reviewBox"><div class="card"><h2>📥 Duyệt bài</h2><div style="color:var(--mut)">Chỉ Quản Lí mới xem được mục này.</div></div></div>
  </section>
 
  <section class="page" id="page-admin">
@@ -1020,6 +1034,10 @@ loadDeep();
   var listeners = [];
   var db = null, auth = null, fbReady = false;
   var adminBuilt = false, adminUnsub = null;
+  // 📥 Nộp file + duyệt 2 bước: submissions của chính user (theo email thật) + trạng thái trang Duyệt bài
+  var mySubs = {}, mySubUnsub = null, mySubEmail = "";
+  var mineOpen = null, mineFlash = "", mineFlashErr = false;
+  var reviewBuilt = false, reviewSubUnsub = null, reviewActUnsub = null, allSubs = [], actDocs = [];
 
   window.MMAuth = {
     get user(){ return state.user; },
@@ -1164,10 +1182,13 @@ loadDeep();
   }
   function emit(){
     updateAdminNav();
+    updateReviewNav();
     renderBanner();
     renderPreview();
+    syncMySub();
     renderMine();
     renderAdmin();
+    renderReview();
     listeners.forEach(function(cb){ try { cb(state); } catch(e){} });
     try { window.dispatchEvent(new CustomEvent("mmauth", { detail: state })); } catch(e){}
   }
@@ -1230,28 +1251,276 @@ loadDeep();
       return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
     });
     var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
+    var cnt = { none: 0, pending: 0, approved: 0, changes: 0 };
+    rows.forEach(function(r){
+      var rs = [];
+      if(r.picC === pic) rs.push("Content");
+      if(r.picD === pic) rs.push("Design");
+      rs.forEach(function(mr){
+        var rec = subFor(r, mr);
+        var st = rec ? (rec.data.status || "pending") : "none";
+        if(cnt[st] == null) st = "pending";
+        cnt[st]++;
+      });
+    });
     var body = sorted.map(function(r){
       var role = (r.picC === pic && r.picD === pic) ? "Content + Design" : (r.picC === pic ? "Content" : "Design");
       var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
+      var myRoles = [];
+      if(r.picC === pic) myRoles.push("Content");
+      if(r.picD === pic) myRoles.push("Design");
+      var statusCell = myRoles.length > 1
+        ? myRoles.map(function(mr){ return '<div style="margin-bottom:6px"><b style="font-size:12px;color:var(--mut)">' + mr + ':</b> ' + subBlockHtml(r, mr) + '</div>'; }).join("")
+        : subBlockHtml(r, myRoles[0]);
       var topicHtml = r.air
         ? '<a href="' + esc(r.air) + '" target="_blank" rel="noopener">' + esc(r.topic) + '</a>'
         : esc(r.topic);
       return '<tr><td style="white-space:nowrap">' + esc(r.date) + (r.dow ? " (" + esc(r.dow) + ")" : "") + '</td>' +
         '<td>' + badge(r.form) + '</td>' +
         '<td class="title-cell">' + topicHtml + (r.content ? '<div style="color:var(--mut);font-size:12px;margin-top:2px">' + esc(r.content) + '</div>' : "") + '</td>' +
-        '<td>' + role + '</td><td>' + esc(plat) + '</td></tr>';
+        '<td>' + role + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
     }).join("");
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
       '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài trong Media Plan tháng 11 · ' +
       'PIC Content: <b>' + asContent + '</b> · PIC Design: <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
+      '<div style="font-size:13.5px;line-height:1.7">Tình trạng nộp: Chưa nộp <b>' + cnt.none + '</b> · ⏳ Chờ duyệt <b>' + cnt.pending + '</b> · ✅ Đã duyệt <b>' + cnt.approved + '</b> · ↩️ Yêu cầu sửa <b>' + cnt.changes + '</b>.</div>' +
+      (mineFlash ? '<div style="font-size:13.5px;margin-top:6px;color:' + (mineFlashErr ? "var(--down)" : "var(--up)") + '">' + esc(mineFlash) + '</div>' : "") +
       (rows.length
-        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Trạng thái nộp</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan tháng 11.</div>') +
       '</div>';
   }
   function gotoPage(id){
     var btn = document.querySelector('#sidenav button[data-page="' + id + '"]');
     if(btn) btn.click();
+  }
+
+  // ---------- 📥 Nộp file + duyệt bài 2 bước (submissions / activity) ----------
+  function planKeyOf(r){ return (r.date || "") + "|" + (r.topic || ""); }
+  function subMapKey(planKey, myRole){ return String(planKey) + "\u0001" + String(myRole || ""); }
+  function subKey(r, myRole){ return subMapKey(planKeyOf(r), myRole); }
+  function subFor(r, myRole){ return mySubs[subKey(r, myRole)] || null; }
+  function subChip(st){
+    if(st === "pending") return '<span class="subchip sub-pending">⏳ Chờ duyệt</span>';
+    if(st === "approved") return '<span class="subchip sub-approved">✅ Đã duyệt</span>';
+    if(st === "changes") return '<span class="subchip sub-changes">↩️ Yêu cầu sửa</span>';
+    return '<span class="subchip sub-none">Chưa nộp</span>';
+  }
+  function subErr(e){
+    if(e && e.code === "permission-denied") return "Firestore từ chối quyền (permission-denied) — tài khoản của bạn có thể chưa được cấp quyền hoặc chưa đăng nhập đúng tài khoản.";
+    return "Lỗi: " + (e && e.message ? e.message : e);
+  }
+  function fmtTs(ts){
+    if(!ts) return "";
+    var d = null;
+    try { d = ts.toDate ? ts.toDate() : new Date(ts); } catch(e){}
+    if(!d || isNaN(d.getTime())) return "";
+    function p(n){ return (n < 10 ? "0" : "") + n; }
+    return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  function tsMs(ts){
+    try { if(ts && ts.toMillis) return ts.toMillis(); if(ts && ts.toDate) return ts.toDate().getTime(); } catch(e){}
+    return 0;
+  }
+  // Theo dõi submissions của CHÍNH user (email thật) — kể cả khi đang xem thử, trạng thái vẫn là của tài khoản thật.
+  function syncMySub(){
+    var em = state.user ? state.email : "";
+    if(mySubEmail === em) return;
+    if(mySubUnsub){ try { mySubUnsub(); } catch(e){} mySubUnsub = null; }
+    mySubs = {};
+    mySubEmail = em;
+    if(!em || !db) return;
+    mySubUnsub = db.collection("submissions").where("byEmail", "==", em).onSnapshot(function(snap){
+      var m = {};
+      snap.forEach(function(d){
+        var v = d.data() || {};
+        if(v.planKey) m[subMapKey(v.planKey, v.myRole)] = { id: d.id, data: v };
+      });
+      mySubs = m;
+      if(!mineOpen) renderMine(); // đang mở form nộp thì không vẽ lại, tránh mất nội dung đang gõ
+    }, function(e){ console.warn("mySubs onSnapshot", e); });
+  }
+  function subBlockHtml(r, myRole){
+    var pk = planKeyOf(r);
+    var rec = subFor(r, myRole);
+    var sub = rec ? rec.data : null;
+    var st = sub ? (sub.status || "pending") : "";
+    var html = subChip(st);
+    if(sub && sub.link) html += ' <a href="' + esc(sub.link) + '" target="_blank" rel="noopener" title="Mở file đã nộp">🔗</a>';
+    if(sub && sub.reviewNote && (st === "changes" || st === "approved"))
+      html += '<div style="color:' + (st === "changes" ? "var(--down)" : "var(--mut)") + ';font-size:12px;margin-top:2px">💬 ' + esc(sub.reviewNote) + '</div>';
+    if(!preview && mineOpen && mineOpen.pk === pk && mineOpen.role === myRole){
+      html += '<form data-sub-form data-pk="' + esc(pk) + '" data-role="' + esc(myRole) + '" class="sub-form">' +
+        '<input type="url" name="lk" required placeholder="Dán link file (Drive, bài đã đăng…)" value="' + esc(sub ? (sub.link || "") : "") + '">' +
+        '<input type="text" name="nt" placeholder="Ghi chú (tuỳ chọn)" value="">' +
+        '<span style="display:flex;gap:6px"><button class="chip" type="submit">Gửi</button>' +
+        '<button class="chip" type="button" data-sub-cancel>Huỷ</button></span></form>';
+    } else if(!sub || st === "changes"){
+      if(preview){
+        html += '<div class="hint" style="margin-top:4px">Đang xem thử — thoát xem thử để thao tác thật.</div>';
+      } else {
+        html += ' <button class="chip" type="button" data-sub-open data-pk="' + esc(pk) + '" data-role="' + esc(myRole) + '">' + (sub ? "Nộp lại" : "Nộp file") + '</button>';
+      }
+    }
+    return html;
+  }
+  function doSubmit(pk, myRole, link, note){
+    if(preview || !db || !state.user) return; // xem thử → không ghi thật
+    var r = null;
+    planRows().forEach(function(x){ if(planKeyOf(x) === pk) r = x; });
+    if(!r){ mineFlash = "Không tìm thấy bài trong Media Plan."; mineFlashErr = true; renderMine(); return; }
+    var rec = subFor(r, myRole);
+    var isRe = !!rec;
+    var payload = {
+      planKey: pk, itemDate: r.date || "", itemTopic: r.topic || "", itemForm: r.form || "",
+      myRole: myRole, pic: state.pic, byEmail: state.email, byName: displayName(),
+      link: link, note: note, status: "pending",
+      reviewedBy: null, reviewedAt: null, reviewNote: "",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    var p;
+    if(isRe){
+      p = db.collection("submissions").doc(rec.id).update(payload);
+    } else {
+      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      p = db.collection("submissions").add(payload);
+    }
+    p.then(function(){
+      db.collection("activity").add({
+        byEmail: state.email, byName: displayName(), pic: state.pic,
+        action: isRe ? "resubmit" : "submit", planKey: pk, itemTopic: r.topic || "",
+        at: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(e){ console.warn("activity add", e); });
+      mineOpen = null;
+      mineFlash = isRe ? "Đã nộp lại — bài đang chờ duyệt." : "Đã nộp file — bài đang chờ duyệt.";
+      mineFlashErr = false;
+      renderMine();
+    }).catch(function(e){
+      console.warn("submit", e);
+      mineFlash = subErr(e);
+      mineFlashErr = true;
+      renderMine();
+    });
+  }
+
+  // ---------- Trang "Duyệt bài" (Quản Lí / chủ kênh) ----------
+  function updateReviewNav(){
+    var nav = document.getElementById("navReview");
+    if(nav) nav.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
+  }
+  function actLabel(a){
+    return { submit: "nộp file", resubmit: "nộp lại", approve: "duyệt bài", changes: "yêu cầu sửa" }[a] || a || "";
+  }
+  function revStatus(msg, isErr){
+    var el = document.getElementById("revStatus");
+    if(el){ el.textContent = msg || ""; el.style.color = isErr ? "var(--down)" : "var(--up)"; }
+  }
+  function renderReview(){
+    var box = document.getElementById("reviewBox");
+    if(!box) return;
+    var er = effRole();
+    if(er !== "owner" && er !== "manager"){
+      if(reviewSubUnsub){ try { reviewSubUnsub(); } catch(e){} reviewSubUnsub = null; }
+      if(reviewActUnsub){ try { reviewActUnsub(); } catch(e){} reviewActUnsub = null; }
+      reviewBuilt = false; allSubs = []; actDocs = [];
+      box.innerHTML = '<div class="card"><h2>📥 Duyệt bài</h2><div style="color:var(--mut)">Chỉ Quản Lí mới xem được mục này.</div></div>';
+      return;
+    }
+    if(reviewBuilt || !db) return;
+    reviewBuilt = true;
+    box.innerHTML =
+      '<div class="card"><h2>📥 Hàng chờ duyệt</h2><div id="revStatus" style="font-size:13px;min-height:18px"></div><div id="revQueueList"><div class="loading">Đang tải…</div></div></div>' +
+      '<div class="card"><h2>✔️ Đã xử lý gần đây</h2><div id="revDoneList"><div class="loading">Đang tải…</div></div></div>' +
+      '<div class="card"><h2>🕘 Nhật ký hoạt động</h2><div id="revActList"><div class="loading">Đang tải…</div></div></div>';
+    // Đọc toàn bộ submissions rồi lọc/sắp xếp phía client (quy mô nhỏ, tránh cần composite index).
+    reviewSubUnsub = db.collection("submissions").onSnapshot(function(snap){
+      var arr = [];
+      snap.forEach(function(d){ var v = d.data() || {}; v.__id = d.id; arr.push(v); });
+      allSubs = arr;
+      renderReviewLists();
+    }, function(e){
+      console.warn("subs onSnapshot", e);
+      var el = document.getElementById("revQueueList");
+      if(el) el.innerHTML = '<div style="color:var(--down)">' + esc(subErr(e)) + '</div>';
+    });
+    reviewActUnsub = db.collection("activity").onSnapshot(function(snap){
+      var arr = [];
+      snap.forEach(function(d){ var v = d.data() || {}; v.__id = d.id; arr.push(v); });
+      actDocs = arr;
+      renderReviewLists();
+    }, function(e){ console.warn("activity onSnapshot", e); });
+  }
+  function renderReviewLists(){
+    var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
+    var q = document.getElementById("revQueueList");
+    if(q){
+      var pend = allSubs.filter(function(s){ return s.status === "pending"; })
+        .sort(function(a, b){ return tsMs(b.createdAt) - tsMs(a.createdAt); });
+      if(!pend.length) q.innerHTML = '<div class="hint">Không có bài nào đang chờ duyệt. 🎉</div>';
+      else q.innerHTML = pend.map(function(s){
+        var html = '<div class="radar-item"><div><b>' + esc(s.itemDate || "") + '</b> · ' + badge(s.itemForm) + ' · <b>' + esc(s.itemTopic || "") + '</b></div>' +
+          '<div style="color:var(--mut);font-size:12.5px">Người nộp: <b style="color:var(--txt)">' + esc(s.byName || s.byEmail || "") + '</b>' +
+          (s.pic ? ' · PIC ' + esc(s.pic) : "") + ' · Vai trò ' + esc(s.myRole || "") +
+          (s.createdAt ? ' · Nộp lúc ' + esc(fmtTs(s.createdAt)) : "") + '</div>' +
+          (s.link ? '<div>🔗 <a href="' + esc(s.link) + '" target="_blank" rel="noopener">' + esc(s.link) + '</a></div>' : "") +
+          (s.note ? '<div>📝 ' + esc(s.note) + '</div>' : "");
+        if(preview){
+          html += '<div class="hint" style="margin-top:6px">Đang xem thử — thoát xem thử để thao tác thật.</div>';
+        } else {
+          html += '<div class="sub-actions"><input type="text" id="revNote-' + s.__id + '" placeholder="Ghi chú duyệt / lý do yêu cầu sửa (bắt buộc khi yêu cầu sửa)">' +
+            '<button class="chip" type="button" data-approve="' + s.__id + '">✅ Duyệt</button>' +
+            '<button class="chip" type="button" data-changes="' + s.__id + '">↩️ Yêu cầu sửa</button></div>';
+        }
+        return html + '</div>';
+      }).join("");
+    }
+    var dn = document.getElementById("revDoneList");
+    if(dn){
+      var done = allSubs.filter(function(s){ return s.status === "approved" || s.status === "changes"; })
+        .sort(function(a, b){ return tsMs(b.reviewedAt || b.updatedAt) - tsMs(a.reviewedAt || a.updatedAt); }).slice(0, 10);
+      if(!done.length) dn.innerHTML = '<div class="hint">Chưa có bài nào được xử lý.</div>';
+      else dn.innerHTML = done.map(function(s){
+        return '<div class="radar-item"><div>' + subChip(s.status) + ' <b>' + esc(s.itemDate || "") + '</b> · ' + badge(s.itemForm) + ' · <b>' + esc(s.itemTopic || "") + '</b></div>' +
+          '<div style="color:var(--mut);font-size:12.5px">Người nộp: ' + esc(s.byName || s.byEmail || "") + (s.pic ? ' · PIC ' + esc(s.pic) : "") + ' · ' + esc(s.myRole || "") +
+          ' · Xử lý bởi ' + esc(s.reviewedBy || "") + (s.reviewedAt ? ' · ' + esc(fmtTs(s.reviewedAt)) : "") + '</div>' +
+          (s.reviewNote ? '<div>💬 ' + esc(s.reviewNote) + '</div>' : "") + '</div>';
+      }).join("");
+    }
+    var ac = document.getElementById("revActList");
+    if(ac){
+      var acts = actDocs.slice().sort(function(a, b){ return tsMs(b.at) - tsMs(a.at); }).slice(0, 30);
+      if(!acts.length) ac.innerHTML = '<div class="hint">Chưa có hoạt động nào.</div>';
+      else ac.innerHTML = acts.map(function(a){
+        return '<div style="padding:6px 2px;border-bottom:1px solid var(--line);font-size:13px">' +
+          '<span style="color:var(--mut)">' + esc(fmtTs(a.at)) + '</span> · <b>' + esc(a.byName || a.byEmail || "") + '</b> ' +
+          esc(actLabel(a.action)) + (a.itemTopic ? ' — <b>' + esc(a.itemTopic) + '</b>' : "") + '</div>';
+      }).join("");
+    }
+  }
+  function doReview(id, kind){
+    if(preview || !db || !state.user) return; // xem thử → không ghi thật
+    var noteEl = document.getElementById("revNote-" + id);
+    var note = noteEl ? noteEl.value.trim() : "";
+    if(kind === "changes" && !note){ revStatus("Yêu cầu sửa bắt buộc phải nhập ghi chú / lý do.", true); return; }
+    revStatus("Đang xử lý…", false);
+    db.collection("submissions").doc(id).update({
+      status: kind, reviewedBy: state.email,
+      reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      reviewNote: note
+    }).then(function(){
+      var s = null;
+      allSubs.forEach(function(x){ if(x.__id === id) s = x; });
+      db.collection("activity").add({
+        byEmail: state.email, byName: displayName(), pic: state.pic,
+        action: kind === "approved" ? "approve" : "changes",
+        planKey: s ? (s.planKey || "") : "", itemTopic: s ? (s.itemTopic || "") : "",
+        at: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(e){ console.warn("activity add", e); });
+      revStatus(kind === "approved" ? "Đã duyệt bài. ✅" : "Đã gửi yêu cầu sửa. ↩️", false);
+    }).catch(function(e){
+      console.warn("review", e);
+      revStatus(subErr(e), true);
+    });
   }
 
   // ---------- Trang "Tài khoản & phân quyền" (chỉ chủ kênh) ----------
@@ -1418,9 +1687,40 @@ loadDeep();
     if(nav) nav.addEventListener("click", function(e){
       var btn = e.target.closest("button[data-page]");
       if(btn && btn.dataset.page === "page-mine") setTimeout(renderMine, 0);
+      if(btn && btn.dataset.page === "page-review") setTimeout(renderReview, 0);
     });
+    // 📥 Uỷ quyền sự kiện cho form nộp file trong "Việc của tôi" (mineBox chỉ thay innerHTML, listener gắn 1 lần)
+    var mb = document.getElementById("mineBox");
+    if(mb){
+      mb.addEventListener("click", function(e){
+        var open = e.target.closest("button[data-sub-open]");
+        if(open){ mineOpen = { pk: open.getAttribute("data-pk"), role: open.getAttribute("data-role") }; mineFlash = ""; renderMine(); return; }
+        if(e.target.closest("button[data-sub-cancel]")){ mineOpen = null; renderMine(); }
+      });
+      mb.addEventListener("submit", function(e){
+        var f = e.target.closest("form[data-sub-form]");
+        if(!f) return;
+        e.preventDefault();
+        var link = (f.elements.lk.value || "").trim();
+        var note = (f.elements.nt.value || "").trim();
+        if(!link){ mineFlash = "Hãy dán link file trước khi gửi."; mineFlashErr = true; renderMine(); return; }
+        mineFlash = "Đang gửi…"; mineFlashErr = false;
+        doSubmit(f.getAttribute("data-pk"), f.getAttribute("data-role"), link, note);
+      });
+    }
+    // 📥 Uỷ quyền sự kiện cho nút Duyệt / Yêu cầu sửa trong trang "Duyệt bài"
+    var rb = document.getElementById("reviewBox");
+    if(rb){
+      rb.addEventListener("click", function(e){
+        var ap = e.target.closest("button[data-approve]");
+        if(ap){ doReview(ap.getAttribute("data-approve"), "approved"); return; }
+        var ch = e.target.closest("button[data-changes]");
+        if(ch) doReview(ch.getAttribute("data-changes"), "changes");
+      });
+    }
     renderMine();
     updateAdminNav();
+    updateReviewNav();
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
