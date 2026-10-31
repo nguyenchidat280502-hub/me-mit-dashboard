@@ -99,6 +99,55 @@
   .sub-form input{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;width:100%}
   .sub-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
   .sub-actions input{flex:1;min-width:220px;background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  /* ===== v16: responsive/mobile — chỉ áp dụng ở màn hẹp, desktop giữ nguyên ===== */
+  @media (max-width:860px){
+    .layout{flex-direction:column;overflow-x:clip}
+    aside{width:100%;flex:none;height:auto;position:static;padding:12px 10px}
+    aside .brand{padding:2px 6px 10px;font-size:14px}
+    aside .brand small{display:inline;margin-left:6px}
+    nav{display:flex;flex-wrap:wrap;gap:6px}
+    nav button{width:auto;padding:9px 11px;font-size:13.5px;margin-bottom:0;min-height:40px}
+    header{padding:16px 14px 2px}
+    h1{font-size:19px}
+    .wrap{padding:10px 10px 32px}
+    .card{padding:13px 12px}
+    /* Header: hộp tài khoản rớt xuống dưới tiêu đề, full-width, không tràn */
+    .hdr-row{flex-direction:column;gap:10px}
+    #accountBox{width:100%}
+    .acct{flex-wrap:wrap;width:100%}
+    .acct .aname,.acct .amail{white-space:normal;overflow-wrap:anywhere}
+    .acct .aerr{max-width:100%}
+    /* Lưới thẻ chỉ số: 2 cột */
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .kpi{padding:12px}
+    .kpi .value{font-size:20px}
+    /* Hàng lọc / nhập liệu: bọc dòng, ô nhập co giãn, chiều cao dễ chạm */
+    .filters .grp{flex:1 1 100%}
+    .filters input[type=date],.filters select{min-height:40px}
+    .filters input[type=date]{flex:1 1 130px}
+    .grp input[type=date]{flex:1 1 130px;min-height:40px}
+    .grp select{flex:1 1 140px;min-height:40px}
+    .grp input[type=text]{flex:1 1 160px;min-height:40px}
+    button.chip{min-height:38px}
+    /* Form thêm tài khoản (page-admin): xếp dọc, full-width */
+    .adm-form{flex-direction:column;align-items:stretch}
+    .adm-form input[type=email],.adm-form input[type=text],.adm-form select,.adm-form button.chip{width:100%;min-height:44px}
+    /* Bảng: cuộn ngang bên trong thẻ, trang không tràn ngang */
+    .scroll>table{min-width:640px}
+    #cmpTable{min-width:520px}
+    #adminBox{overflow-x:auto}
+    #adminBox table{min-width:560px}
+    .sub-actions input{flex:1 1 100%;min-height:40px}
+    .title-cell{max-width:300px}
+    /* Banner xem thử: chữ gọn lại, nút Thoát luôn thấy và bấm được */
+    #previewBanner{padding:8px 10px;font-size:12.5px;gap:8px;line-height:1.45}
+    #previewBanner button{min-height:38px;padding:6px 16px}
+    .pv-btns select{min-height:40px}
+  }
+  @media (max-width:380px){
+    .kpis{grid-template-columns:minmax(0,1fr)}
+    .scroll>table{min-width:600px}
+  }
 </style>
 </head>
 <body>
