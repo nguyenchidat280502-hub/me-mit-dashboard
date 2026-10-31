@@ -192,7 +192,7 @@
   </div>
 
   <div class="card" id="ovTargetCard" style="display:none">
-    <h2>🎯 Tiến độ target tháng này</h2>
+    <h2 id="ovTargetTitle">🎯 Tiến độ target tháng này</h2>
     <div id="ovTarget"></div>
   </div>
 
@@ -1040,12 +1040,17 @@ function tgBars(key){
     return `<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${label}</span><span style="color:var(--mut)">${fmt(av)} / ${fmt(tv)} · <b style="color:${pct >= 100 ? "var(--up)" : "var(--txt)"}">${pct}%</b></span></div><div class="bar"><i style="width:${w}%"></i></div></div>`;
   }).join("");
 }
+function tgNextKey(key){ const [y, m] = key.split("-").map(Number); const d = new Date(y, m, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function renderTargetStrip(){
   const card = document.getElementById("ovTargetCard"), box = document.getElementById("ovTarget");
   if(!card || !box) return;
-  const key = tgCurKey(), t = TARGETS[key];
+  const cur = tgCurKey();
+  const key = TARGETS[cur] ? cur : (TARGETS[tgNextKey(cur)] ? tgNextKey(cur) : cur);
+  const t = TARGETS[key];
   if(!t){ card.style.display = "none"; return; }
   card.style.display = "";
+  const title = document.getElementById("ovTargetTitle");
+  if(title) title.textContent = (key === cur) ? "🎯 Tiến độ target tháng này" : "🎯 Target tháng " + key.slice(5) + "/" + key.slice(0,4) + " (tháng tới)";
   box.innerHTML = tgBars(key) +
     `<div class="hint">Target tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " · do " + tgEsc(t.by) + " đặt" : ""}${t.updated ? " · cập nhật " + tgEsc(t.updated) : ""}. Số bài đăng = số bài trong Media Plan đã có Link Air.</div>`;
 }
@@ -1061,7 +1066,10 @@ function renderTargetPage(){
       return;
     }
   }
-  if(!monthEl.value) monthEl.value = tgCurKey();
+  if(!monthEl.value){
+    const curK = tgCurKey();
+    monthEl.value = TARGETS[curK] ? curK : (TARGETS[tgNextKey(curK)] ? tgNextKey(curK) : curK);
+  }
   const key = monthEl.value, t = TARGETS[key];
   tgSet("tgViews", t ? t.views : null); tgSet("tgEng", t ? t.eng : null); tgSet("tgFollows", t ? t.follows : null);
   tgSet("tgReach", t ? t.reach : null); tgSet("tgPosts", t ? t.posts : null);
