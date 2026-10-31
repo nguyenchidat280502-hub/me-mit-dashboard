@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo — Tổng quan kỳ (phương án mới)</title>
+<style>
+ *{box-sizing:border-box} body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#f2f3fa;color:#111827}
+ .wrap{max-width:1080px;margin:0 auto;padding:22px 16px 40px}
+ h1{font-size:21px;margin:0 0 2px} .sub{color:#6b7280;font-size:13px;margin-bottom:16px}
+ .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(16,24,40,.06),0 8px 24px -12px rgba(16,24,40,.12);padding:18px;margin-bottom:16px}
+ .ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+ .pchip{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer}
+ .pchip.on{background:#4f46e5;color:#fff;border-color:#4f46e5;font-weight:600}
+ .note{font-size:12.5px;color:#6b7280;margin-left:auto}
+ .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+ .kpi{border-radius:16px;padding:15px 16px}
+ .kpi-top{display:flex;justify-content:space-between;align-items:flex-start}
+ .kpi-label{font-size:12.5px;color:#4b5563;font-weight:600}
+ .kpi-value{font-size:29px;font-weight:800;margin:2px 0 5px}
+ .kpi-sub{font-size:12px;color:#6b7280;display:flex;gap:6px;align-items:center}
+ .chip{border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
+ .chip.up{background:#dcfce7;color:#15803d} .chip.down{background:#fee2e2;color:#b91c1c} .chip.neu{background:#e5e7eb;color:#4b5563}
+ h2{font-size:15.5px;margin:0 0 4px} .hsub{font-size:12.5px;color:#6b7280;margin-bottom:12px}
+ .legend{display:flex;gap:16px;font-size:12.5px;color:#4b5563;margin-bottom:10px}
+ .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+ .brow{display:grid;grid-template-columns:110px 1fr 86px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed #eef0f4}
+ .brow:last-child{border-bottom:none}
+ .blabel{font-size:13.5px;font-weight:600}
+ .track{position:relative;height:17px;display:flex;align-items:center}
+ .bar{height:12px;border-radius:6px;min-width:3px}
+ .bar.a{background:#4f46e5} .bar.b{background:#d4d9e3}
+ .bval{font-size:12.5px;font-weight:700;margin-left:8px} .bval.mut{color:#9aa3b5;font-weight:600}
+ .bchip{text-align:right}
+ .foot{font-size:12.5px;color:#6b7280;line-height:1.6}
+ @media(max-width:640px){.brow{grid-template-columns:84px 1fr 74px}}
+</style></head><body><div class="wrap">
+<h1>📊 Tổng quan kỳ — phương án gọn</h1>
+<div class="sub">Bản DEMO bằng số liệu thật · Kỳ A: Tháng 10/2026 (01/10–30/10) · Kỳ B: Tháng 9/2026 · Dashboard Fanpage NGŨ CỐC MẸ MÍT</div>
+
+<div class="card"><div class="ctrl">
+  <button class="pchip on">Tháng này</button><button class="pchip">7 ngày</button><button class="pchip">30 ngày</button>
+  <button class="pchip">90 ngày</button><button class="pchip">Năm 2026</button><button class="pchip">Tự chọn…</button>
+  <span class="note">Một bộ chọn kỳ duy nhất điều khiển cả khối — Kỳ B tự lấy kỳ liền trước, sửa được khi cần.</span>
+</div></div>
+
+<div class="kpis"><div class="kpi" style="background:#e9eefc">
+      <div class="kpi-top"><span class="kpi-label">Lượt xem</span><svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0.0,24.4 3.4,24.8 6.9,25.6 10.3,24.3 13.8,24.1 17.2,23.8 20.7,22.6 24.1,17.5 27.6,7.5 31.0,4.0 34.5,9.4 37.9,5.8 41.4,11.7 44.8,18.0 48.3,18.8 51.7,22.6 55.2,24.9 58.6,22.9 62.1,18.9 65.5,21.6 69.0,16.4 72.4,17.6 75.9,16.6 79.3,19.1 82.8,22.6 86.2,17.2 89.7,20.0 93.1,20.5 96.6,19.0 100.0,20.4" fill="none" stroke="#4f46e5" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="kpi-value">32.752</div>
+      <div class="kpi-sub">so với tháng trước <span class="chip up">▲ 171.7%</span></div></div><div class="kpi" style="background:#fdeef3">
+      <div class="kpi-top"><span class="kpi-label">Tương tác</span><svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0.0,25.8 3.4,25.9 6.9,26.0 10.3,24.8 13.8,25.5 17.2,25.2 20.7,25.8 24.1,17.7 27.6,16.1 31.0,4.0 34.5,14.4 37.9,14.8 41.4,19.5 44.8,23.9 48.3,24.7 51.7,25.7 55.2,25.8 58.6,25.2 62.1,23.4 65.5,25.1 69.0,22.4 72.4,23.4 75.9,19.6 79.3,22.5 82.8,24.6 86.2,23.8 89.7,24.8 93.1,24.6 96.6,24.0 100.0,22.0" fill="none" stroke="#db2777" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="kpi-value">1.657</div>
+      <div class="kpi-sub">so với tháng trước <span class="chip up">▲ 154.5%</span></div></div><div class="kpi" style="background:#e4f6ee">
+      <div class="kpi-top"><span class="kpi-label">Người xem</span><svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0.0,25.1 3.4,25.6 6.9,25.6 10.3,25.5 13.8,25.2 17.2,25.1 20.7,24.0 24.1,18.1 27.6,7.4 31.0,4.0 34.5,9.6 37.9,9.5 41.4,16.8 44.8,22.4 48.3,22.2 51.7,23.5 55.2,25.4 58.6,24.4 62.1,22.6 65.5,22.2 69.0,21.0 72.4,23.2 75.9,18.0 79.3,20.3 82.8,23.6 86.2,20.4 89.7,24.0 93.1,23.6 96.6,24.1 100.0,21.5" fill="none" stroke="#059669" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="kpi-value">12.760</div>
+      <div class="kpi-sub">so với tháng trước <span class="chip up">▲ 342.1%</span></div></div><div class="kpi" style="background:#fdf4e2">
+      <div class="kpi-top"><span class="kpi-label">Follow mới</span><svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0.0,21.6 3.4,26.0 6.9,26.0 10.3,26.0 13.8,26.0 17.2,26.0 20.7,26.0 24.1,21.6 27.6,4.0 31.0,17.2 34.5,17.2 37.9,17.2 41.4,21.6 44.8,21.6 48.3,17.2 51.7,21.6 55.2,26.0 58.6,21.6 62.1,26.0 65.5,12.8 69.0,26.0 72.4,17.2 75.9,26.0 79.3,26.0 82.8,21.6 86.2,26.0 89.7,26.0 93.1,26.0 96.6,12.8 100.0,26.0" fill="none" stroke="#d97706" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="kpi-value">28</div>
+      <div class="kpi-sub">so với tháng trước <span class="chip up">▲ 75.0%</span></div></div><div class="kpi" style="background:#f0eafd">
+      <div class="kpi-top"><span class="kpi-label">Lượt xem trang</span><svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0.0,21.7 3.4,20.4 6.9,25.1 10.3,21.9 13.8,20.6 17.2,19.2 20.7,21.5 24.1,17.6 27.6,14.7 31.0,16.0 34.5,15.0 37.9,11.5 41.4,4.0 44.8,9.9 48.3,19.4 51.7,20.7 55.2,24.6 58.6,18.1 62.1,7.8 65.5,18.1 69.0,13.2 72.4,13.1 75.9,12.5 79.3,16.2 82.8,19.0 86.2,12.2 89.7,14.5 93.1,16.5 96.6,7.5 100.0,21.0" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="kpi-value">2.684</div>
+      <div class="kpi-sub">so với tháng trước <span class="chip up">▲ 60.6%</span></div></div></div>
+
+<div class="card">
+  <h2>So sánh 2 kỳ — nhìn là thấy chênh lệch</h2>
+  <div class="hsub">Thanh đậm = Kỳ A (tháng 10) · thanh nhạt = Kỳ B (tháng 9) · độ dài theo tỷ lệ thật</div>
+  <div class="brow">
+      <div class="blabel">Lượt xem</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">32.752</span></div>
+        <div class="track"><div class="bar b" style="width:37%"></div><span class="bval mut">12.054</span></div>
+      </div><div class="bchip"><span class="chip up">▲ 171.7%</span></div></div><div class="brow">
+      <div class="blabel">Người xem</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">12.760</span></div>
+        <div class="track"><div class="bar b" style="width:23%"></div><span class="bval mut">2.886</span></div>
+      </div><div class="bchip"><span class="chip up">▲ 342.1%</span></div></div><div class="brow">
+      <div class="blabel">Tương tác</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">1.657</span></div>
+        <div class="track"><div class="bar b" style="width:39%"></div><span class="bval mut">651</span></div>
+      </div><div class="bchip"><span class="chip up">▲ 154.5%</span></div></div><div class="brow">
+      <div class="blabel">Follow mới</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">28</span></div>
+        <div class="track"><div class="bar b" style="width:57%"></div><span class="bval mut">16</span></div>
+      </div><div class="bchip"><span class="chip up">▲ 75.0%</span></div></div><div class="brow">
+      <div class="blabel">Lượt xem trang</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">2.684</span></div>
+        <div class="track"><div class="bar b" style="width:62%"></div><span class="bval mut">1.671</span></div>
+      </div><div class="bchip"><span class="chip up">▲ 60.6%</span></div></div><div class="brow">
+      <div class="blabel">Unfollow</div>
+      <div class="btracks">
+        <div class="track"><div class="bar a" style="width:100%"></div><span class="bval">3</span></div>
+        <div class="track"><div class="bar b" style="width:0%"></div><span class="bval mut">0</span></div>
+      </div><div class="bchip"><span class="chip neu">mới phát sinh</span></div></div>
+</div>
+
+<div class="card">
+  <h2>Lượt xem theo ngày — 2 kỳ chồng lên nhau</h2>
+  <div class="legend"><span><span class="dot" style="background:#4f46e5"></span>Tháng 10/2026</span><span><span class="dot" style="background:#c3c9d6"></span>Tháng 9/2026</span></div>
+  <svg viewBox="0 0 660 190" style="width:100%;height:auto">
+  <path d="M8,115 L30,142 L52,142 L75,145 L97,135 L119,122 L141,115 L163,155 L186,124 L208,89 L230,130 L252,150 L274,132 L297,147 L319,121 L341,122 L363,74 L386,136 L408,156 L430,143 L452,113 L474,144 L497,20 L519,75 L541,130 L563,87 L585,32 L608,113 L630,81 L652,140" fill="none" stroke="#c3c9d6" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M8,164 L30,168 L52,173 L75,164 L97,163 L119,160 L141,152 L163,116 L186,45 L208,20 L230,58 L252,33 L274,75 L297,119 L319,125 L341,152 L363,168 L386,154 L408,126 L430,145 L452,108 L474,116 L497,109 L519,127 L541,152 L563,113 L585,134 L608,137 L630,126 L652,136" fill="none" stroke="#4f46e5" stroke-width="2.8" stroke-linejoin="round"/>
+  <circle cx="208" cy="20" r="4.5" fill="#4f46e5"/><circle cx="497" cy="20" r="4" fill="#9aa3b5"/>
+  <g font-size="11.5" fill="#374151"><rect x="174" y="-10" width="86" height="19" rx="6" fill="#111827"/><text x="217" y="4" fill="#fff" text-anchor="middle" font-weight="700">Đỉnh 3.312</text></g>
+  <text x="8" y="186" font-size="11" fill="#9aa3b5">Ngày 1</text><text x="612" y="186" font-size="11" fill="#9aa3b5">Ngày 30</text></svg>
+</div>
+
+<div class="foot">Nguyên tắc của phương án này: mỗi con số chỉ xuất hiện <b>một lần</b> — thẻ KPI kèm sẵn % thay đổi và biểu đồ mini nên không cần thêm bảng so sánh chữ; muốn xem sâu vẫn còn bảng chi tiết theo ngày và bảng bài viết ở dưới như hiện tại. Bạn xem và cho ý kiến: duyệt bố cục này không, và giữ nền tối hiện tại hay chuyển sang nền sáng như các mẫu bạn gửi?</div>
+</div></body></html>
