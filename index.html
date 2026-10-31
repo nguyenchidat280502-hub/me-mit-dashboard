@@ -531,7 +531,7 @@ function render(from, to){
   const val = (p,k) => k === "date" ? (p.date ? p.date.getTime() : 0) : p[k];
   const sortedPosts = [...postsIn].sort((a,b) => (val(a, ps.key) - val(b, ps.key)) * (ps.dir === -1 ? -1 : 1));
   document.querySelector("#postsTable tbody").innerHTML = sortedPosts.map((p,i) =>
-    `<tr><td>${i+1}</td><td class="title-cell"><a href="${p.link}" target="_blank" rel="noopener">${p.title || "(không tiêu đề)"}</a></td>` +
+    `<tr><td>${i+1}</td><td class="title-cell">${p.link ? `<a href="${p.link}" target="_blank" rel="noopener">${p.title || "(không tiêu đề)"}</a>` : (p.title || "(không tiêu đề)")}</td>` +
     `<td><span class="badge">${p.cls.label}</span></td>` +
     `<td>${p.when || ""}</td><td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.reactions)}</td>` +
     `<td class="num">${fmt(p.comments)}</td><td class="num">${fmt(p.shares)}</td><td class="num">${p.rate.toFixed(2)}%</td></tr>`).join("") ||
@@ -680,7 +680,7 @@ async function main(){
     .filter(d => d.date).sort((a,b) => a.date - b.date);
 
   POSTS = posts.filter(r => r[0]).map(r => {
-      const link = r[5] || r[4] || "";
+      const link = [r[5], r[4]].find(x => x && /^https?:\/\//i.test(String(x).trim())) || "";
       return {
       when: r[1], date: parsePostDate(r[1]), cls: classify(r[2], link),
       title: (r[3] || "").split("\n")[0], link,
