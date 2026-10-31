@@ -562,14 +562,7 @@ function vnTodayGroup(){
   const times = [...new Set(SNAP.map(s => s.date.getTime()))].sort((a,b) => a - b);
   const todayRows = SNAP.filter(s => s.date.getTime() === today0.getTime());
   const prevTimes = times.filter(t => t < today0.getTime());
-  if(!todayRows.length){
-    return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại)`,
-      [{ label: "Chưa có mốc hôm nay", value: "—", note: "Dữ liệu bài viết được chốt mốc mỗi 30 phút — quay lại sau ít phút." }]);
-  }
-  if(!prevTimes.length){
-    return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại)`,
-      [{ label: "Đang ghi mốc đầu tiên", value: "—", note: "Hệ thống mới bắt đầu chốt mốc từng bài từ 31/10/2026 — phần “tăng trong ngày” sẽ hiện từ ngày mai (01/11), khi đã có mốc hôm qua để đối chiếu." }]);
-  }
+  if(!todayRows.length || !prevTimes.length) return "";
   const prevT = prevTimes[prevTimes.length - 1];
   const prevMap = {};
   SNAP.filter(s => s.date.getTime() === prevT).forEach(s => { prevMap[s.id] = s; });
