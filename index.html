@@ -796,7 +796,13 @@ function parseRetention(raw){
       if(!isNaN(t) && !isNaN(v)) pts.push({ t, p: v });
     });
   }
-  return pts.sort((a,b) => a.t - b.t);
+  const sorted = pts.sort((a,b) => a.t - b.t);
+  // FB post_video_retention_graph tra ve phan so 0-1 (vd giay 15 = 0.1673).
+  // Chuan hoa sang % tai day (diem duy nhat) de nhan chat luong, % tai 15/30/60s,
+  // diem rot va bieu do truc 0-100 deu dung. Neu max > 1.5 thi gia tri da la %.
+  const mx = sorted.reduce((m, p) => Math.max(m, p.p), 0);
+  if(sorted.length && mx <= 1.5) sorted.forEach(p => { p.p = p.p * 100; });
+  return sorted;
 }
 function retAt(pts, sec){
   if(!pts.length) return null;
@@ -886,7 +892,7 @@ function showDeepDetail(postId){
     `<h3 style="margin:0 0 4px;font-size:15px">${v.title || "(không tiêu đề)"}</h3>` +
     `<div class="hint" style="margin:0 0 6px">Đăng ngày ${v.dateStr || "—"} · <a href="${fbLink(v.postId)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>${v.updated ? " · Cập nhật: " + v.updated : ""}</div>` +
     `<section class="kpis" style="margin:8px 0">` + [
-      { label: "Lượt xem", value: fmt(v.views) },
+      { label: "Lượt xem video", value: fmt(v.views) },
       { label: "Tổng thời gian xem", value: fmt(v.minutes) + " phút" + hours },
       { label: "TB xem", value: fmt(v.avg) + " giây" },
       { label: "Còn xem tại 15s", value: pct(r15) },
@@ -920,7 +926,7 @@ async function loadDeep(){
     `<div class="scroll" style="max-height:560px"><table id="deepTable"><thead><tr>` +
     `<th class="deepth" data-key="date">Ngày <span class="arr"></span></th>` +
     `<th class="deepth" data-key="title">Tiêu đề <span class="arr"></span></th>` +
-    `<th class="num deepth" data-key="views">Views <span class="arr"></span></th>` +
+    `<th class="num deepth" data-key="views">Lượt xem video <span class="arr"></span></th>` +
     `<th class="num deepth" data-key="minutes">Tổng phút xem <span class="arr"></span></th>` +
     `<th class="num deepth" data-key="avg">TB xem (giây) <span class="arr"></span></th>` +
     `<th>Nhãn chất lượng</th></tr></thead><tbody></tbody></table></div>` +
