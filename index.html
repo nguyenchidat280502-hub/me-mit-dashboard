@@ -441,7 +441,7 @@ function parseRate(s){
   const n = parseFloat(String(s || "").replace("%","").replace(",","."));
   return isNaN(n) ? 0 : n;
 }
-const iso = d => d.toISOString().slice(0,10);
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
 
 function classify(rawType, link){
   const t = String(rawType || "").toLowerCase();
