@@ -86,6 +86,10 @@
   .role-guest{background:rgba(148,163,184,.13);color:#cbd5e1;border-color:rgba(148,163,184,.5)}
   .adm-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
   .adm-form input[type=email],.adm-form input[type=text]{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  #previewBanner{position:sticky;top:0;z-index:9999;background:#f59e0b;color:#231303;padding:10px 16px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13.5px;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.45);text-align:center}
+  #previewBanner button{background:#231303;color:#fcd34d;border:1px solid #231303;border-radius:999px;padding:5px 14px;cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
+  .preview-mark{font-size:10.5px;color:var(--mut);font-weight:600}
+  .pv-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 </style>
 </head>
 <body>
@@ -276,6 +280,7 @@
  </section>
 
  <section class="page" id="page-admin">
+  <div id="previewBox"></div>
   <div class="card">
     <h2>👥 Tài khoản &amp; phân quyền</h2>
     <div id="adminBox"><div style="color:var(--mut)">Chỉ chủ kênh mới xem được mục này.</div></div>
@@ -1001,6 +1006,17 @@ loadDeep();
   };
   var PIC_LIST = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
   var state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: false };
+  // 🔎 Xem thử vai trò (chỉ chủ kênh): { role: "staff"|"manager"|"guest", pic: string|null }.
+  // CHỈ đổi hiển thị trên máy của chủ kênh — không ghi Firestore, không đổi quyền thật. Tải lại trang là tự thoát.
+  var preview = null;
+  function effRole(){ return preview ? preview.role : state.role; }
+  function effPic(){ return preview ? (preview.pic || "") : state.pic; }
+  function previewLabel(){
+    if(!preview) return "";
+    if(preview.role === "staff") return "Nhân viên" + (preview.pic ? " · " + preview.pic : "");
+    if(preview.role === "manager") return "Quản Lí";
+    return "Khách chưa cấp quyền";
+  }
   var listeners = [];
   var db = null, auth = null, fbReady = false;
   var adminBuilt = false, adminUnsub = null;
@@ -1010,6 +1026,9 @@ loadDeep();
     get email(){ return state.email; },
     get role(){ return state.role; },
     get pic(){ return state.pic; },
+    get effectiveRole(){ return effRole(); },
+    get effectivePic(){ return effPic(); },
+    get preview(){ return preview; },
     onChange: function(cb){ listeners.push(cb); }
   };
 
@@ -1023,10 +1042,12 @@ loadDeep();
   }
   function planReady(){ return planRows().length > 0; }
   function positionHtml(){
-    if(state.role === "owner") return '<span class="role-badge role-manager">Quản Lí · Chủ kênh</span>';
-    if(state.role === "manager") return '<span class="role-badge role-manager">Quản Lí</span>';
-    if(state.role === "staff") return '<span class="role-badge role-staff">Nhân viên' + (state.pic ? " · " + esc(state.pic) : "") + '</span>';
-    if(state.role === "guest") return '<span class="role-badge role-guest">Chỉ xem — chưa được cấp quyền</span>';
+    var r = effRole(), p = effPic();
+    var mark = preview ? ' <span class="preview-mark">(xem thử)</span>' : "";
+    if(r === "owner") return '<span class="role-badge role-manager">Quản Lí · Chủ kênh</span>';
+    if(r === "manager") return '<span class="role-badge role-manager">Quản Lí</span>' + mark;
+    if(r === "staff") return '<span class="role-badge role-staff">Nhân viên' + (p ? " · " + esc(p) : "") + '</span>' + mark;
+    if(r === "guest") return '<span class="role-badge role-guest">Chỉ xem — chưa được cấp quyền</span>' + mark;
     return "";
   }
   function displayName(){
@@ -1061,6 +1082,68 @@ loadDeep();
     if(lo) lo.addEventListener("click", function(){ if(auth) auth.signOut(); });
   }
 
+  // ---------- 🔎 Xem thử vai trò (chỉ chủ kênh, chỉ đổi hiển thị) ----------
+  function renderBanner(){
+    var bar = document.getElementById("previewBanner");
+    if(!preview || state.role !== "owner"){
+      if(bar) bar.style.display = "none";
+      return;
+    }
+    if(!bar){
+      bar = document.createElement("div");
+      bar.id = "previewBanner";
+      document.body.insertBefore(bar, document.body.firstChild);
+    }
+    bar.style.display = "";
+    bar.innerHTML = '<span>🔎 Đang XEM THỬ vai trò: ' + esc(previewLabel()) +
+      ' — đây chỉ là hiển thị thử trên máy bạn, quyền thật của bạn vẫn là Quản Lí · Chủ kênh.</span>' +
+      '<button type="button" id="pvExitTop">Thoát xem thử</button>';
+    var b = document.getElementById("pvExitTop");
+    if(b) b.addEventListener("click", exitPreview);
+  }
+  function enterPreview(role, pic){
+    if(state.role !== "owner" || !state.user) return; // chỉ chủ kênh thật mới bật được xem thử
+    preview = { role: role, pic: pic || null };
+    renderAccount();
+    emit();
+    gotoPage(role === "manager" ? "page-overview" : "page-mine");
+  }
+  function exitPreview(){
+    if(!preview) return;
+    preview = null;
+    renderAccount();
+    emit();
+  }
+  function renderPreview(){
+    var box = document.getElementById("previewBox");
+    if(!box) return;
+    if(state.role !== "owner"){ box.innerHTML = ""; return; } // chỉ chủ kênh thật mới thấy thẻ này
+    var picOpts = PIC_LIST.map(function(p){
+      return '<option value="' + esc(p) + '">' + esc(p) + '</option>';
+    }).join("");
+    box.innerHTML = '<div class="card"><h2>🔎 Xem thử vai trò</h2>' +
+      '<div class="hint" style="margin-top:0">Xem dashboard bằng mắt của từng vai trò để kiểm tra. Xem thử chỉ đổi hiển thị trên máy bạn — không đổi quyền thật, không ghi gì lên hệ thống.</div>' +
+      (preview
+        ? '<div style="margin-top:10px;font-size:13.5px">Đang xem thử vai trò: <b>' + esc(previewLabel()) + '</b> ' +
+          '<button class="chip" type="button" id="pvExitCard">Thoát xem thử</button></div>'
+        : "") +
+      '<div class="pv-btns"><label style="color:var(--mut);font-size:13px">PIC:</label>' +
+      '<select id="pvPic">' + picOpts + '</select>' +
+      '<button class="chip" type="button" id="pvAsStaff">Xem như Nhân viên</button>' +
+      '<button class="chip" type="button" id="pvAsManager">Xem như Quản Lí</button>' +
+      '<button class="chip" type="button" id="pvAsGuest">Xem như Khách chưa cấp quyền</button></div></div>';
+    var sel = document.getElementById("pvPic");
+    if(sel && preview && preview.pic) sel.value = preview.pic;
+    var bs = document.getElementById("pvAsStaff");
+    if(bs) bs.addEventListener("click", function(){ enterPreview("staff", sel ? sel.value : PIC_LIST[0]); });
+    var bm = document.getElementById("pvAsManager");
+    if(bm) bm.addEventListener("click", function(){ enterPreview("manager", null); });
+    var bg = document.getElementById("pvAsGuest");
+    if(bg) bg.addEventListener("click", function(){ enterPreview("guest", null); });
+    var ex = document.getElementById("pvExitCard");
+    if(ex) ex.addEventListener("click", exitPreview);
+  }
+
   function signIn(){
     if(!auth) return;
     var provider = new firebase.auth.GoogleAuthProvider();
@@ -1077,10 +1160,12 @@ loadDeep();
 
   function updateAdminNav(){
     var nav = document.getElementById("navAdmin");
-    if(nav) nav.style.display = (state.role === "owner") ? "" : "none";
+    if(nav) nav.style.display = (effRole() === "owner") ? "" : "none";
   }
   function emit(){
     updateAdminNav();
+    renderBanner();
+    renderPreview();
     renderMine();
     renderAdmin();
     listeners.forEach(function(cb){ try { cb(state); } catch(e){} });
@@ -1105,20 +1190,21 @@ loadDeep();
       if(b) b.addEventListener("click", signIn);
       return;
     }
-    if(state.role === "guest" || state.role === "anon"){
+    var er = effRole(), ep = effPic();
+    if(er === "guest" || er === "anon"){
       box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2>' +
         '<div style="line-height:1.6">Tài khoản <b>' + esc(state.email) + '</b> hiện ở chế độ <b>chỉ xem</b> — chưa được cấp quyền Nhân viên/Quản Lí nên chưa có việc được phân.' +
         '<br><span style="color:var(--mut)">Hãy liên hệ chủ kênh để được thêm vào danh sách tài khoản và gắn PIC của bạn.</span></div></div>';
       return;
     }
-    if(!state.pic){
+    if(!ep){
       box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2>' +
         '<div style="line-height:1.6">Tab này liệt kê các bài trong Media Plan theo <b>PIC được liên kết</b> với tài khoản của bạn. ' +
-        (state.role === "owner"
+        (er === "owner"
           ? 'Tài khoản chủ kênh chưa gắn PIC nào. Bạn quản lý việc gắn email ↔ PIC trong mục <b>👥 Tài khoản &amp; phân quyền</b>.'
           : 'Tài khoản của bạn chưa được gắn PIC — hãy liên hệ chủ kênh để được gắn PIC.') +
         '</div><div style="margin-top:12px"><button class="chip" id="mineGoPlan">🗓 Mở Media Plan tháng 11</button>' +
-        (state.role === "owner" ? ' <button class="chip" id="mineGoAdmin">👥 Tài khoản &amp; phân quyền</button>' : "") + '</div></div>';
+        (er === "owner" ? ' <button class="chip" id="mineGoAdmin">👥 Tài khoản &amp; phân quyền</button>' : "") + '</div></div>';
       var gp = document.getElementById("mineGoPlan");
       if(gp) gp.addEventListener("click", function(){ gotoPage("page-plan"); });
       var ga = document.getElementById("mineGoAdmin");
@@ -1129,7 +1215,7 @@ loadDeep();
       box.innerHTML = '<div class="card"><h2>✅ Việc của tôi</h2><div class="loading">Đang tải dữ liệu Media Plan…</div></div>';
       return;
     }
-    var pic = state.pic;
+    var pic = ep;
     var rows = planRows().filter(function(r){ return r.picC === pic || r.picD === pic; });
     var asContent = rows.filter(function(r){ return r.picC === pic; }).length;
     var asDesign = rows.filter(function(r){ return r.picD === pic; }).length;
@@ -1180,7 +1266,7 @@ loadDeep();
   function renderAdmin(){
     var box = document.getElementById("adminBox");
     if(!box) return;
-    if(state.role !== "owner"){
+    if(effRole() !== "owner"){
       if(adminUnsub){ try { adminUnsub(); } catch(e){} adminUnsub = null; }
       adminBuilt = false;
       box.innerHTML = '<div style="color:var(--mut)">Chỉ chủ kênh mới xem được mục này.</div>';
@@ -1290,6 +1376,7 @@ loadDeep();
     }
     renderAccount();
     auth.onAuthStateChanged(function(user){
+      preview = null; // đổi tài khoản / đăng xuất → luôn thoát chế độ xem thử
       if(!user){
         state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: true };
         renderAccount();
