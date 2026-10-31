@@ -1068,7 +1068,7 @@ function tgReportData(){
   const base = dipped ? avg3 : last, f = dipped ? 1.05 : 1.10;
   const propKey = tgNextKey(last.key);
   const [py, pm] = propKey.split("-").map(Number);
-  const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === py && d.date.getMonth() === pm - 1; }).length;
+  const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === py && d.getMonth() === pm - 1; }).length;
   const prop = { views: tgRoundTo(base.views * f, 1000), eng: tgRoundTo(base.eng * f, 100),
     follows: Math.max(1, tgRoundTo(base.follows * f, 5)), reach: tgRoundTo(base.reach * f, 1000),
     posts: planN || tgRoundTo(last.posts * f, 1) };
@@ -1077,7 +1077,8 @@ function tgReportData(){
 }
 function renderTargetReport(){
   const box = document.getElementById("tgReport"); if(!box) return;
-  const d = tgReportData();
+  let d = null;
+  try { d = tgReportData(); } catch(e){ box.innerHTML = '<div class="hint">Chưa vẽ được bảng báo cáo nhanh — thử tải lại trang; nếu vẫn lỗi, báo lại chủ kênh.</div>'; return; }
   if(!d){ box.innerHTML = '<div class="hint">Đang chờ dữ liệu số liệu của Page… mở lại trang này sau ít giây.</div>'; return; }
   const mName = k => "Tháng " + Number(k.slice(5)) + "/" + k.slice(0, 4);
   const mets = [["Lượt xem", "views"], ["Tương tác", "eng"], ["Follow mới", "follows"], ["Người xem", "reach"], ["Số bài đăng", "posts"]];
