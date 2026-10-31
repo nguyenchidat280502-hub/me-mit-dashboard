@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo So sánh kỳ — Phương án 1 &amp; 4 · MẸ MÍT</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--up:#34d399;--down:#f87171;--grey:#64748b}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:21px;margin:0 0 4px} h2{font-size:16px;margin:0 0 6px}
+  .sub{color:var(--mut);font-size:13px;line-height:1.6}
+  .sub a{color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+  .verdict{border-left:4px solid var(--acc);background:rgba(56,189,248,.07)}
+  .verdict p{margin:4px 0;font-size:14.5px;line-height:1.65}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:10px}
+  .tile{background:#16233c;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .tile .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tile .label{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .tile .big{font-size:27px;font-weight:700;margin:6px 0 2px}
+  .tile .ratio{color:var(--acc);font-size:12.5px;font-weight:600}
+  .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .chip.up{background:rgba(52,211,153,.15);color:var(--up);border:1px solid rgba(52,211,153,.4)}
+  .chip.down{background:rgba(248,113,113,.13);color:var(--down);border:1px solid rgba(248,113,113,.4)}
+  .brow{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12px}
+  .brow .tag{flex:0 0 34px;color:var(--mut);font-weight:600}
+  .track{flex:1;height:12px;background:#0b1220;border-radius:99px;overflow:hidden}
+  .track>i{display:block;height:100%;border-radius:99px}
+  .fillA{background:linear-gradient(90deg,#0284c7,var(--acc))}
+  .fillB{background:var(--grey)}
+  .brow .val{flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--txt)}
+  .brow .val.b{color:var(--mut)}
+  .metchips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+  button.mchip{background:#0b1220;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.mchip:hover{border-color:var(--acc)}
+  button.mchip.active{background:var(--acc);color:#082f49;border-color:var(--acc);font-weight:600}
+  .legend{display:flex;gap:18px;font-size:13px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
+  .legend b{color:var(--txt)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .statline{font-size:13.5px;color:var(--mut);margin-top:10px;line-height:1.7}
+  .statline b{color:var(--txt)}
+  .note{color:var(--mut);font-size:12.5px;line-height:1.6}
+  canvas{max-height:320px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧪 Demo trình bày So sánh kỳ — Phương án 1 &amp; 4</h1>
+  <div class="sub">
+    Dữ liệu thật của fanpage NGŨ CỐC MẸ MÍT: <b style="color:var(--txt)">Kỳ A (mới) 01/10/2026 – 30/10/2026</b> so với <b style="color:var(--txt)">Kỳ B (cũ) 01/09/2026 – 30/09/2026</b> (mỗi kỳ 30 ngày).<br>
+    Đây là bản demo để chốt phương án, chưa thay thế ô so sánh trên dashboard chính: <a href="./">mở dashboard chính</a>.
+  </div>
+
+  <div class="card verdict">
+    <h2>⚡ Kết luận nhanh (máy tự đọc số)</h2>
+    <p id="verdict">Đang tính…</p>
+  </div>
+
+  <div class="card">
+    <h2>Phương án 1 — Thẻ chỉ số + thanh tỷ lệ</h2>
+    <div class="note">Mỗi chỉ số một thẻ: số Kỳ A to rõ, chip % thay đổi, và hai thanh ngang dài–ngắn theo đúng tỷ lệ giá trị để thấy chênh lệch bằng mắt.</div>
+    <div class="grid" id="tiles"></div>
+  </div>
+
+  <div class="card">
+    <h2>Phương án 4 — Biểu đồ đường 2 kỳ chồng nhau theo ngày</h2>
+    <div class="note">Diễn biến từng ngày của 2 kỳ trên cùng một trục (Ngày 1 → Ngày 30). Đưa chuột vào biểu đồ để xem số từng ngày. Bấm chip để đổi chỉ số:</div>
+    <div class="metchips" id="metChips"></div>
+    <canvas id="cmpChart"></canvas>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--acc)"></span><b>Kỳ A (mới)</b> · T10/2026</span>
+      <span><span class="dot" style="background:var(--grey)"></span><b>Kỳ B (cũ)</b> · T9/2026</span>
+    </div>
+    <div class="statline" id="chartStats"></div>
+  </div>
+
+  <div class="note">Demo dùng số liệu chụp tại thời điểm tạo (số trên dashboard chính vẫn tự cập nhật mỗi 30 phút). Nếu chốt phương án, bản tích hợp vào dashboard sẽ chạy trên dữ liệu trực tiếp và chọn được 2 kỳ tuỳ ý như hiện tại.</div>
+</div>
+
+<script>
+const DATA = {"B": [{"day": 1, "unique": 128.0, "views": 417.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 26.0, "eng": 23.0}, {"day": 2, "unique": 65.0, "views": 234.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 29.0, "eng": 5.0}, {"day": 3, "unique": 37.0, "views": 234.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 28.0, "eng": 2.0}, {"day": 4, "unique": 36.0, "views": 216.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 28.0, "eng": 1.0}, {"day": 5, "unique": 36.0, "views": 281.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 72.0, "eng": 3.0}, {"day": 6, "unique": 60.0, "views": 371.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 23.0, "eng": 8.0}, {"day": 7, "unique": 65.0, "views": 418.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 80.0, "eng": 5.0}, {"day": 8, "unique": 36.0, "views": 147.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 60.0, "eng": 43.0}, {"day": 9, "unique": 68.0, "views": 356.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 59.0, "eng": 18.0}, {"day": 10, "unique": 104.0, "views": 600.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 192.0, "eng": 22.0}, {"day": 11, "unique": 69.0, "views": 319.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 37.0, "eng": 7.0}, {"day": 12, "unique": 88.0, "views": 179.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 8.0, "eng": 1.0}, {"day": 13, "unique": 36.0, "views": 305.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 41.0, "eng": 3.0}, {"day": 14, "unique": 31.0, "views": 201.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 9.0, "eng": 2.0}, {"day": 15, "unique": 101.0, "views": 377.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 21.0, "eng": 8.0}, {"day": 16, "unique": 145.0, "views": 369.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 11.0, "eng": 6.0}, {"day": 17, "unique": 39.0, "views": 701.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 286.0, "eng": 10.0}, {"day": 18, "unique": 39.0, "views": 276.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 60.0, "eng": 2.0}, {"day": 19, "unique": 18.0, "views": 138.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 113.0, "eng": 2.0}, {"day": 20, "unique": 36.0, "views": 225.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 13.0, "eng": 3.0}, {"day": 21, "unique": 20.0, "views": 435.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 37.0, "eng": 10.0}, {"day": 22, "unique": 49.0, "views": 220.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 9.0, "eng": 12.0}, {"day": 23, "unique": 535.0, "views": 1075.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 78.0, "eng": 294.0}, {"day": 24, "unique": 232.0, "views": 698.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 72.0, "eng": 119.0}, {"day": 25, "unique": 60.0, "views": 318.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 33.0, "eng": 11.0}, {"day": 26, "unique": 300.0, "views": 610.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 15.0, "eng": 6.0}, {"day": 27, "unique": 220.0, "views": 995.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 73.0, "eng": 6.0}, {"day": 28, "unique": 90.0, "views": 437.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 73.0, "eng": 3.0}, {"day": 29, "unique": 69.0, "views": 657.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 75.0, "eng": 10.0}, {"day": 30, "unique": 74.0, "views": 245.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 10.0, "eng": 6.0}], "A": [{"day": 1, "unique": 75.0, "views": 245.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 40.0, "eng": 3.0}, {"day": 2, "unique": 29.0, "views": 180.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 52.0, "eng": 2.0}, {"day": 3, "unique": 31.0, "views": 60.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 8.0, "eng": 0.0}, {"day": 4, "unique": 41.0, "views": 262.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 38.0, "eng": 18.0}, {"day": 5, "unique": 63.0, "views": 279.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 51.0, "eng": 7.0}, {"day": 6, "unique": 75.0, "views": 331.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 64.0, "eng": 12.0}, {"day": 7, "unique": 166.0, "views": 512.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 42.0, "eng": 3.0}, {"day": 8, "unique": 642.0, "views": 1282.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 79.0, "eng": 126.0}, {"day": 9, "unique": 1518.0, "views": 2785.0, "follows": 5.0, "unfollows": 0.0, "pageViews": 106.0, "eng": 150.0}, {"day": 10, "unique": 1799.0, "views": 3312.0, "follows": 2.0, "unfollows": 1.0, "pageViews": 94.0, "eng": 335.0}, {"day": 11, "unique": 1339.0, "views": 2501.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 103.0, "eng": 177.0}, {"day": 12, "unique": 1347.0, "views": 3036.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 136.0, "eng": 171.0}, {"day": 13, "unique": 756.0, "views": 2147.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 206.0, "eng": 99.0}, {"day": 14, "unique": 296.0, "views": 1204.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 151.0, "eng": 32.0}, {"day": 15, "unique": 314.0, "views": 1084.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 62.0, "eng": 20.0}, {"day": 16, "unique": 201.0, "views": 518.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 50.0, "eng": 4.0}, {"day": 17, "unique": 45.0, "views": 165.0, "follows": 0.0, "unfollows": 1.0, "pageViews": 13.0, "eng": 3.0}, {"day": 18, "unique": 127.0, "views": 470.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 74.0, "eng": 12.0}, {"day": 19, "unique": 281.0, "views": 1069.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 170.0, "eng": 39.0}, {"day": 20, "unique": 309.0, "views": 667.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 74.0, "eng": 14.0}, {"day": 21, "unique": 412.0, "views": 1444.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 120.0, "eng": 55.0}, {"day": 22, "unique": 227.0, "views": 1272.0, "follows": 2.0, "unfollows": 0.0, "pageViews": 121.0, "eng": 39.0}, {"day": 23, "unique": 657.0, "views": 1416.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 126.0, "eng": 98.0}, {"day": 24, "unique": 466.0, "views": 1036.0, "follows": 0.0, "unfollows": 1.0, "pageViews": 92.0, "eng": 53.0}, {"day": 25, "unique": 199.0, "views": 517.0, "follows": 1.0, "unfollows": 0.0, "pageViews": 66.0, "eng": 21.0}, {"day": 26, "unique": 456.0, "views": 1329.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 129.0, "eng": 34.0}, {"day": 27, "unique": 166.0, "views": 900.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 108.0, "eng": 18.0}, {"day": 28, "unique": 200.0, "views": 831.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 89.0, "eng": 21.0}, {"day": 29, "unique": 154.0, "views": 1053.0, "follows": 3.0, "unfollows": 0.0, "pageViews": 173.0, "eng": 30.0}, {"day": 30, "unique": 329.0, "views": 757.0, "follows": 0.0, "unfollows": 0.0, "pageViews": 42.0, "eng": 47.0}]};
+const METS = [
+  { key: "views",     label: "Lượt xem",      good: "up" },
+  { key: "unique",    label: "Người xem",     good: "up" },
+  { key: "eng",       label: "Tương tác",     good: "up" },
+  { key: "follows",   label: "Follow mới",    good: "up" },
+  { key: "unfollows", label: "Unfollow",      good: "down" },
+  { key: "pageViews", label: "Lượt xem trang", good: "up" },
+];
+const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const sum = (rows, k) => rows.reduce((s, r) => s + (r[k] || 0), 0);
+const TOT = {};
+METS.forEach(m => { TOT[m.key] = { a: sum(DATA.A, m.key), b: sum(DATA.B, m.key) }; });
+
+function deltaInfo(m){
+  const { a, b } = TOT[m.key];
+  const diff = a - b;
+  const good = m.good === "up" ? diff >= 0 : diff <= 0;
+  let txt;
+  if (b > 0) txt = (diff > 0 ? "▲ +" : diff < 0 ? "▼ −" : "— ") + Math.abs(diff / b * 100).toFixed(1).replace(".", ",") + "%";
+  else txt = a > 0 ? "mới phát sinh" : "—";
+  return { a, b, diff, good, pct: b > 0 ? diff / b * 100 : null, txt };
+}
+
+/* ---- Kết luận nhanh ---- */
+(function(){
+  const infos = METS.map(m => ({ m, ...deltaInfo(m) }));
+  const gainers = infos.filter(i => i.pct !== null && i.good && i.diff > 0).sort((x, y) => y.pct - x.pct);
+  const losers  = infos.filter(i => i.diff !== 0 && !i.good);
+  const parts = [];
+  if (gainers.length){
+    const top = gainers.slice(0, 2).map(i => `<b>${i.m.label.toLowerCase()} ${i.pct >= 0 ? "+" : ""}${i.pct.toFixed(1).replace(".", ",")}%</b>`).join(" và ");
+    parts.push(`Kỳ A tăng mạnh nhất ở ${top} so với Kỳ B.`);
+  }
+  losers.forEach(i => {
+    if (i.m.key === "unfollows" && i.b === 0) parts.push(`⚠️ Cần chú ý: <b>Unfollow phát sinh ${fmt(i.a)}</b> trong khi Kỳ B không có.`);
+    else parts.push(`⚠️ Cần chú ý: <b>${i.m.label} ${i.diff > 0 ? "tăng" : "giảm"} ${fmt(Math.abs(i.diff))}</b> (${i.txt}) — bất lợi cho kênh.`);
+  });
+  if (!losers.length) parts.push("Không có chỉ số nào diễn biến bất lợi trong kỳ này.");
+  document.getElementById("verdict").innerHTML = parts.join(" ");
+})();
+
+/* ---- Phương án 1: thẻ + thanh tỷ lệ ---- */
+document.getElementById("tiles").innerHTML = METS.map(m => {
+  const i = deltaInfo(m);
+  const mx = Math.max(i.a, i.b, 1);
+  const wA = Math.max(i.a / mx * 100, i.a > 0 ? 2 : 0);
+  const wB = Math.max(i.b / mx * 100, i.b > 0 ? 2 : 0);
+  const ratio = i.b > 0 && i.a > i.b ? `<span class="ratio">gấp ${(i.a / i.b).toFixed(1).replace(".", ",")} lần Kỳ B</span>` : "";
+  return `<div class="tile">
+    <div class="top"><span class="label">${m.label}</span><span class="chip ${i.good ? "up" : "down"}">${i.txt}</span></div>
+    <div class="big">${fmt(i.a)}</div>
+    <div>${ratio}</div>
+    <div class="brow"><span class="tag">Kỳ A</span><div class="track"><i class="fillA" style="width:${wA}%"></i></div><span class="val">${fmt(i.a)}</span></div>
+    <div class="brow"><span class="tag">Kỳ B</span><div class="track"><i class="fillB" style="width:${wB}%"></i></div><span class="val b">${fmt(i.b)}</span></div>
+  </div>`;
+}).join("");
+
+/* ---- Phương án 4: biểu đồ đường 2 kỳ ---- */
+let chart = null, curKey = "views";
+function renderChart(){
+  const m = METS.find(x => x.key === curKey);
+  const labels = DATA.A.map((_, i) => "Ngày " + (i + 1));
+  const ctx = document.getElementById("cmpChart").getContext("2d");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Kỳ A (mới) · T10/2026", data: DATA.A.map(r => r[curKey]), borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,.14)", fill: true, tension: .3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
+      { label: "Kỳ B (cũ) · T9/2026", data: DATA.B.map(r => r[curKey]), borderColor: "#64748b", borderDash: [6, 4], fill: false, tension: .3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
+    ]},
+    options: {
+      responsive: true, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => " " + c.dataset.label + ": " + fmt(c.parsed.y) } } },
+      scales: {
+        x: { ticks: { color: "#94a3b8", maxTicksLimit: 10 }, grid: { color: "rgba(148,163,184,.08)" } },
+        y: { beginAtZero: true, ticks: { color: "#94a3b8", callback: v => fmt(v) }, grid: { color: "rgba(148,163,184,.12)" } },
+      },
+    },
+  });
+  const i = deltaInfo(m);
+  const peak = rows => rows.reduce((best, r, idx) => r[curKey] > rows[best][curKey] ? idx : best, 0);
+  const pA = peak(DATA.A), pB = peak(DATA.B);
+  document.getElementById("chartStats").innerHTML =
+    `<b>${m.label}</b> — Tổng Kỳ A: <b>${fmt(i.a)}</b> · Tổng Kỳ B: <b>${fmt(i.b)}</b> · Thay đổi: <b>${i.txt}</b><br>` +
+    `Ngày cao nhất của Kỳ A: <b>Ngày ${pA + 1} (${fmt(DATA.A[pA][curKey])})</b> · của Kỳ B: <b>Ngày ${pB + 1} (${fmt(DATA.B[pB][curKey])})</b>`;
+}
+document.getElementById("metChips").innerHTML = METS.map(m =>
+  `<button class="mchip ${m.key === curKey ? "active" : ""}" data-k="${m.key}">${m.label}</button>`).join("");
+document.querySelectorAll(".mchip").forEach(b => b.addEventListener("click", () => {
+  curKey = b.dataset.k;
+  document.querySelectorAll(".mchip").forEach(x => x.classList.toggle("active", x === b));
+  renderChart();
+}));
+renderChart();
+</script>
+</body>
+</html>
