@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO — Tổng quan v4 (Target mới + Deadline dời xuống) · Fanpage NGŨ CỐC MẸ MÍT</title>
+<script>try{var t=localStorage.getItem("mm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#f2f3fa;--card:#ffffff;--line:#e5e7eb;--txt:#111827;--mut:#6b7280;--acc:#4f46e5;--up:#16a34a;--down:#dc2626;--kpi:#f8fafc;--track:#eef0f4;--lab:#4b5563}
+  html[data-theme="dark"]{--bg:#0e1120;--card:#171b2e;--line:#2b3153;--txt:#e9ebf7;--mut:#aab3d6;--acc:#818cf8;--kpi:#1d2338;--track:#262c47;--lab:#a7aed0;--down:#f87171;color-scheme:dark}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .topbar{background:#26215c;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .topbar b{font-size:16px} .topbar small{display:block;color:#a5a8d0;font-weight:400;font-size:12px;margin-top:2px}
+  .topbar a{color:#c7d2fe;font-size:13px;text-decoration:none} .topbar a:hover{text-decoration:underline}
+  #themeToggle{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+  .demo-banner{background:#f59e0b;color:#231303;padding:9px 16px;font-size:13.5px;font-weight:600;text-align:center}
+  .wrap{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+  .card h2{font-size:16px;margin:0 0 10px}
+  button.chip{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.chip:hover{border-color:var(--acc)}
+  button.chip.active{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+  select{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  .err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
+  .loading{color:var(--mut);padding:24px 0}
+  .hint{color:var(--mut);font-size:12px;margin-top:6px}
+  .keep-note{border:1px dashed var(--line);border-radius:12px;padding:12px 16px;margin:14px 0;color:var(--mut);font-size:13.5px;background:var(--kpi)}
+  /* KPI cards (reference style) */
+  .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  @media (max-width:900px){ .kpirow{grid-template-columns:repeat(2,1fr)} }
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+  .kcard .kl{color:var(--lab);font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .kcard .kv2{font-size:32px;font-weight:800;margin:6px 0 4px;letter-spacing:-.5px}
+  .kcard .ks{color:var(--mut);font-size:12.5px}
+  .delta{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
+  .delta.up{background:#dcfce7;color:#15803d} .delta.down{background:#fee2e2;color:#b91c1c}
+  html[data-theme="dark"] .delta.up{background:rgba(22,163,74,.25);color:#4ade80}
+  html[data-theme="dark"] .delta.down{background:rgba(220,38,38,.25);color:#f87171}
+  /* Layout: main + right rail */
+  .ovgrid{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start}
+  @media (max-width:900px){ .ovgrid{grid-template-columns:1fr} }
+  .ovgrid .card{margin:0 0 14px}
+  .ministats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px}
+  @media (max-width:640px){ .ministats{grid-template-columns:1fr} }
+  .ministat .mv{font-size:21px;font-weight:800}
+  .ministat .ml{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .big-num{font-size:34px;font-weight:800;letter-spacing:-.5px}
+  .splitbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--track);margin:10px 0 6px}
+  .splitbar>i{display:block;height:100%}
+  canvas{max-height:300px}
+  .spark{max-height:90px}
+  /* Target v4 */
+  .tg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .tg-pace{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--track);color:var(--lab)}
+  .tg-top{display:flex;align-items:center;gap:12px;margin:6px 0 4px}
+  .tg-big{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .tg-big-note{color:var(--mut);font-size:12.5px;line-height:1.45}
+  .tgrow{margin:11px 0}
+  .tgrow-top{display:flex;justify-content:space-between;font-size:13.5px;gap:8px}
+  .tgrow-num{color:var(--mut)} .tgrow-num b{font-size:14px}
+  .tgbar{position:relative;height:10px;border-radius:99px;background:var(--track);margin-top:5px}
+  .tgfill{display:block;height:100%;border-radius:99px;background:#9ca3af}
+  .tgfill.ok{background:#16a34a} .tgfill.warn{background:#d97706} .tgfill.bad{background:#dc2626}
+  .tgtick{position:absolute;top:-3px;width:2px;height:16px;background:var(--txt);opacity:.55;border-radius:2px}
+  .tgrow-sub{color:var(--mut);font-size:12.5px;margin-top:4px}
+  .st-ok{color:#16a34a} .st-warn{color:#d97706} .st-bad{color:#dc2626}
+  .mocktag{background:#dc2626;color:#fff;font-size:12px;font-weight:800;border-radius:6px;padding:3px 9px;letter-spacing:.4px}
+  .rd-item{font-size:13.5px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .rd-item:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div><b>📊 Demo — Tổng quan số liệu (bố cục mới)</b><small>Fanpage NGŨ CỐC MẸ MÍT · bản xem trước để duyệt, chưa gắn vào dashboard chính</small></div>
+  <div style="display:flex;gap:14px;align-items:center">
+    <a href="index.html">← Về dashboard chính</a>
+    <button type="button" id="themeToggle">🌙 Chế độ tối</button>
+  </div>
+</div>
+<div class="demo-banner">🧪 BẢN DEMO v4 — 2 thay đổi so với bản chính v42: (1) thẻ 🎯 Target trình bày kiểu MỚI (thanh tiến độ có mốc nhịp + dự kiến cuối tháng), (2) ⏰ Deadline radar DỜI XUỐNG dưới khối Thống kê theo ngày. Số liệu THẬT, tải trực tiếp từ Sheet.</div>
+<div class="wrap">
+  <div class="card">
+    <div class="tg-head">
+      <h2 style="margin:0">🎯 Target Tháng 11/2026 <span style="color:var(--mut);font-size:13px">— trình bày MỚI, số thật</span></h2>
+      <span class="tg-pace" id="tgPace">Đang tải…</span>
+    </div>
+    <div class="tg-top">
+      <div class="tg-big" id="tgOverall">—</div>
+      <div class="tg-big-note">hoàn thành chung của tháng<br>(trung bình % của 5 chỉ số)</div>
+    </div>
+    <div id="tgRows"><div class="loading">Đang tải target…</div></div>
+    <div class="hint" id="tgFoot"></div>
+  </div>
+
+  <div class="card">
+    <div class="tg-head">
+      <h2 style="margin:0">🎯 Target — xem trước trạng thái GIỮA THÁNG</h2>
+      <span class="mocktag">SỐ MINH HỌA — KHÔNG PHẢI SỐ THẬT</span>
+    </div>
+    <div class="tg-head" style="margin-top:2px">
+      <span class="tg-pace">📅 Giả lập ngày 15/11 · nhịp cần đạt 47% (14 ngày đã chốt số) — đang bám sát nhịp</span>
+    </div>
+    <div class="tg-top">
+      <div class="tg-big">47%</div>
+      <div class="tg-big-note">hoàn thành chung của tháng<br>(trung bình % của 5 chỉ số)</div>
+    </div>
+    <div class="tgrow">
+      <div class="tgrow-top"><span>Lượt xem</span><span class="tgrow-num">18.200 / 36.000 · <b class="st-ok">51%</b></span></div>
+      <div class="tgbar"><i class="tgfill ok" style="width:51%"></i><span class="tgtick" style="left:47%"></span></div>
+      <div class="tgrow-sub">Còn thiếu 17.800 · theo tốc độ hiện tại dự kiến cuối tháng ~39.000 — <b class="st-ok">vượt target ~3.000</b></div>
+    </div>
+    <div class="tgrow">
+      <div class="tgrow-top"><span>Tương tác</span><span class="tgrow-num">720 / 1.800 · <b class="st-warn">40%</b></span></div>
+      <div class="tgbar"><i class="tgfill warn" style="width:40%"></i><span class="tgtick" style="left:47%"></span></div>
+      <div class="tgrow-sub">Còn thiếu 1.080 · dự kiến cuối tháng ~1.543 — <b class="st-warn">nguy cơ thiếu ~257</b></div>
+    </div>
+    <div class="tgrow">
+      <div class="tgrow-top"><span>Follow mới</span><span class="tgrow-num">16 / 30 · <b class="st-ok">53%</b></span></div>
+      <div class="tgbar"><i class="tgfill ok" style="width:53%"></i><span class="tgtick" style="left:47%"></span></div>
+      <div class="tgrow-sub">Còn thiếu 14 · dự kiến cuối tháng ~34 — <b class="st-ok">vượt target ~4</b></div>
+    </div>
+    <div class="tgrow">
+      <div class="tgrow-top"><span>Người xem</span><span class="tgrow-num">6.510 / 14.000 · <b class="st-ok">47%</b></span></div>
+      <div class="tgbar"><i class="tgfill ok" style="width:47%"></i><span class="tgtick" style="left:47%"></span></div>
+      <div class="tgrow-sub">Còn thiếu 7.490 · dự kiến cuối tháng ~13.950 — <b class="st-ok">xấp xỉ target</b></div>
+    </div>
+    <div class="tgrow">
+      <div class="tgrow-top"><span>Số bài đăng</span><span class="tgrow-num">13 / 29 · <b class="st-warn">45%</b></span></div>
+      <div class="tgbar"><i class="tgfill warn" style="width:45%"></i><span class="tgtick" style="left:47%"></span></div>
+      <div class="tgrow-sub">Còn thiếu 16 bài · 13 bài đã có Link Air / 28 bài có ngày trong kế hoạch</div>
+    </div>
+    <div class="hint">Vạch đen nhỏ trên mỗi thanh = mốc nhịp cần đạt tại thời điểm xem. Màu thanh: xanh = đạt nhịp trở lên · vàng = dưới nhịp nhưng còn cứu được (≥ nửa nhịp) · đỏ = dưới nửa nhịp. Khối này chỉ để anh xem giao diện khi tháng đang chạy — bản chính thức chỉ có 1 thẻ Target với số thật như thẻ phía trên.</div>
+  </div>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" id="presets">
+    <button type="button" class="chip" data-preset="7">7 ngày</button>
+    <button type="button" class="chip active" data-preset="30">30 ngày</button>
+    <button type="button" class="chip" data-preset="90">90 ngày</button>
+    <button type="button" class="chip" data-preset="year">Năm 2026</button>
+    <button type="button" class="chip" data-preset="all">Tất cả</button>
+    <select id="monthSel"><option value="">— chọn tháng —</option></select>
+    <span id="rangeLabel" style="color:var(--mut);font-size:13px"></span>
+  </div>
+  <div id="loadErr"></div>
+
+  <section class="kpirow" id="kpiRow"><div class="loading">Đang tải dữ liệu…</div></section>
+
+  <div class="ovgrid">
+    <div>
+      <div class="card">
+        <h2>📊 Thống kê theo ngày</h2>
+        <div class="ministats" id="miniStats"></div>
+        <canvas id="dayChart"></canvas>
+        <div class="hint" id="chartNote">Cột tím = Lượt xem · cột vàng = Tương tác, theo từng ngày trong kỳ đang xem. Kỳ dài trên 62 ngày sẽ tự gộp theo tuần cho dễ nhìn.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>👥 Người theo dõi</h2>
+        <div class="big-num" id="fansTotal">—</div>
+        <div class="hint" id="fansAsOf"></div>
+        <div class="splitbar"><i id="fansNewBar" style="background:#16a34a;width:50%"></i><i id="fansUnBar" style="background:#dc2626;width:50%"></i></div>
+        <div style="font-size:13px;line-height:1.9">
+          <div>🟢 Follow mới trong kỳ: <b id="fansNew">—</b> <span class="delta" id="fansNewDelta"></span></div>
+          <div>🔴 Hủy theo dõi: <b id="fansUn">—</b></div>
+          <div>📈 Tăng ròng trong kỳ: <b id="fansNet">—</b></div>
+        </div>
+        <div class="hint">Chưa có dữ liệu giới tính/độ tuổi (tab Demographics đang trống) nên chưa vẽ vòng tròn Nam/Nữ như ảnh mẫu.</div>
+      </div>
+      <div class="card">
+        <h2>👁 Lượt xem trang</h2>
+        <div class="big-num" id="pvTotal">—</div>
+        <div style="font-size:13px;color:var(--mut)">tổng trong kỳ · <span class="delta" id="pvDelta"></span></div>
+        <canvas id="pvSpark" class="spark" style="margin-top:10px"></canvas>
+        <div class="hint">Đường biến động lượt xem trang theo từng ngày trong kỳ.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn <span style="color:var(--mut);font-size:13px">(VỊ TRÍ MỚI: dưới khối Thống kê theo ngày)</span></h2>
+    <div id="radarBox"><div class="loading">Đang kiểm tra deadline…</div></div>
+    <div class="hint">Ở bản chính, ngay dưới thẻ này là bảng 🏆 Bài viết trong kỳ như hiện tại — tức thứ tự mới: Target → Số liệu → Thống kê → Deadline radar → Bài viết.</div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Đợt này thay đổi những gì?</h2>
+    <div style="font-size:13.5px;line-height:2">
+      🎯 <b>Target trình bày lại:</b> thêm % hoàn thành chung + chip nhịp tháng, mỗi thanh có vạch mốc nhịp, dòng “còn thiếu” và dự kiến cuối tháng theo tốc độ hiện tại.<br>
+      ⏰ <b>Deadline radar:</b> dời từ box thứ 2 xuống dưới khối Thống kê theo ngày (trước bảng Bài viết) — phần số liệu thành một mạch liền nhau ở đầu trang.<br>
+      🔒 <b>Giữ nguyên:</b> toàn bộ phần số liệu v42 (4 thẻ lớn · Thống kê theo ngày · cột phải) và các tab khác.
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM";
+const num = x => { const n = Number(x); return isNaN(n) ? 0 : n; };
+const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const dstr = d => String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
+async function fetchRows(tab){
+  const url = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(tab);
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return json.table.rows.map(r => (r.c || []).map(c => {
+    if(!c) return null;
+    if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
+    return c.v;
+  }));
+}
+function parseDay(s){
+  if(!s) return null;
+  const p = String(s).trim().split("/"); if(p.length !== 3) return null;
+  const d = new Date(+p[2], +p[1] - 1, +p[0]); return isNaN(d) ? null : d;
+}
+let DAYS = [], charts = {}, FROM = null, TO = null;
+const sum = (arr, k) => arr.reduce((a, d) => a + d[k], 0);
+function deltaChip(cur, prev, id){
+  const idAttr = id ? ` id="${id}"` : "";
+  if(!prev) return `<span${idAttr} class="delta" style="background:var(--track);color:var(--mut)">— vs kỳ trước</span>`;
+  const pct = (cur - prev) / prev * 100;
+  const cls = pct >= 0 ? "up" : "down";
+  const arrow = pct >= 0 ? "↗" : "↘";
+  return `<span${idAttr} class="delta ${cls}">${arrow} ${Math.abs(pct).toFixed(1).replace(".", ",")}% vs kỳ trước</span>`;
+}
+function rangeOf(from, to){ return DAYS.filter(d => d.date >= from && d.date <= to); }
+function render(){
+  if(!FROM || !TO) return;
+  const cur = rangeOf(FROM, TO);
+  const days = cur.length || 1;
+  const lenMs = TO - FROM;
+  const pTo = new Date(FROM - 86400000), pFrom = new Date(pTo - lenMs);
+  const prev = rangeOf(pFrom, pTo);
+  document.getElementById("rangeLabel").textContent = `Đang xem: ${dstr(FROM)} → ${dstr(TO)} · so với ${dstr(pFrom)} → ${dstr(pTo)}`;
+  const V = sum(cur, "views"), U = sum(cur, "unique"), E = sum(cur, "eng");
+  const FN = sum(cur, "follows"), FU = sum(cur, "unfollows"), NET = FN - FU;
+  const pV = sum(prev, "views"), pU = sum(prev, "unique"), pE = sum(prev, "eng"), pFN = sum(prev, "follows");
+  const card = (label, valStr, curNum, prevNum, sub) =>
+    `<div class="kcard"><div class="kl"><span>${label}</span></div><div class="kv2">${valStr}</div>${deltaChip(curNum, prevNum)}<div class="ks" style="margin-top:5px">${sub}</div></div>`;
+  document.getElementById("kpiRow").innerHTML =
+    card("👁 Lượt xem", fmt(V), V, pV, `TB ${fmt(V / days)} / ngày`) +
+    card("🧑 Người xem", fmt(U), U, pU, `TB ${fmt(U / days)} / ngày`) +
+    card("💬 Tương tác", fmt(E), E, pE, `TB ${fmt(E / days)} / ngày`) +
+    card("➕ Follow mới (ròng)", (NET >= 0 ? "+" : "") + fmt(NET), NET, sum(prev, "follows") - sum(prev, "unfollows"), `${fmt(FN)} follow mới · ${fmt(FU)} hủy theo dõi`);
+  // Mini stats + bar chart
+  const ms = (label, valStr, curNum, prevNum) =>
+    `<div class="ministat"><div class="mv">${valStr}</div><div class="ml">${label}</div><div style="margin-top:3px">${deltaChip(curNum, prevNum)}</div></div>`;
+  document.getElementById("miniStats").innerHTML =
+    ms("TB lượt xem / ngày", fmt(V / days), V / days, prev.length ? pV / prev.length : 0) +
+    ms("TB tương tác / ngày", fmt(E / days), E / days, prev.length ? pE / prev.length : 0) +
+    ms("TB follow mới / ngày", (NET / days >= 0 ? "+" : "") + (NET / days).toFixed(1).replace(".", ","), NET / days, prev.length ? (sum(prev, "follows") - sum(prev, "unfollows")) / prev.length : 0);
+  drawDayChart(cur);
+  // Right rail — tổng follower: Sheet chưa có cột tổng follower (cột Page Fans trống),
+  // dùng số Facebook đã kiểm chứng trực tiếp ngày 01/11/2026; bản chính thức sẽ bổ sung vào pipeline kéo số.
+  document.getElementById("fansTotal").textContent = fmt(4860);
+  document.getElementById("fansAsOf").textContent = "tổng người theo dõi (Facebook chốt ngày 01/11/2026)";
+  const tot = FN + FU || 1;
+  document.getElementById("fansNewBar").style.width = (FN / tot * 100) + "%";
+  document.getElementById("fansUnBar").style.width = (FU / tot * 100) + "%";
+  document.getElementById("fansNew").textContent = fmt(FN);
+  document.getElementById("fansNewDelta").outerHTML = deltaChip(FN, pFN, "fansNewDelta");
+  document.getElementById("fansUn").textContent = fmt(FU);
+  document.getElementById("fansNet").textContent = (NET >= 0 ? "+" : "") + fmt(NET);
+  const PV = sum(cur, "pageViews"), pPV = sum(prev, "pageViews");
+  document.getElementById("pvTotal").textContent = fmt(PV);
+  document.getElementById("pvDelta").outerHTML = deltaChip(PV, pPV, "pvDelta");
+  drawSpark(cur);
+}
+function chartColors(){
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  return { tick: dark ? "#aab3d6" : "#6b7280", grid: dark ? "rgba(170,179,214,.14)" : "rgba(107,114,128,.14)" };
+}
+function drawDayChart(cur){
+  const cv = document.getElementById("dayChart"); if(!cv || typeof Chart === "undefined") return;
+  if(charts.day) charts.day.destroy();
+  let labels, views, engs, note = "";
+  if(cur.length > 62){
+    const weeks = {};
+    cur.forEach(d => {
+      const monday = new Date(d.date); monday.setDate(d.date.getDate() - ((d.date.getDay() + 6) % 7));
+      const k = iso(monday);
+      weeks[k] = weeks[k] || { views: 0, eng: 0 };
+      weeks[k].views += d.views; weeks[k].eng += d.eng;
+    });
+    const ks = Object.keys(weeks).sort();
+    labels = ks.map(k => { const p = k.split("-"); return p[2] + "/" + p[1]; });
+    views = ks.map(k => weeks[k].views); engs = ks.map(k => weeks[k].eng);
+    note = "Kỳ dài — biểu đồ đang gộp theo tuần (nhãn = thứ 2 của tuần).";
+  } else {
+    labels = cur.map(d => String(d.date.getDate()).padStart(2, "0") + "/" + String(d.date.getMonth() + 1).padStart(2, "0"));
+    views = cur.map(d => d.views); engs = cur.map(d => d.eng);
+  }
+  document.getElementById("chartNote").textContent = (note ? note + " " : "") + "Cột tím = Lượt xem · cột vàng = Tương tác.";
+  const c = chartColors();
+  charts.day = new Chart(cv, { type: "bar",
+    data: { labels, datasets: [
+      { label: "Lượt xem", data: views, backgroundColor: "#6366f1", borderRadius: 3, maxBarThickness: 16 },
+      { label: "Tương tác", data: engs, backgroundColor: "#f5a623", borderRadius: 3, maxBarThickness: 16 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { color: c.tick, maxTicksLimit: 15 }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: c.tick }, grid: { color: c.grid } } },
+      plugins: { legend: { labels: { color: c.tick } } } } });
+}
+function drawSpark(cur){
+  const cv = document.getElementById("pvSpark"); if(!cv || typeof Chart === "undefined") return;
+  if(charts.spark) charts.spark.destroy();
+  charts.spark = new Chart(cv, { type: "line",
+    data: { labels: cur.map(d => d.date.getDate() + "/" + (d.date.getMonth() + 1)),
+      datasets: [{ data: cur.map(d => d.pageViews), borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,.16)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }]},
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+      plugins: { legend: { display: false } } } });
+}
+function setRange(from, to){ FROM = from; TO = to; render(); }
+async function init(){
+  try{
+    const rows = await fetchRows("📉 Page Insights");
+    DAYS = rows.filter(r => r[0]).map(r => ({
+      date: parseDay(r[0]), unique: num(r[1]), views: num(r[2]), fans: num(r[5]),
+      follows: num(r[6]), unfollows: num(r[7]), pageViews: num(r[8]), eng: num(r[9]),
+    })).filter(d => d.date).sort((a, b) => a.date - b.date);
+    const max = DAYS[DAYS.length - 1].date, min = DAYS[0].date;
+    const mSel = document.getElementById("monthSel");
+    [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + d.date.getMonth() + 1))].sort().forEach(m => {
+      const y = Math.floor(m / 100), mo = m % 100;
+      const o = document.createElement("option");
+      o.value = y + "-" + String(mo).padStart(2, "0");
+      o.textContent = "Tháng " + mo + "/" + y;
+      mSel.appendChild(o);
+    });
+    document.getElementById("presets").addEventListener("click", e => {
+      const b = e.target.closest("button[data-preset]"); if(!b) return;
+      document.querySelectorAll("#presets .chip").forEach(x => x.classList.toggle("active", x === b));
+      mSel.value = "";
+      const p = b.dataset.preset;
+      if(p === "all" || p === "year") setRange(min, max);
+      else { const f = new Date(max); f.setDate(f.getDate() - (+p - 1)); setRange(f, max); }
+    });
+    mSel.addEventListener("change", () => {
+      if(!mSel.value) return;
+      document.querySelectorAll("#presets .chip").forEach(x => x.classList.remove("active"));
+      const [y, m] = mSel.value.split("-").map(Number);
+      setRange(new Date(y, m - 1, 1), new Date(y, m, 0) > max ? max : new Date(y, m, 0));
+    });
+    const f30 = new Date(max); f30.setDate(f30.getDate() - 29);
+    setRange(f30, max);
+  }catch(e){
+    document.getElementById("loadErr").innerHTML = '<div class="err">Chưa đọc được dữ liệu từ Google Sheet. (' + e.message + ')</div>';
+  }
+}
+const tt = document.getElementById("themeToggle");
+function syncThemeBtn(){ tt.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀️ Chế độ sáng" : "🌙 Chế độ tối"; }
+tt.addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "" : "dark";
+  if(next) document.documentElement.setAttribute("data-theme", next); else document.documentElement.removeAttribute("data-theme");
+  try{ localStorage.setItem("mm-theme", next); }catch(e){}
+  syncThemeBtn(); render();
+});
+syncThemeBtn();
+init();
+</script>
+<script>
+// ===== Demo v4: thẻ Target kiểu mới + Deadline radar (dữ liệu thật) =====
+const BRIDGE2 = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
+async function gv2(id, tab){
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}`;
+  const txt = await (await fetch(url)).text();
+  const m = txt.match(/setResponse\(([\s\S]*)\);?\s*$/);
+  return JSON.parse(m[1]).table.rows;
+}
+function cell2(r, i){
+  const c = r && r.c ? r.c[i] : null;
+  if(!c) return "";
+  if(c.f != null && typeof c.v === "string" && String(c.v).startsWith("Date(")) return c.f;
+  return c.v == null ? "" : c.v;
+}
+function parseD2(s){
+  const p = String(s || "").trim().split("/");
+  if(p.length !== 3) return null;
+  const d = new Date(+p[2], +p[1] - 1, +p[0]);
+  return isNaN(d) ? null : d;
+}
+function vnToday2(){ return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" })); }
+const dstr2 = d => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear();
+function tg2esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+async function loadTarget2(){
+  try{
+    const [tRows, piRows, planRows] = await Promise.all([
+      gv2(BRIDGE2, "Targets"), gv2(SHEET_ID, "📉 Page Insights"), gv2(BRIDGE2, "MEDIA PLAN THÁNG 11")
+    ]);
+    let T = null;
+    tRows.forEach(r => { if(String(cell2(r, 0)).trim() === "2026-11") T = { views: num(cell2(r,1)), eng: num(cell2(r,2)), follows: num(cell2(r,3)), reach: num(cell2(r,4)), posts: num(cell2(r,5)), updated: cell2(r,6), by: cell2(r,7) }; });
+    if(!T) throw new Error("no target");
+    let A = { views: 0, eng: 0, follows: 0, reach: 0, posts: 0 }, dataDays = 0, planTotal = 0;
+    piRows.forEach(r => {
+      const d = parseD2(cell2(r, 0));
+      if(d && d.getFullYear() === 2026 && d.getMonth() === 10){ A.views += num(cell2(r,2)); A.reach += num(cell2(r,1)); A.eng += num(cell2(r,9)); A.follows += num(cell2(r,6)); dataDays++; }
+    });
+    planRows.forEach(r => {
+      const d = parseD2(cell2(r, 1));
+      if(!d) return;
+      planTotal++;
+      if(String(cell2(r, 13) || "").trim()) A.posts++;
+    });
+    const daysInMonth = 30, today = vnToday2();
+    const pace = dataDays / daysInMonth * 100;
+    const METS = [["Lượt xem", "views"], ["Tương tác", "eng"], ["Follow mới", "follows"], ["Người xem", "reach"], ["Số bài đăng", "posts"]];
+    const pcts = METS.map(([label, k]) => T[k] > 0 ? A[k] / T[k] * 100 : 0);
+    const overall = Math.round(pcts.reduce((s, x) => s + x, 0) / METS.length);
+    document.getElementById("tgOverall").textContent = overall + "%";
+    const paceEl = document.getElementById("tgPace");
+    paceEl.textContent = dataDays === 0
+      ? `📅 Ngày ${today.getDate()}/30 của tháng · số liệu chốt tới 31/10 — tháng 11 chưa có ngày số liệu nào`
+      : `📅 Đã chốt số ${dataDays}/30 ngày · nhịp cần đạt ${Math.round(pace)}%`;
+    document.getElementById("tgRows").innerHTML = METS.map(([label, k], i) => {
+      const pct = pcts[i], tv = T[k], av = A[k];
+      let st = "", cls = "";
+      if(dataDays > 0){ if(pct >= pace){ st = "st-ok"; cls = "ok"; } else if(pct >= pace / 2){ st = "st-warn"; cls = "warn"; } else { st = "st-bad"; cls = "bad"; } }
+      let sub;
+      if(k === "posts") sub = `Còn thiếu ${fmt(tv - av)} bài · ${fmt(av)} bài đã có Link Air / ${planTotal} bài có ngày trong kế hoạch`;
+      else if(dataDays === 0) sub = `Còn thiếu ${fmt(tv - av)} · chưa đủ ngày số liệu để dự kiến cuối tháng`;
+      else {
+        const proj = Math.round(av / dataDays * daysInMonth);
+        sub = `Còn thiếu ${fmt(tv - av)} · dự kiến cuối tháng ~${fmt(proj)}` + (proj >= tv ? ` — <b class="st-ok">vượt target ~${fmt(proj - tv)}</b>` : ` — <b class="st-warn">nguy cơ thiếu ~${fmt(tv - proj)}</b>`);
+      }
+      return `<div class="tgrow"><div class="tgrow-top"><span>${label}</span><span class="tgrow-num">${fmt(av)} / ${fmt(tv)} · <b class="${st}">${Math.round(pct)}%</b></span></div>` +
+        `<div class="tgbar"><i class="tgfill ${cls}" style="width:${Math.min(100, pct)}%"></i>${dataDays > 0 ? `<span class="tgtick" style="left:${Math.min(100, pace)}%"></span>` : ""}</div>` +
+        `<div class="tgrow-sub">${sub}</div></div>`;
+    }).join("");
+    document.getElementById("tgFoot").textContent = `Target tháng 11/2026${T.by ? " · do " + T.by + " đặt" : ""}${T.updated ? " · cập nhật " + T.updated : ""}. Số bài đăng = bài trong Media Plan đã có Link Air. Vạch đen trên thanh = mốc nhịp cần đạt theo số ngày đã chốt số.`;
+  }catch(e){
+    document.getElementById("tgRows").innerHTML = '<div class="hint">Chưa tải được dữ liệu target.</div>';
+    document.getElementById("tgPace").textContent = "";
+  }
+}
+
+async function loadRadar2(){
+  try{
+    const tabs = await Promise.all([gv2(BRIDGE2, "MEDIA PLAN THÁNG 10"), gv2(BRIDGE2, "MEDIA PLAN THÁNG 11")]);
+    const today = vnToday2(); today.setHours(0, 0, 0, 0);
+    const tmr = new Date(today); tmr.setDate(tmr.getDate() + 1);
+    const overdue = [], soon = [];
+    tabs.flat().forEach(r => {
+      const d = parseD2(cell2(r, 1));
+      if(!d) return;
+      if(String(cell2(r, 13) || "").trim()) return;
+      const item = { d, topic: String(cell2(r, 6) || ""), maker: String(cell2(r, 10) || "") };
+      if(d < today) overdue.push(item);
+      else if(d <= tmr) soon.push(item);
+    });
+    overdue.sort((a, b) => a.d - b.d); soon.sort((a, b) => a.d - b.d);
+    const line = it => `<div class="rd-item">${dstr2(it.d)} — ${it.topic ? tg2esc(it.topic) : "(chưa có topic)"} · <span style="color:var(--mut)">người làm: ${it.maker ? tg2esc(it.maker) : "⚠️ chưa phân công"}</span></div>`;
+    document.getElementById("radarBox").innerHTML =
+      `<div style="font-size:14px;margin-bottom:6px">🔴 <b>Quá hạn chưa đăng: ${overdue.length} bài</b></div>` + (overdue.map(line).join("") || '<div class="hint">Không có bài quá hạn.</div>') +
+      `<div style="font-size:14px;margin:12px 0 6px">🟡 <b>Sắp tới hạn (hôm nay &amp; ngày mai): ${soon.length} bài</b></div>` + (soon.map(line).join("") || '<div class="hint">Không có bài sắp tới hạn.</div>');
+  }catch(e){
+    document.getElementById("radarBox").innerHTML = '<div class="hint">Chưa tải được dữ liệu kế hoạch.</div>';
+  }
+}
+loadTarget2(); loadRadar2();
+</script>
+</body>
+</html>
