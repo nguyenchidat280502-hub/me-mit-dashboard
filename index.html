@@ -101,8 +101,10 @@
   .sub-actions input{flex:1;min-width:220px;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
   /* ===== v33: nộp link nhân viên (lớp phủ) ===== */
   .nvbadge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(124,58,237,.12);color:#6d28d9;border:1px solid rgba(124,58,237,.40);white-space:nowrap}
-  .subbtn{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12.5px;font-weight:600;white-space:nowrap}
-  .subbtn:hover{background:#e0e7ff}
+  .celladd{display:inline-block;background:transparent;color:#3730a3;border:1.5px dashed #a5b4fc;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .celladd:hover{background:#eef2ff}
+  .celledit{background:transparent;border:1px solid var(--line);border-radius:6px;padding:1px 6px;cursor:pointer;font-size:11.5px;color:var(--mut);line-height:1.4}
+  .celledit:hover{background:#eef2ff;color:#3730a3}
   #linkModal{position:fixed;inset:0;z-index:10000;display:none}
   #linkModal.open{display:block}
   #linkModal .lm-back{position:absolute;inset:0;background:rgba(17,24,39,.45)}
@@ -334,7 +336,7 @@
     <div class="scroll" style="max-height:640px">
     <table id="planTable"><thead><tr>
       <th>Ngày đăng</th><th>Giờ</th><th>Hình thức</th><th>Nền tảng</th><th>Topic</th>
-      <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Trạng thái</th><th>Check</th><th>Nộp link</th>
+      <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Trạng thái</th><th>Check</th>
     </tr></thead><tbody></tbody></table>
     </div>
     <div class="hint">Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút. <span id="planSyncInfo"></span></div>
@@ -429,7 +431,6 @@
   <div class="lm-card" role="dialog" aria-modal="true" aria-labelledby="lmTitle">
     <div class="lm-head"><b id="lmTitle">📤 Nộp link</b><button type="button" class="lm-x" id="lmClose" aria-label="Đóng">✕</button></div>
     <div class="lm-meta" id="lmMeta"></div>
-    <div id="lmTypeWrap"><label for="lmType">Loại link</label><select id="lmType"></select></div>
     <div id="lmCurrent" style="font-size:13px;margin-top:10px;line-height:1.5;overflow-wrap:anywhere"></div>
     <label for="lmInput">Link Facebook của bài</label>
     <input type="url" id="lmInput" placeholder="https://www.facebook.com/..." autocomplete="off">
@@ -969,11 +970,11 @@ function renderPlan(){
     `<td>${[r.plat1, r.plat2].filter(Boolean).join(" + ")}</td>` +
     `<td class="title-cell">${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">${r.topic}</a>` : r.topic}</td>` +
     `<td>${personChip(r.picC)}</td><td>${personChip(r.picD)}</td>` +
-    `<td>${linkOr(r.brief, "Brief")}${r.briefOv && r.brief ? ' <span class="nvbadge">NV gửi</span>' : ""}</td>` +
-    `<td>${r.air ? `<a href="${r.air}" target="_blank" rel="noopener">🔗 Đã air</a>${r.airOv ? ' <span class="nvbadge">NV gửi</span>' : ""}` : '<span class="st-todo">chưa có</span>'}</td>` +
+    `<td>${briefCellHtml(r)}</td>` +
+    `<td>${airCellHtml(r)}</td>` +
     `<td>${planStatusChip(r)}</td>` +
-    `<td>${r.check}</td><td>${submitBtnHtml(r)}</td></tr>`).join("") ||
-    '<tr><td colspan="12" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
+    `<td>${r.check}</td></tr>`).join("") ||
+    '<tr><td colspan="11" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
 }
 
 function renderWeek(){
@@ -1425,37 +1426,54 @@ function ovAuth(){
   try { pic = M.effectivePic || ""; } catch(e){}
   return { signed: true, role: role, pic: pic, email: M.email || "", name: (M.user && M.user.displayName) || "" };
 }
-function submitTypesFor(r){
+function isMgrRole(){
   const a = ovAuth();
-  if(!a.signed) return [];
-  if(a.role === "owner" || a.role === "manager") return ["Brief", "Link Air"];
+  return a.signed && (a.role === "owner" || a.role === "manager");
+}
+window.isMgrRole = isMgrRole;
+// Quyền nộp theo TỪNG Ô: ô Brief chỉ dành cho người brief của dòng, ô Link Air chỉ
+// dành cho người làm của dòng; Quản Lí/chủ kênh nộp được cả hai ô (kể cả thay link đã có).
+// Nhân viên chỉ nộp khi ô còn trống — ô đã có link thì không nộp/thay được nữa.
+function canSubmitType(r, type){
+  const a = ovAuth();
+  if(!a.signed) return false;
+  if(a.role === "owner" || a.role === "manager") return true;
   if(a.role === "staff" && a.pic){
-    const t = [];
-    if(r.picC === a.pic && !r.brief) t.push("Brief");
-    if(r.picD === a.pic && !r.air) t.push("Link Air");
-    return t;
+    if(type === "Brief") return r.picC === a.pic && !r.brief;
+    if(type === "Link Air") return r.picD === a.pic && !r.air;
   }
-  return [];
+  return false;
 }
-function submitBtnHtml(r){
-  const types = submitTypesFor(r);
-  if(!types.length) return "";
-  const a = ovAuth();
-  const isMgr = a.role === "owner" || a.role === "manager";
-  const label = (isMgr && (r.brief || r.air)) ? "✏️ Sửa link" : "📤 Gửi link";
-  return `<button type="button" class="subbtn" data-submit-link="1" data-tab="${escAttr(r.tab || "")}" data-date="${escAttr(r.date || "")}" data-topic="${escAttr(r.topic || "")}">${label}</button>`;
+window.canSubmitType = canSubmitType;
+function cellSubmitBtn(r, type, label){
+  return `<button type="button" class="celladd" data-submit-link="${type}" data-tab="${escAttr(r.tab || "")}" data-date="${escAttr(r.date || "")}" data-topic="${escAttr(r.topic || "")}">${label || "＋ Nộp link"}</button>`;
 }
-window.submitBtnHtml = submitBtnHtml;
+window.cellSubmitBtn = cellSubmitBtn;
+function cellEditBtn(r, type){
+  return `<button type="button" class="celledit" title="Sửa link" data-submit-link="${type}" data-tab="${escAttr(r.tab || "")}" data-date="${escAttr(r.date || "")}" data-topic="${escAttr(r.topic || "")}">✏️</button>`;
+}
+window.cellEditBtn = cellEditBtn;
+// Ô Brief trong Media Plan: chính ô này là điểm nộp link Brief.
+function briefCellHtml(r){
+  if(r.brief) return `${linkOr(r.brief, "Brief")}${r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : ""}${isMgrRole() ? " " + cellEditBtn(r, "Brief") : ""}`;
+  if(canSubmitType(r, "Brief")) return cellSubmitBtn(r, "Brief");
+  return linkOr(r.brief, "Brief");
+}
+// Ô Link Air trong Media Plan: chính ô này là điểm nộp Link Air.
+function airCellHtml(r){
+  if(r.air) return `<a href="${r.air}" target="_blank" rel="noopener">🔗 Đã air</a>${r.airOv ? ' <span class="nvbadge">NV gửi</span>' : ""}${isMgrRole() ? " " + cellEditBtn(r, "Link Air") : ""}`;
+  if(canSubmitType(r, "Link Air")) return cellSubmitBtn(r, "Link Air");
+  return '<span class="st-todo">chưa có</span>';
+}
 
-let LM_ROW = null;
+let LM_ROW = null, LM_TYPE = "Brief";
 function findPlanRow(tab, date, topic){
   const all = (typeof PLAN_ALL !== "undefined" && PLAN_ALL) ? PLAN_ALL : [];
   return all.find(r => (r.tab || "") === tab && (r.date || "") === date && (r.topic || "") === topic) || null;
 }
-function lmTypeVal(){ const s = document.getElementById("lmType"); return s ? s.value : "Brief"; }
-function lmRenderType(){
+function lmRenderCurrent(){
   if(!LM_ROW) return;
-  const type = lmTypeVal();
+  const type = LM_TYPE;
   const cur = type === "Brief" ? (LM_ROW.brief || "") : (LM_ROW.air || "");
   const fromOv = type === "Brief" ? LM_ROW.briefOv : LM_ROW.airOv;
   document.getElementById("lmTitle").textContent = type === "Brief" ? "📤 Nộp link Brief" : "📤 Nộp Link Air";
@@ -1464,24 +1482,20 @@ function lmRenderType(){
     : '<span style="color:var(--mut)">Chưa có link loại này cho bài này.</span>';
   document.getElementById("lmError").textContent = "";
 }
-function openSubmitLink(r){
-  const types = submitTypesFor(r);
-  if(!types.length) return;
+function openSubmitLink(r, type){
+  // Loại link cố định theo ô đã bấm (ô Brief → "Brief", ô Link Air → "Link Air").
+  if(!canSubmitType(r, type)) return;
   const m = document.getElementById("linkModal");
   if(!m) return;
-  LM_ROW = r;
+  LM_ROW = r; LM_TYPE = type;
   document.getElementById("lmMeta").innerHTML =
     `<b>${escAttr(r.date || "")}</b> · ${escAttr(r.form || "")}<br>${escAttr(r.topic || "")}`;
-  const sel = document.getElementById("lmType");
-  sel.innerHTML = types.map(t =>
-    `<option value="${t}">${t === "Brief" ? "Link Brief — người brief nộp" : "Link Air — link bài đã đăng, người làm nộp"}</option>`).join("");
-  document.getElementById("lmTypeWrap").style.display = types.length > 1 ? "" : "none";
   document.getElementById("lmInput").value = "";
   document.getElementById("lmError").textContent = "";
   document.getElementById("lmOk").textContent = "";
   const send = document.getElementById("lmSend");
   send.disabled = false; send.textContent = "Gửi link";
-  lmRenderType();
+  lmRenderCurrent();
   m.classList.add("open"); m.setAttribute("aria-hidden", "false");
   setTimeout(() => { const i = document.getElementById("lmInput"); if(i) i.focus(); }, 60);
 }
@@ -1493,7 +1507,7 @@ function closeSubmitLink(){
 }
 async function lmSubmit(){
   if(!LM_ROW) return;
-  const type = lmTypeVal();
+  const type = LM_TYPE;
   const link = document.getElementById("lmInput").value.trim();
   const err = document.getElementById("lmError"), ok = document.getElementById("lmOk");
   err.textContent = ""; ok.textContent = "";
@@ -1533,7 +1547,7 @@ document.addEventListener("click", e => {
   const b = e.target.closest("button[data-submit-link]");
   if(!b) return;
   const r = findPlanRow(b.getAttribute("data-tab"), b.getAttribute("data-date"), b.getAttribute("data-topic"));
-  if(r) openSubmitLink(r);
+  if(r) openSubmitLink(r, b.getAttribute("data-submit-link"));
 });
 window.addEventListener("mmauth", () => { try { renderPlan(); renderWeek(); renderDeadlineRadar(); } catch(e){} });
 (function(){
@@ -1541,7 +1555,6 @@ window.addEventListener("mmauth", () => { try { renderPlan(); renderWeek(); rend
   const x = document.getElementById("lmCancel"); if(x) x.addEventListener("click", closeSubmitLink);
   const bk = document.getElementById("lmBack"); if(bk) bk.addEventListener("click", closeSubmitLink);
   const s = document.getElementById("lmSend"); if(s) s.addEventListener("click", lmSubmit);
-  const t = document.getElementById("lmType"); if(t) t.addEventListener("change", lmRenderType);
   const inp = document.getElementById("lmInput");
   if(inp) inp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); lmSubmit(); } });
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeSubmitLink(); });
@@ -1993,24 +2006,34 @@ loadDeep();
       var role = (r.picC === pic && r.picD === pic) ? "Brief + Làm" : (r.picC === pic ? "Brief" : "Làm");
       var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
       var statusCell = (typeof planStatusChip === "function") ? planStatusChip(r) : "";
-      var briefCell = r.brief
-        ? '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>' + (r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : '')
-        : '<span style="color:var(--down);font-weight:600">⚠️ Chưa có brief</span>';
+      // Người làm chưa có Link Air → nộp ngay trong ô trạng thái (không thêm cột riêng).
+      if(!r.air && window.canSubmitType && window.canSubmitType(r, "Link Air")){
+        statusCell += '<div style="margin-top:5px">' + window.cellSubmitBtn(r, "Link Air", "＋ Nộp Link Air") + '</div>';
+      }
+      var briefCell;
+      if(r.brief){
+        briefCell = '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>' + (r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : '')
+          + ((window.isMgrRole && window.isMgrRole()) ? ' ' + window.cellEditBtn(r, "Brief") : '');
+      } else if(window.canSubmitType && window.canSubmitType(r, "Brief")){
+        // Chính ô Brief là điểm nộp link Brief cho người brief của bài này.
+        briefCell = '<span style="color:var(--down);font-weight:600">⚠️ Chưa có brief</span> ' + window.cellSubmitBtn(r, "Brief");
+      } else {
+        briefCell = '<span style="color:var(--down);font-weight:600">⚠️ Chưa có brief</span>';
+      }
       var topicHtml = r.air
         ? '<a href="' + esc(r.air) + '" target="_blank" rel="noopener">' + esc(r.topic) + '</a>'
         : esc(r.topic);
       return '<tr><td style="white-space:nowrap">' + esc(r.date) + (r.dow ? " (" + esc(r.dow) + ")" : "") + '</td>' +
         '<td>' + badge(r.form) + '</td>' +
         '<td class="title-cell">' + topicHtml + (r.content ? '<div style="color:var(--mut);font-size:12px;margin-top:2px">' + esc(r.content) + '</div>' : "") + '</td>' +
-        '<td>' + role + '</td><td>' + briefCell + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td>' +
-        '<td>' + (window.submitBtnHtml ? window.submitBtnHtml(r) : "") + '</td></tr>';
+        '<td>' + role + '</td><td>' + briefCell + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
     }).join("");
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
       '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài được phân cho bạn trong toàn bộ Media Plan' + (monthTxt ? ' (' + monthTxt + ')' : '') + ' · ' +
       'Việc brief (Content): <b>' + asContent + '</b> · Việc làm (Design): <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
       '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' +
       (rows.length
-        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th><th>Nộp link</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan.</div>') +
       '</div>';
   }
