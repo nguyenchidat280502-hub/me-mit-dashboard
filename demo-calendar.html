@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO — Tab Lịch đăng · Fanpage NGŨ CỐC MẸ MÍT</title>
+<script>try{var t=localStorage.getItem("mm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<style>
+  :root{--bg:#f2f3fa;--card:#ffffff;--line:#e5e7eb;--txt:#111827;--mut:#6b7280;--acc:#4f46e5;--up:#16a34a;--down:#dc2626;--kpi:#f8fafc;--track:#eef0f4;--lab:#4b5563}
+  html[data-theme="dark"]{--bg:#0e1120;--card:#171b2e;--line:#2b3153;--txt:#e9ebf7;--mut:#aab3d6;--acc:#818cf8;--kpi:#1d2338;--track:#262c47;--lab:#a7aed0;--down:#f87171;color-scheme:dark}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .topbar{background:#26215c;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .topbar b{font-size:16px} .topbar small{display:block;color:#a5a8d0;font-weight:400;font-size:12px;margin-top:2px}
+  .topbar a{color:#c7d2fe;font-size:13px;text-decoration:none} .topbar a:hover{text-decoration:underline}
+  #themeToggle{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+  .demo-banner{background:#f59e0b;color:#231303;padding:9px 16px;font-size:13.5px;font-weight:600;text-align:center}
+  .wrap{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+  .card h2{font-size:16px;margin:0 0 10px}
+  button.chip{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.chip:hover{border-color:var(--acc)}
+  button.chip.active{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+  .err{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca;border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px}
+  .loading{color:var(--mut);padding:24px 0}
+  .hint{color:var(--mut);font-size:12px;margin-top:6px}
+  .bar{height:8px;background:var(--track);border-radius:99px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--up)}
+  .sumrow{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+  .sumrow b{font-size:15px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;white-space:nowrap}
+  .fbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
+  .f-video{background:rgba(244,63,94,.10);color:#e11d48;border-color:rgba(244,63,94,.40)}
+  .f-single{background:rgba(2,132,199,.10);color:#0284c7;border-color:rgba(2,132,199,.40)}
+  .f-group{background:rgba(5,150,105,.10);color:#059669;border-color:rgba(5,150,105,.40)}
+  .f-other{background:rgba(100,116,139,.10);color:#475569;border-color:rgba(100,116,139,.35)}
+  html[data-theme="dark"] .f-video{color:#fb7185} html[data-theme="dark"] .f-single{color:#38bdf8}
+  html[data-theme="dark"] .f-group{color:#34d399} html[data-theme="dark"] .f-other{color:#a8b0c8}
+  .person{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:var(--kpi);border:1px solid var(--line);padding:3px 9px 3px 4px;border-radius:999px;font-size:12.5px}
+  .avatar{width:22px;height:22px;border-radius:50%;color:#0b1220;font-weight:700;font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px}
+  /* --- Calendar grid --- */
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .cal-head div{text-align:center;font-size:12.5px;font-weight:700;color:var(--mut);padding:4px 0}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal-day{background:var(--card);border:1px solid var(--line);border-radius:10px;min-height:118px;padding:7px;display:flex;flex-direction:column;gap:5px}
+  .cal-day.dim{opacity:.38}
+  .cal-day.today{border:2px solid var(--acc)}
+  .cal-dnum{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .cal-dnum .dow{color:var(--mut);font-weight:600;font-size:11px}
+  .todaytag{background:var(--acc);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px}
+  .cal-item{border:1px solid;border-radius:8px;padding:5px 7px;cursor:pointer;font-size:11.5px;line-height:1.35}
+  .cal-item:hover{filter:brightness(.97)}
+  html[data-theme="dark"] .cal-item:hover{filter:brightness(1.25)}
+  .cal-item .ci-top{display:flex;justify-content:space-between;gap:6px;font-weight:700}
+  .cal-item .ci-topic{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:2px 0}
+  .cal-item .ci-pic{display:flex;align-items:center;gap:5px;color:var(--mut);font-size:11px}
+  .cal-item .ci-pic .avatar{width:16px;height:16px;flex-basis:16px;font-size:8.5px}
+  .st-done{background:rgba(5,150,105,.10);border-color:rgba(5,150,105,.45);color:var(--txt)}
+  .st-done .ci-top{color:#059669} html[data-theme="dark"] .st-done .ci-top{color:#34d399}
+  .st-late{background:rgba(220,38,38,.10);border-color:rgba(220,38,38,.50);color:var(--txt)}
+  .st-late .ci-top{color:#dc2626} html[data-theme="dark"] .st-late .ci-top{color:#f87171}
+  .st-soon{background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.45);color:var(--txt)}
+  .st-soon .ci-top{color:#b45309} html[data-theme="dark"] .st-soon .ci-top{color:#fbbf24}
+  .st-out{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.45);color:var(--txt)}
+  .st-out .ci-top{color:#7c3aed} html[data-theme="dark"] .st-out .ci-top{color:#c4b5fd}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin-top:10px}
+  .legend span b{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  @media (max-width:760px){ .cal-day{min-height:86px;padding:5px} .cal-item{font-size:10.5px} .cal-item .ci-pic{display:none} }
+  /* --- Modal (same pattern as deepModal) --- */
+  #calModal{position:fixed;inset:0;z-index:10001;display:none}
+  #calModal.open{display:block}
+  #calModal .lm-back{position:absolute;inset:0;background:rgba(17,24,39,.45)}
+  #calModal .lm-card{position:relative;background:var(--card);color:var(--txt);border-radius:14px;max-width:680px;width:calc(100% - 28px);margin:6vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:88vh;overflow:auto}
+  #calModal .lm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+  #calModal .lm-head b{font-size:16px;line-height:1.45}
+  #calModal .lm-x{background:transparent;border:1px solid var(--line);color:var(--txt);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;flex:0 0 32px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:7px 12px;font-size:13.5px;margin:12px 0}
+  .kv .k{color:var(--mut)}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+  .mgrid .m{background:var(--kpi);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .mgrid .m .v{font-size:19px;font-weight:800;margin-top:2px}
+  .mgrid .m .l{color:var(--lab);font-size:11.5px;font-weight:600}
+  .mgrid .m .n{color:var(--mut);font-size:11.5px;margin-top:1px}
+  a.btn{display:inline-block;background:var(--acc);color:#fff;border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:600;text-decoration:none;margin:4px 8px 4px 0}
+  a.btn.ghost{background:var(--card);color:var(--acc);border:1px solid var(--acc)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div><b>📅 Demo — Tab Lịch đăng</b><small>Fanpage NGŨ CỐC MẸ MÍT · bản xem trước để duyệt giao diện</small></div>
+  <div style="display:flex;gap:14px;align-items:center">
+    <a href="index.html">← Về dashboard chính</a>
+    <button type="button" id="themeToggle">🌙 Chế độ tối</button>
+  </div>
+</div>
+<div class="demo-banner">🧪 BẢN DEMO — dữ liệu THẬT kéo trực tiếp từ Sheet (Media Plan + bài đã đăng + Video Insights), chưa gắn vào dashboard chính.</div>
+<div class="wrap">
+  <div class="card">
+    <h2>📅 Lịch đăng bài</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" id="monthChips"></div>
+    <div class="sumrow" id="calSummary" style="margin-top:12px"></div>
+    <div class="bar" style="margin-top:10px"><i id="calBar" style="width:0%"></i></div>
+    <div class="hint">Trạng thái “đã đăng” tính theo Link Air trong Media Plan (đúng quy ước hiện tại của dashboard). Bấm vào từng bài trên lịch để xem chi tiết + số liệu.</div>
+  </div>
+  <div class="card">
+    <div class="cal-head"><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div></div>
+    <div class="cal-grid" id="calGrid"><div class="loading">Đang tải dữ liệu…</div></div>
+    <div class="legend">
+      <span><b style="background:#059669"></b>Đã đăng</span>
+      <span><b style="background:#d97706"></b>Sắp đăng / hôm nay</span>
+      <span><b style="background:#dc2626"></b>Quá hạn chưa đăng</span>
+      <span><b style="background:#7c3aed"></b>Ngoài kế hoạch (đã đăng thật, không có trong Media Plan)</span>
+    </div>
+  </div>
+</div>
+
+<div id="calModal" aria-hidden="true">
+  <div class="lm-back" id="calBack"></div>
+  <div class="lm-card" role="dialog" aria-modal="true">
+    <div class="lm-head"><b id="calModalTitle">Chi tiết bài</b><button type="button" class="lm-x" id="calClose" aria-label="Đóng">✕</button></div>
+    <div id="calDetail"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM";
+const PLAN_ID = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
+const num = x => { const n = Number(x); return isNaN(n) ? 0 : n; };
+const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const DOWVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function gvizUrl(sid, tab){ return "https://docs.google.com/spreadsheets/d/" + sid + "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(tab); }
+async function fetchRows(sid, tab){
+  const res = await fetch(gvizUrl(sid, tab));
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return json.table.rows.map(r => (r.c || []).map(c => {
+    if(!c) return null;
+    if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
+    return c.v;
+  }));
+}
+const cell = (r, i) => { const v = r ? r[i] : null; return v == null ? "" : String(v); };
+function parseDay(s){
+  if(!s) return null;
+  const p = String(s).trim().split("/"); if(p.length !== 3) return null;
+  const d = new Date(+p[2], +p[1] - 1, +p[0]); return isNaN(d) ? null : d;
+}
+function parsePostDate(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+  if(!m) return null;
+  const d = new Date(+(m[3] || 2026), +m[2] - 1, +m[1]);
+  return isNaN(d) ? null : d;
+}
+function timeOf(s){ const m = String(s || "").match(/(\d{1,2}):(\d{2})/); return m ? m[1].padStart(2,"0") + ":" + m[2] : ""; }
+function classify(rawType, link){
+  const t = String(rawType || "").toLowerCase();
+  if(t.includes("video") || t.includes("reel")) return { key: "video", label: "🎬 Video", icon: "🎬" };
+  if(t.includes("album")) return { key: "album", label: "🗂 Album", icon: "🗂" };
+  if(t.includes("group")) return { key: "group", label: "👥 Group post", icon: "👥" };
+  if(t.includes("ảnh") || t.includes("photo") || t.includes("image") || t.includes("single")) return { key: "photo", label: "🖼 Ảnh / bài đơn", icon: "🖼" };
+  if(t.includes("link")) return { key: "link", label: "🔗 Link", icon: "🔗" };
+  if(link && (link.includes("/reel/") || link.includes("/videos/"))) return { key: "video", label: "🎬 Video", icon: "🎬" };
+  return { key: "post", label: "📝 Bài viết", icon: "📝" };
+}
+const PERSON_COLORS = { "tuyền": "#f9a8d4", "như": "#c4b5fd", "vân": "#5eead4", "huy": "#fdba74", "changgi": "#93c5fd", "xuân nhi": "#86efac" };
+const PALETTE = ["#fca5a5","#fcd34d","#6ee7b7","#67e8f9","#a5b4fc","#f0abfc","#fda4af","#bef264"];
+function personColor(name){
+  const key = (name || "").trim().toLowerCase();
+  if(PERSON_COLORS[key]) return PERSON_COLORS[key];
+  let h = 0; for(const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
+function personChip(name){
+  if(!name) return '<span style="color:var(--mut)">—</span>';
+  const initials = name.trim().split(/\s+/).map(w => w[0]).slice(-2).join("").toUpperCase();
+  return `<span class="person"><span class="avatar" style="background:${personColor(name)}">${esc(initials)}</span>${esc(name)}</span>`;
+}
+function linkId(url){
+  const m = String(url || "").match(/(?:posts|reel|videos)\/(\d{6,})/);
+  return m ? m[1] : null;
+}
+function parseRetention(raw){
+  if(!raw) return {};
+  try { const o = typeof raw === "string" ? JSON.parse(raw) : raw; return o && typeof o === "object" ? o : {}; } catch(e){ return {}; }
+}
+function tierAt(v, good, ok){ return v >= good ? "🟢 Tốt" : v >= ok ? "🟡 Khá" : "🔴 Yếu"; }
+
+let MONTHS = [], CUR = null, ITEMS = [], POSTS = [], VIDEOS = {};
+const todayD = new Date(); todayD.setHours(0,0,0,0);
+
+async function init(){
+  try{
+    const [plan10, plan11, posts, vids] = await Promise.all([
+      fetchRows(PLAN_ID, "MEDIA PLAN THÁNG 10").catch(() => []),
+      fetchRows(PLAN_ID, "MEDIA PLAN THÁNG 11"),
+      fetchRows(SHEET_ID, "📝 Posts"),
+      fetchRows(SHEET_ID, "🎬 Video Insights").catch(() => []),
+    ]);
+    POSTS = posts.filter(r => r[0]).map(r => {
+      const link = [cell(r,5), cell(r,4)].find(x => x && /^https?:\/\//i.test(x.trim())) || "";
+      return { id: String(r[0]), when: cell(r,1), date: parsePostDate(cell(r,1)), time: timeOf(cell(r,1)),
+        cls: classify(cell(r,2), link), title: (cell(r,3) || "").split("\n")[0], link,
+        reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]), views: num(r[11]),
+        lid: linkId(link) };
+    }).filter(p => p.date);
+    (vids || []).filter(r => r && r[0]).forEach(r => {
+      VIDEOS[String(r[0])] = { views: num(r[3]), minutes: num(r[4]), avg: num(r[5]), ret: parseRetention(r[6]) };
+    });
+    const mapPlan = (rows, tabName) => rows.filter(r => cell(r,6)).map(r => ({
+      dow: cell(r,0), date: parseDay(cell(r,1)), dateStr: cell(r,1), form: cell(r,3),
+      topic: cell(r,6), picC: cell(r,8), picD: cell(r,10), brief: cell(r,11), air: cell(r,13), tab: tabName,
+    })).filter(p => p.date);
+    const p10 = mapPlan(plan10, "MEDIA PLAN THÁNG 10"), p11 = mapPlan(plan11, "MEDIA PLAN THÁNG 11");
+    MONTHS = [
+      { key: "2026-10", label: "Tháng 10", y: 2026, m: 10, rows: p10 },
+      { key: "2026-11", label: "Tháng 11", y: 2026, m: 11, rows: p11 },
+    ].filter(x => x.rows.length);
+    const chips = document.getElementById("monthChips");
+    chips.innerHTML = MONTHS.map(x => `<button type="button" class="chip" data-m="${x.key}">${x.label}</button>`).join("");
+    chips.addEventListener("click", e => {
+      const b = e.target.closest("button[data-m]"); if(!b) return;
+      renderMonth(b.dataset.m);
+    });
+    const curKey = todayD.getFullYear() + "-" + String(todayD.getMonth() + 1).padStart(2, "0");
+    renderMonth((MONTHS.find(x => x.key === curKey) || MONTHS[MONTHS.length - 1]).key);
+  }catch(e){
+    document.getElementById("calGrid").innerHTML = '<div class="err">Chưa đọc được dữ liệu từ Google Sheet. (' + esc(e.message) + ')</div>';
+  }
+}
+
+function buildItems(mo){
+  const items = [];
+  const usedPost = new Set();
+  mo.rows.forEach(p => {
+    const airId = linkId(p.air);
+    let post = null;
+    if(airId) post = POSTS.find(x => x.lid === airId) || null;
+    if(post) usedPost.add(post.id);
+    let status;
+    if(p.air) status = "done";
+    else if(p.date < todayD) status = "late";
+    else status = "soon";
+    items.push({ kind: "plan", date: p.date, plan: p, post, status });
+  });
+  POSTS.filter(x => x.date.getFullYear() === mo.y && x.date.getMonth() === mo.m - 1 && !usedPost.has(x.id))
+    .forEach(x => items.push({ kind: "out", date: x.date, post: x, status: "out" }));
+  items.sort((a, b) => (a.date - b.date) || ((a.post && a.post.time || "99") < (b.post && b.post.time || "99") ? -1 : 1));
+  return items;
+}
+
+function renderMonth(key){
+  CUR = MONTHS.find(x => x.key === key); if(!CUR) return;
+  document.querySelectorAll("#monthChips .chip").forEach(b => b.classList.toggle("active", b.dataset.m === key));
+  ITEMS = buildItems(CUR);
+  const planItems = ITEMS.filter(i => i.kind === "plan");
+  const done = planItems.filter(i => i.status === "done").length;
+  const late = planItems.filter(i => i.status === "late").length;
+  const out = ITEMS.filter(i => i.kind === "out").length;
+  const pct = planItems.length ? Math.round(done / planItems.length * 100) : 0;
+  document.getElementById("calSummary").innerHTML =
+    `<span>📌 Theo kế hoạch: <b>${planItems.length} bài</b></span>` +
+    `<span>✅ Đã đăng: <b>${done}</b> (${pct}%)</span>` +
+    (late ? `<span>⚠️ Quá hạn chưa đăng: <b style="color:var(--down)">${late}</b></span>` : `<span>⚠️ Quá hạn: <b>0</b></span>`) +
+    `<span>🟣 Ngoài kế hoạch: <b>${out} bài</b></span>`;
+  document.getElementById("calBar").style.width = pct + "%";
+  const first = new Date(CUR.y, CUR.m - 1, 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const start = new Date(first); start.setDate(1 - startOffset);
+  let html = "";
+  for(let i = 0; i < 42; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const inMonth = d.getMonth() === CUR.m - 1;
+    const isToday = d.getTime() === todayD.getTime();
+    const dayItems = ITEMS.map((it, ix) => ({ it, ix })).filter(x => x.it.date.getTime() === d.getTime());
+    html += `<div class="cal-day${inMonth ? "" : " dim"}${isToday ? " today" : ""}">` +
+      `<div class="cal-dnum"><span>${d.getDate()} <span class="dow">${DOWVN[d.getDay()]}</span></span>${isToday ? '<span class="todaytag">Hôm nay</span>' : ""}</div>` +
+      dayItems.map(({ it, ix }) => chipHtml(it, ix)).join("") + `</div>`;
+    if(i >= 34 && d.getMonth() !== CUR.m - 1 && d.getDay() === 0) break;
+  }
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = html;
+  grid.querySelectorAll(".cal-item").forEach(el => el.addEventListener("click", () => showDetail(+el.dataset.ix)));
+}
+
+function chipHtml(it, ix){
+  if(it.kind === "out"){
+    const p = it.post;
+    return `<div class="cal-item st-out" data-ix="${ix}"><div class="ci-top"><span>${p.time || "—"}</span><span>${p.cls.icon}</span></div>` +
+      `<div class="ci-topic">${esc(p.title || "(không có tiêu đề)")}</div>` +
+      `<div class="ci-pic">Ngoài KH · 👁 ${fmt(p.views)}</div></div>`;
+  }
+  const p = it.plan;
+  const cls = classify(p.form, it.post ? it.post.link : p.air);
+  const time = it.post ? (it.post.time || "—") : (it.status === "done" ? "✓" : "—");
+  return `<div class="cal-item st-${it.status}" data-ix="${ix}"><div class="ci-top"><span>${time}</span><span>${cls.icon}</span></div>` +
+    `<div class="ci-topic">${esc(p.topic)}</div>` +
+    `<div class="ci-pic"><span class="avatar" style="background:${personColor(p.picD)}">${esc((p.picD || "?").trim().split(/\s+/).map(w => w[0]).slice(-2).join("").toUpperCase())}</span>${esc(p.picD || "Chưa phân công")}</div></div>`;
+}
+
+function metricsHtml(post){
+  if(!post) return "";
+  const eng = post.reactions + post.comments + post.shares;
+  let h = `<div class="mgrid">` +
+    `<div class="m"><div class="l">👁 Lượt xem</div><div class="v">${fmt(post.views)}</div></div>` +
+    `<div class="m"><div class="l">💬 Tương tác</div><div class="v">${fmt(eng)}</div><div class="n">${fmt(post.reactions)} cảm xúc · ${fmt(post.comments)} bình luận · ${fmt(post.shares)} chia sẻ</div></div>`;
+  const v = VIDEOS[post.id];
+  if(v){
+    const at15 = (v.ret["15"] || 0) * 100;
+    h += `<div class="m"><div class="l">🎬 Giữ chân tại 15s</div><div class="v">${at15.toFixed(1).replace(".", ",")}%</div><div class="n">Chuẩn video: ${tierAt(at15, 35, 25)}</div></div>` +
+      `<div class="m"><div class="l">⏱ TB xem</div><div class="v">${v.avg ? v.avg.toFixed(1).replace(".", ",") + "s" : "—"}</div><div class="n">Chuẩn: ${tierAt(v.avg, 15, 10)}</div></div>`;
+  }
+  return h + `</div>`;
+}
+
+function showDetail(ix){
+  const it = ITEMS[ix]; if(!it) return;
+  const title = document.getElementById("calModalTitle");
+  const box = document.getElementById("calDetail");
+  const dstr = d => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} (${DOWVN[d.getDay()]})`;
+  if(it.kind === "out"){
+    const p = it.post;
+    title.textContent = "🟣 Bài đăng ngoài kế hoạch";
+    box.innerHTML =
+      `<div style="font-size:15px;font-weight:700;line-height:1.45">${esc(p.title || "(không có tiêu đề)")}</div>` +
+      `<div class="kv"><span class="k">Trạng thái</span><span><span class="fbadge f-other">🟣 Ngoài kế hoạch</span></span>` +
+      `<span class="k">Ngày đăng</span><span>${dstr(p.date)}${p.time ? " · lúc " + p.time : ""}</span>` +
+      `<span class="k">Hình thức</span><span>${p.cls.label}</span>` +
+      `<span class="k">Người làm</span><span style="color:var(--mut)">Không có trong Media Plan nên chưa rõ — bổ sung vào plan nếu muốn theo dõi</span></div>` +
+      metricsHtml(p) +
+      (p.link ? `<a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>` : "");
+  } else {
+    const p = it.plan, post = it.post;
+    const stBadge = it.status === "done" ? '<span class="fbadge f-group">✅ Đã đăng</span>'
+      : it.status === "late" ? '<span class="fbadge" style="background:rgba(220,38,38,.10);color:#dc2626;border-color:rgba(220,38,38,.4)">⚠️ Quá hạn chưa đăng</span>'
+      : '<span class="fbadge" style="background:rgba(217,119,6,.12);color:#b45309;border-color:rgba(217,119,6,.4)">⏳ Sắp đăng</span>';
+    title.textContent = "📅 Chi tiết bài theo kế hoạch";
+    let h = `<div style="font-size:15px;font-weight:700;line-height:1.45">${esc(p.topic)}</div>` +
+      `<div class="kv"><span class="k">Trạng thái</span><span>${stBadge}</span>` +
+      `<span class="k">Ngày đăng (KH)</span><span>${dstr(p.date)}</span>` +
+      `<span class="k">Giờ đăng thật</span><span>${post ? (post.time ? post.time + " · " + dstr(post.date) : dstr(post.date)) : "—"}</span>` +
+      `<span class="k">Người brief</span><span>${personChip(p.picC)}</span>` +
+      `<span class="k">Người làm</span><span>${p.picD ? personChip(p.picD) : '<span style="color:var(--down);font-weight:600">⚠️ Chưa phân công người làm</span>'}</span>` +
+      `<span class="k">Hình thức</span><span>${esc(p.form || "—")}</span></div>`;
+    if(post) h += metricsHtml(post);
+    if(!post && it.status !== "done"){
+      const sameDay = POSTS.filter(x => x.date.getTime() === p.date.getTime());
+      if(sameDay.length) h += `<div class="hint">ℹ️ Ngày này có ${sameDay.length} bài đã đăng thật trên page nhưng chưa khớp Link Air với bài này — nếu một trong số đó chính là bài này, hãy bổ sung Link Air vào Media Plan.</div>`;
+    }
+    const link = (post && post.link) || p.air;
+    if(link) h += `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>`;
+    if(p.brief && /^https?:\/\//i.test(p.brief)) h += `<a class="btn ghost" href="${esc(p.brief)}" target="_blank" rel="noopener">📄 Mở Brief</a>`;
+    if(post && VIDEOS[post.id]) h += `<div class="hint">🎬 Ở bản chính thức, tại đây sẽ có nút “Xem phân tích” mở thẳng tab Phân tích content đúng video này.</div>`;
+    box.innerHTML = h;
+  }
+  document.getElementById("calModal").classList.add("open");
+}
+function closeModal(){ document.getElementById("calModal").classList.remove("open"); }
+document.getElementById("calClose").addEventListener("click", closeModal);
+document.getElementById("calBack").addEventListener("click", closeModal);
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+const tt = document.getElementById("themeToggle");
+function syncThemeBtn(){ tt.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀️ Chế độ sáng" : "🌙 Chế độ tối"; }
+tt.addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "" : "dark";
+  if(next) document.documentElement.setAttribute("data-theme", next); else document.documentElement.removeAttribute("data-theme");
+  try{ localStorage.setItem("mm-theme", next); }catch(e){}
+  syncThemeBtn();
+});
+syncThemeBtn();
+init();
+</script>
+</body>
+</html>
