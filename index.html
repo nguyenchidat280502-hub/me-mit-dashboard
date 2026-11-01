@@ -268,7 +268,13 @@
   .tg-big-note{color:var(--mut);font-size:12.5px;line-height:1.45}
   .tgrow{margin:11px 0}
   .tgrow-top{display:flex;justify-content:space-between;font-size:14.5px;gap:8px}
-  .tgrow-num{color:var(--mut);font-size:15.5px} .tgrow-num b{font-size:17px}
+  .tgrow-num{color:var(--txt);font-weight:600;font-size:15.5px} .tgrow-num b{font-size:17px}
+  .tgpct{display:inline-block;border-radius:999px;padding:1px 10px;background:#e0e7ff;color:#3730a3}
+  html[data-theme="dark"] .tgpct{background:rgba(99,102,241,.38);color:#c7d2fe}
+  .tgpct.st-ok{background:#dcfce7;color:#15803d} .tgpct.st-warn{background:#fef3c7;color:#b45309} .tgpct.st-bad{background:#fee2e2;color:#b91c1c}
+  html[data-theme="dark"] .tgpct.st-ok{background:rgba(22,163,74,.32);color:#4ade80}
+  html[data-theme="dark"] .tgpct.st-warn{background:rgba(217,119,6,.32);color:#fbbf24}
+  html[data-theme="dark"] .tgpct.st-bad{background:rgba(220,38,38,.32);color:#f87171}
   .tgbar{position:relative;height:10px;border-radius:99px;background:var(--track);margin-top:5px}
   .tgfill{display:block;height:100%;border-radius:99px;background:#9ca3af}
   .tgfill.ok{background:#16a34a} .tgfill.warn{background:#d97706} .tgfill.bad{background:#dc2626}
@@ -1232,7 +1238,7 @@ function tgBars(key){
       const proj = Math.round(av / dataDays * daysInMonth);
       sub = `Còn thiếu ${fmt(lack)} · dự kiến cuối tháng ~${fmt(proj)}` + (proj >= tv ? ` — <b class="st-ok">vượt target ~${fmt(proj - tv)}</b>` : ` — <b class="st-warn">nguy cơ thiếu ~${fmt(tv - proj)}</b>`);
     }
-    return `<div class="tgrow"><div class="tgrow-top"><span>${label}</span><span class="tgrow-num">${fmt(av)} / ${fmt(tv)} · <b class="${st}">${Math.round(pct)}%</b></span></div>` +
+    return `<div class="tgrow"><div class="tgrow-top"><span>${label}</span><span class="tgrow-num">${fmt(av)} / ${fmt(tv)} · <b class="tgpct ${st}">${Math.round(pct)}%</b></span></div>` +
       `<div class="tgbar"><i class="tgfill ${cls}" style="width:${Math.min(100, pct)}%"></i>${dataDays > 0 ? `<span class="tgtick" style="left:${Math.min(100, pace)}%"></span>` : ""}</div>` +
       `<div class="tgrow-sub">${sub}</div></div>`;
   }).join("");
