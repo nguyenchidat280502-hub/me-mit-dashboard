@@ -260,6 +260,21 @@
   .ovsplit{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--track);margin:10px 0 6px}
   .ovsplit>i{display:block;height:100%}
   .ovspark{max-height:90px}
+  /* --- 🎯 Target v43 (thanh nhịp + dự kiến) --- */
+  .tg-head{display:flex;justify-content:flex-end;margin-bottom:2px}
+  .tg-pace{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--track);color:var(--lab)}
+  .tg-top{display:flex;align-items:center;gap:12px;margin:4px 0 2px}
+  .tg-big{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .tg-big-note{color:var(--mut);font-size:12.5px;line-height:1.45}
+  .tgrow{margin:11px 0}
+  .tgrow-top{display:flex;justify-content:space-between;font-size:13.5px;gap:8px}
+  .tgrow-num{color:var(--mut)} .tgrow-num b{font-size:14px}
+  .tgbar{position:relative;height:10px;border-radius:99px;background:var(--track);margin-top:5px}
+  .tgfill{display:block;height:100%;border-radius:99px;background:#9ca3af}
+  .tgfill.ok{background:#16a34a} .tgfill.warn{background:#d97706} .tgfill.bad{background:#dc2626}
+  .tgtick{position:absolute;top:-3px;width:2px;height:16px;background:var(--txt);opacity:.55;border-radius:2px}
+  .tgrow-sub{color:var(--mut);font-size:12.5px;margin-top:4px}
+  .st-ok{color:#16a34a} .st-warn{color:#d97706} .st-bad{color:#dc2626}
 </style>
 <script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
@@ -280,7 +295,7 @@
   <div style="padding:12px 14px">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v42</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v43</b></div>
   </div>
 </aside>
 <main>
@@ -305,12 +320,6 @@
   <div class="card" id="ovTargetCard" style="display:none">
     <h2 id="ovTargetTitle">🎯 Target Tháng</h2>
     <div id="ovTarget"></div>
-  </div>
-
-  <div class="card">
-    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
-    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
-    <div class="hint">Lấy từ Media Plan cả 2 tháng (ngày đăng + Link Air): bài đã qua ngày đăng mà chưa có Link Air là quá hạn (đỏ); bài đăng hôm nay/ngày mai chưa có link là sắp tới hạn (vàng).</div>
   </div>
 
   <div class="card">
@@ -370,6 +379,12 @@
       </div>
     </div>
   </div>
+  <div class="card">
+    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
+    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
+    <div class="hint">Lấy từ Media Plan cả 2 tháng (ngày đăng + Link Air): bài đã qua ngày đăng mà chưa có Link Air là quá hạn (đỏ); bài đăng hôm nay/ngày mai chưa có link là sắp tới hạn (vàng).</div>
+  </div>
+
   <div class="card">
     <h2>🏆 Bài viết trong kỳ —
       <label style="color:var(--mut);font-size:13px">phân loại</label>
@@ -1188,12 +1203,41 @@ function monthActuals(key){
 function tgBars(key){
   const t = TARGETS[key]; if(!t) return "";
   const a = monthActuals(key);
-  return TG_METS.map(([label, k]) => {
-    const tv = t[k] || 0, av = a[k] || 0;
-    const pct = tv > 0 ? Math.round(av / tv * 100) : 0;
-    const w = Math.min(100, pct);
-    return `<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${label}</span><span style="color:var(--mut)">${fmt(av)} / ${fmt(tv)} · <b style="color:${pct >= 100 ? "var(--up)" : "var(--txt)"}">${pct}%</b></span></div><div class="bar"><i style="width:${w}%"></i></div></div>`;
+  // v43: trình bày kiểu mới — % chung + chip nhịp + thanh có vạch mốc nhịp + còn thiếu/dự kiến
+  const [yy, mm] = key.split("-").map(Number);
+  const daysInMonth = new Date(yy, mm, 0).getDate();
+  let dataDays = 0;
+  if(typeof DAYS !== "undefined" && DAYS) DAYS.forEach(d => { if(d.date && d.date.getFullYear() === yy && d.date.getMonth() === mm - 1) dataDays++; });
+  const pace = dataDays / daysInMonth * 100;
+  const pctOf = k => (t[k] > 0 ? (a[k] || 0) / t[k] * 100 : 0);
+  const overall = Math.round(TG_METS.reduce((s, [, k]) => s + pctOf(k), 0) / TG_METS.length);
+  const lastData = (typeof DAYS !== "undefined" && DAYS && DAYS.length) ? DAYS[DAYS.length - 1].label : "";
+  const todayVN = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  const isCurMonth = yy === todayVN.getFullYear() && mm === todayVN.getMonth() + 1;
+  let paceTxt;
+  if(dataDays === 0) paceTxt = isCurMonth
+    ? `📅 Ngày ${todayVN.getDate()}/${daysInMonth} của tháng · số liệu chốt tới ${lastData} — tháng này chưa có ngày số liệu nào`
+    : `📅 Tháng ${mm}/${yy} chưa có ngày số liệu nào chốt`;
+  else paceTxt = `📅 Đã chốt số ${dataDays}/${daysInMonth} ngày · nhịp cần đạt ${Math.round(pace)}%`;
+  const rows = TG_METS.map(([label, k]) => {
+    const tv = t[k] || 0, av = a[k] || 0, pct = pctOf(k);
+    let st = "", cls = "";
+    if(dataDays > 0){ if(pct >= pace){ st = "st-ok"; cls = "ok"; } else if(pct >= pace / 2){ st = "st-warn"; cls = "warn"; } else { st = "st-bad"; cls = "bad"; } }
+    const lack = Math.max(0, tv - av);
+    let sub;
+    if(k === "posts") sub = (lack === 0 && tv > 0 ? "Đã đạt target 🎉 · " : `Còn thiếu ${fmt(lack)} bài · `) + `${fmt(av)} bài đã có Link Air / ${a.planTotal} bài có ngày trong kế hoạch`;
+    else if(dataDays === 0) sub = `Còn thiếu ${fmt(lack)} · chưa đủ ngày số liệu để dự kiến cuối tháng`;
+    else if(lack === 0) sub = `Đã đạt target 🎉 · dự kiến cuối tháng ~${fmt(Math.round(av / dataDays * daysInMonth))}`;
+    else {
+      const proj = Math.round(av / dataDays * daysInMonth);
+      sub = `Còn thiếu ${fmt(lack)} · dự kiến cuối tháng ~${fmt(proj)}` + (proj >= tv ? ` — <b class="st-ok">vượt target ~${fmt(proj - tv)}</b>` : ` — <b class="st-warn">nguy cơ thiếu ~${fmt(tv - proj)}</b>`);
+    }
+    return `<div class="tgrow"><div class="tgrow-top"><span>${label}</span><span class="tgrow-num">${fmt(av)} / ${fmt(tv)} · <b class="${st}">${Math.round(pct)}%</b></span></div>` +
+      `<div class="tgbar"><i class="tgfill ${cls}" style="width:${Math.min(100, pct)}%"></i>${dataDays > 0 ? `<span class="tgtick" style="left:${Math.min(100, pace)}%"></span>` : ""}</div>` +
+      `<div class="tgrow-sub">${sub}</div></div>`;
   }).join("");
+  return `<div class="tg-head"><span class="tg-pace">${paceTxt}</span></div>` +
+    `<div class="tg-top"><div class="tg-big">${overall}%</div><div class="tg-big-note">hoàn thành chung của tháng<br>(trung bình % của 5 chỉ số)</div></div>` + rows;
 }
 function tgNextKey(key){ const [y, m] = key.split("-").map(Number); const d = new Date(y, m, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function tgRoundTo(v, step){ return Math.max(0, Math.round(v / step) * step); }
@@ -1278,7 +1322,7 @@ function renderTargetStrip(){
   const title = document.getElementById("ovTargetTitle");
   if(title) title.textContent = "🎯 Target Tháng " + Number(key.slice(5));
   box.innerHTML = tgBars(key) +
-    `<div class="hint">Target tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " · do " + tgEsc(t.by) + " đặt" : ""}${t.updated ? " · cập nhật " + tgEsc(t.updated) : ""}. Số bài đăng = số bài trong Media Plan đã có Link Air.</div>`;
+    `<div class="hint">Target tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " · do " + tgEsc(t.by) + " đặt" : ""}${t.updated ? " · cập nhật " + tgEsc(t.updated) : ""}. Số bài đăng = số bài trong Media Plan đã có Link Air. Vạch đen trên thanh = mốc nhịp cần đạt theo số ngày đã chốt số; màu thanh: xanh = đạt nhịp, vàng = dưới nhịp nhưng ≥ nửa nhịp, đỏ = dưới nửa nhịp.</div>`;
 }
 function tgKey(){ const el = document.getElementById("tgMonth"); return (el && el.value) ? el.value : tgCurKey(); }
 function tgSet(id, v){ const el = document.getElementById(id); if(el) el.value = (v == null || v === 0) ? "" : v; }
