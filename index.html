@@ -635,7 +635,9 @@ function parsePostDate(s){
   return isNaN(d) ? null : d;
 }
 function parseRate(s){
-  if(typeof s === "number") return s <= 1 ? s * 100 : s;
+  // Cột M của Sheet lưu SỐ PHẦN TRĂM trực tiếp (0.99 nghĩa là 0,99%) — pull_metrics ghi er = total/views*100.
+  // (Trước đây có heuristic "≤1 thì ×100" làm 28 bài có tỷ lệ thật <1% hiện sai thành 99,00% — đã bỏ.)
+  if(typeof s === "number") return s;
   const n = parseFloat(String(s || "").replace("%","").replace(",","."));
   return isNaN(n) ? 0 : n;
 }
