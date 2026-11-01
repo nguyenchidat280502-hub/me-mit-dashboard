@@ -197,6 +197,51 @@
   .brow{display:grid;grid-template-columns:110px 1fr 96px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)} .brow:last-child{border-bottom:none}
   .blabel{font-size:13.5px;font-weight:600} .track{position:relative;height:17px;display:flex;align-items:center} .cbar{height:12px;border-radius:6px;min-width:3px} .cbar.a{background:var(--acc)} .cbar.b{background:#d4d9e3}
   .bval{font-size:12.5px;font-weight:700;margin-left:8px} .bval.mut{color:#9aa3b5;font-weight:600} .bchip{text-align:right} .chip-neu{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;background:#e5e7eb;color:#4b5563;white-space:nowrap}
+  /* --- 📅 Lịch đăng (v41) --- */
+  .cal-sum{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .cal-head div{text-align:center;font-size:12.5px;font-weight:700;color:var(--mut);padding:4px 0}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal-day{background:var(--card);border:1px solid var(--line);border-radius:10px;min-height:118px;padding:7px;display:flex;flex-direction:column;gap:5px}
+  .cal-day.dim{opacity:.38}
+  .cal-day.today{border:2px solid var(--acc)}
+  .cal-dnum{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .cal-dnum .dow{color:var(--mut);font-weight:600;font-size:11px}
+  .todaytag{background:var(--acc);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px}
+  .cal-item{border:1px solid;border-radius:8px;padding:5px 7px;cursor:pointer;font-size:11.5px;line-height:1.35}
+  .cal-item:hover{filter:brightness(.97)}
+  html[data-theme="dark"] .cal-item:hover{filter:brightness(1.25)}
+  .cal-item .ci-top{display:flex;justify-content:space-between;gap:6px;font-weight:700}
+  .cal-item .ci-topic{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:2px 0}
+  .cal-item .ci-pic{display:flex;align-items:center;gap:5px;color:var(--mut);font-size:11px}
+  .cal-item .ci-pic .avatar{width:16px;height:16px;flex-basis:16px;font-size:8.5px}
+  .cal-st-done{background:rgba(5,150,105,.10);border-color:rgba(5,150,105,.45)}
+  .cal-st-done .ci-top{color:#059669} html[data-theme="dark"] .cal-st-done .ci-top{color:#34d399}
+  .cal-st-late{background:rgba(220,38,38,.10);border-color:rgba(220,38,38,.50)}
+  .cal-st-late .ci-top{color:#dc2626} html[data-theme="dark"] .cal-st-late .ci-top{color:#f87171}
+  .cal-st-soon{background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.45)}
+  .cal-st-soon .ci-top{color:#b45309} html[data-theme="dark"] .cal-st-soon .ci-top{color:#fbbf24}
+  .cal-st-out{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.45)}
+  .cal-st-out .ci-top{color:#7c3aed} html[data-theme="dark"] .cal-st-out .ci-top{color:#c4b5fd}
+  .cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin-top:10px}
+  .cal-legend span b{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  @media (max-width:760px){ .cal-day{min-height:86px;padding:5px} .cal-item{font-size:10.5px} .cal-item .ci-pic{display:none} }
+  #calModal{position:fixed;inset:0;z-index:10001;display:none}
+  #calModal.open{display:block}
+  #calModal .lm-back{position:absolute;inset:0;background:rgba(17,24,39,.45)}
+  #calModal .lm-card{position:relative;background:var(--card);border-radius:14px;max-width:680px;width:calc(100% - 28px);margin:6vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:88vh;overflow:auto}
+  #calModal .lm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+  #calModal .lm-head b{font-size:16px;line-height:1.45}
+  #calModal .lm-x{background:transparent;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;flex:0 0 32px;color:var(--txt)}
+  .cal-kv{display:grid;grid-template-columns:130px 1fr;gap:7px 12px;font-size:13.5px;margin:12px 0}
+  .cal-kv .k{color:var(--mut)}
+  .cal-mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+  .cal-mgrid .m{background:var(--kpi);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .cal-mgrid .m .v{font-size:19px;font-weight:800;margin-top:2px}
+  .cal-mgrid .m .l{color:var(--lab);font-size:11.5px;font-weight:600}
+  .cal-mgrid .m .n{color:var(--mut);font-size:11.5px;margin-top:1px}
+  a.cal-btn{display:inline-block;background:var(--acc);color:#fff;border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:600;text-decoration:none;margin:4px 8px 4px 0}
+  a.cal-btn.ghost{background:var(--card);color:var(--acc);border:1px solid var(--acc)}
 </style>
 <script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
@@ -207,6 +252,7 @@
   <nav id="sidenav">
     <button data-page="page-overview" class="active">📊 Tổng quan số liệu</button>
     <button data-page="page-plan">🗓 Media Plan</button>
+    <button data-page="page-calendar">📅 Lịch đăng</button>
     <button data-page="page-content">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
@@ -216,7 +262,7 @@
   <div style="padding:12px 14px">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v40</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v41</b></div>
   </div>
 </aside>
 <main>
@@ -373,6 +419,26 @@
   </div>
  </section>
 
+ <section class="page" id="page-calendar">
+  <div class="card">
+    <h2>📅 Lịch đăng bài</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" id="calMonthChips"></div>
+    <div class="cal-sum" id="calSummary" style="margin-top:12px"></div>
+    <div class="bar" style="margin-top:10px"><i id="calBar" style="width:0%"></i></div>
+    <div class="hint">Trạng thái “đã đăng” tính theo Link Air trong Media Plan. Bấm vào từng bài trên lịch để xem chi tiết + số liệu của bài đó.</div>
+  </div>
+  <div class="card">
+    <div class="cal-head"><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div></div>
+    <div class="cal-grid" id="calGrid"><div class="loading">Đang tải dữ liệu…</div></div>
+    <div class="cal-legend">
+      <span><b style="background:#059669"></b>Đã đăng</span>
+      <span><b style="background:#d97706"></b>Sắp đăng / hôm nay</span>
+      <span><b style="background:#dc2626"></b>Quá hạn chưa đăng</span>
+      <span><b style="background:#7c3aed"></b>Ngoài kế hoạch (đã đăng thật, không có trong Media Plan)</span>
+    </div>
+  </div>
+ </section>
+
  <section class="page" id="page-content">
   <div class="card">
     <h2>🎯 Content Matrix Control — mục tiêu theo Pillar</h2>
@@ -508,6 +574,14 @@
       <span style="font-size:12px;color:var(--mut)">(phím ← → để chuyển nhanh)</span>
     </div>
     <div id="deepDetail"></div>
+  </div>
+</div>
+
+<div id="calModal" aria-hidden="true">
+  <div class="lm-back" id="calBack"></div>
+  <div class="lm-card" role="dialog" aria-modal="true" aria-labelledby="calModalTitle">
+    <div class="lm-head"><b id="calModalTitle">📅 Chi tiết bài</b><button type="button" class="lm-x" id="calClose" aria-label="Đóng">✕</button></div>
+    <div id="calDetail"></div>
   </div>
 </div>
 
@@ -814,7 +888,9 @@ async function main(){
 
   POSTS = posts.filter(r => r[0]).map(r => {
       const link = [r[5], r[4]].find(x => x && /^https?:\/\//i.test(String(x).trim())) || "";
+      const tm = String(r[1] || "").match(/(\d{1,2}):(\d{2})/);
       return {
+      id: String(r[0]), time: tm ? tm[1].padStart(2, "0") + ":" + tm[2] : "",
       when: r[1], date: parsePostDate(r[1]), cls: classify(r[2], link),
       title: (r[3] || "").split("\n")[0], link,
       reactions: num(r[6]), comments: num(r[7]), shares: num(r[8]),
@@ -1978,6 +2054,226 @@ async function loadDeep(){
   dSet(null, null);
 }
 loadDeep();
+
+// ===== 📅 Lịch đăng (v41): lưới tháng từ Media Plan + bài đăng thật + số liệu =====
+let CAL_ITEMS = [], CAL_CUR = null, CAL_VMAP = null, CAL_VPROMISE = null, CAL_OPEN_IX = -1, CAL_CHIPS = false;
+const CAL_TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+function calEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function calLinkId(url){
+  const u = String(url || "");
+  let m = u.match(/(?:posts|reel|videos)\/(\d{6,})/); if(m) return "n:" + m[1];
+  m = u.match(/story_fbid=(\d{6,})/); if(m) return "n:" + m[1];
+  m = u.match(/(pfbid[\w-]+)/); if(m) return "p:" + m[1];
+  m = u.match(/\/share\/[prv]\/([\w-]+)/); if(m) return "s:" + m[1];
+  return null;
+}
+function calNorm(s){
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+function calSim(a, b){
+  const A = new Set(calNorm(a).split(" ").filter(w => w.length > 1));
+  const B = new Set(calNorm(b).split(" ").filter(w => w.length > 1));
+  if(!A.size || !B.size) return 0;
+  let hit = 0; A.forEach(w => { if(B.has(w)) hit++; });
+  return hit / Math.max(A.size, B.size);
+}
+function calTier(v, good, ok){ return v >= good ? "🟢 Tốt" : v >= ok ? "🟡 Khá" : "🔴 Yếu"; }
+function calIcon(cls, form){
+  if(String(form || "").toLowerCase().includes("group")) return "👥";
+  return { video: "🎬", album: "🗂", photo: "🖼", link: "🔗", post: "📝" }[cls.key] || "📝";
+}
+async function calEnsureVideos(){
+  if(CAL_VMAP) return CAL_VMAP;
+  if(CAL_VPROMISE) return CAL_VPROMISE;
+  CAL_VPROMISE = (async () => {
+    const map = {};
+    if(typeof VIDEOS !== "undefined" && VIDEOS && VIDEOS.length){
+      VIDEOS.forEach(v => { map[String(v.postId)] = v; });
+    } else {
+      try {
+        const rows = await fetchTabFrom(SHEET_ID, "🎬 Video Insights");
+        (rows || []).filter(r => r && r[0]).forEach(r => {
+          map[String(r[0])] = { views: num(r[3]), minutes: num(r[4]), avg: num(r[5]), ret: parseRetention(r[6]) };
+        });
+      } catch(e){}
+    }
+    CAL_VMAP = map;
+    return map;
+  })();
+  return CAL_VPROMISE;
+}
+function calBuildItems(mo){
+  const items = [];
+  const usedPost = new Set();
+  const built = mo.rows.map(p => {
+    const d = parseDay(p.date);
+    const airId = calLinkId(p.air);
+    let post = null;
+    if(airId) post = POSTS.find(x => calLinkId(x.link) === airId) || null;
+    if(post) usedPost.add(post.id);
+    const status = p.air ? "done" : (d && d < CAL_TODAY ? "late" : "soon");
+    return { kind: "plan", date: d, plan: p, post, status };
+  }).filter(it => it.date);
+  // Khớp dự phòng cho bài CÓ Link Air dạng không trích được mã: khớp bài thật cùng ngày (duy nhất, hoặc giống tiêu đề nhất).
+  built.forEach(it => {
+    if(it.post || !it.plan.air) return;
+    const cands = POSTS.filter(x => !usedPost.has(x.id) && x.date && x.date.getTime() === it.date.getTime());
+    if(cands.length === 1){ it.post = cands[0]; usedPost.add(cands[0].id); return; }
+    if(cands.length > 1){
+      let best = null, bestScore = 0;
+      cands.forEach(x => { const s = calSim(it.plan.topic, x.title); if(s > bestScore){ bestScore = s; best = x; } });
+      if(best && bestScore >= 0.35){ it.post = best; usedPost.add(best.id); }
+    }
+  });
+  items.push(...built);
+  POSTS.filter(x => x.date && x.date.getFullYear() === mo.y && x.date.getMonth() === mo.m - 1 && !usedPost.has(x.id))
+    .forEach(x => items.push({ kind: "out", date: x.date, post: x, status: "out" }));
+  items.sort((a, b) => (a.date - b.date) || String((a.post && a.post.time) || "99").localeCompare(String((b.post && b.post.time) || "99")));
+  return items;
+}
+function calRender(){
+  const grid = document.getElementById("calGrid");
+  if(!grid) return true;
+  if(!PLAN_MONTHS.length || !POSTS.length) return false;
+  if(!CAL_CHIPS){
+    CAL_CHIPS = true;
+    const chips = document.getElementById("calMonthChips");
+    chips.innerHTML = PLAN_MONTHS.map(mo => `<button type="button" class="chip" data-calm="${mo.key}">${calEsc(mo.chip)}</button>`).join("");
+    chips.addEventListener("click", e => {
+      const b = e.target.closest("button[data-calm]"); if(!b) return;
+      calRenderMonth(b.dataset.calm);
+    });
+    const curKey = CAL_TODAY.getFullYear() + "-" + String(CAL_TODAY.getMonth() + 1).padStart(2, "0");
+    calRenderMonth((PLAN_MONTHS.find(mo => mo.key === curKey) || PLAN_MONTHS[PLAN_MONTHS.length - 1]).key);
+  }
+  return true;
+}
+function calRenderMonth(key){
+  const src = PLAN_MONTHS.find(mo => mo.key === key); if(!src) return;
+  const [yy, mm] = key.split("-").map(Number);
+  CAL_CUR = { key, y: yy, m: mm, rows: src.rows };
+  document.querySelectorAll("#calMonthChips .chip").forEach(b => b.classList.toggle("active", b.dataset.calm === key));
+  CAL_ITEMS = calBuildItems(CAL_CUR);
+  const planItems = CAL_ITEMS.filter(i => i.kind === "plan");
+  const done = planItems.filter(i => i.status === "done").length;
+  const late = planItems.filter(i => i.status === "late").length;
+  const out = CAL_ITEMS.filter(i => i.kind === "out").length;
+  const pct = planItems.length ? Math.round(done / planItems.length * 100) : 0;
+  document.getElementById("calSummary").innerHTML =
+    `<span>📌 Theo kế hoạch: <b>${planItems.length} bài</b></span>` +
+    `<span>✅ Đã đăng: <b>${done}</b> (${pct}%)</span>` +
+    `<span>⚠️ Quá hạn chưa đăng: <b${late ? ' style="color:var(--down)"' : ""}>${late}</b></span>` +
+    `<span>🟣 Ngoài kế hoạch: <b>${out} bài</b></span>`;
+  document.getElementById("calBar").style.width = pct + "%";
+  const first = new Date(CAL_CUR.y, CAL_CUR.m - 1, 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const start = new Date(first); start.setDate(1 - startOffset);
+  let html = "";
+  for(let i = 0; i < 42; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const inMonth = d.getMonth() === CAL_CUR.m - 1;
+    const isToday = d.getTime() === CAL_TODAY.getTime();
+    const dayItems = CAL_ITEMS.map((it, ix) => ({ it, ix })).filter(x => x.it.date.getTime() === d.getTime());
+    html += `<div class="cal-day${inMonth ? "" : " dim"}${isToday ? " today" : ""}">` +
+      `<div class="cal-dnum"><span>${d.getDate()} <span class="dow">${DOWVN[d.getDay()]}</span></span>${isToday ? '<span class="todaytag">Hôm nay</span>' : ""}</div>` +
+      dayItems.map(({ it, ix }) => calChipHtml(it, ix)).join("") + `</div>`;
+    if(i >= 34 && d.getMonth() !== CAL_CUR.m - 1 && d.getDay() === 0) break;
+  }
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = html;
+  grid.querySelectorAll(".cal-item").forEach(el => el.addEventListener("click", () => calShowDetail(+el.dataset.ix)));
+}
+function calChipHtml(it, ix){
+  if(it.kind === "out"){
+    const p = it.post;
+    return `<div class="cal-item cal-st-out" data-ix="${ix}"><div class="ci-top"><span>${p.time || "—"}</span><span>${calIcon(p.cls, "")}</span></div>` +
+      `<div class="ci-topic">${calEsc(p.title || "(không có tiêu đề)")}</div>` +
+      `<div class="ci-pic">Ngoài KH · 👁 ${fmt(p.views)}</div></div>`;
+  }
+  const p = it.plan;
+  const cls = classify(p.form, (it.post && it.post.link) || p.air);
+  const time = it.post ? (it.post.time || "—") : (it.status === "done" ? "✓" : "—");
+  const initials = (p.picD || "?").trim().split(/\s+/).map(w => w[0]).slice(-2).join("").toUpperCase();
+  return `<div class="cal-item cal-st-${it.status}" data-ix="${ix}"><div class="ci-top"><span>${time}</span><span>${calIcon(cls, p.form)}</span></div>` +
+    `<div class="ci-topic">${calEsc(p.topic)}</div>` +
+    `<div class="ci-pic"><span class="avatar" style="background:${personColor(p.picD)}">${calEsc(initials)}</span>${calEsc(p.picD || "Chưa phân công")}</div></div>`;
+}
+function calMetricsHtml(post){
+  if(!post) return "";
+  const eng = post.reactions + post.comments + post.shares;
+  let h = `<div class="cal-mgrid">` +
+    `<div class="m"><div class="l">👁 Lượt xem</div><div class="v">${fmt(post.views)}</div></div>` +
+    `<div class="m"><div class="l">💬 Tương tác</div><div class="v">${fmt(eng)}</div><div class="n">${fmt(post.reactions)} cảm xúc · ${fmt(post.comments)} bình luận · ${fmt(post.shares)} chia sẻ</div></div>`;
+  const v = CAL_VMAP ? CAL_VMAP[post.id] : null;
+  if(v){
+    const at15 = (v.ret && v.ret["15"] || 0) * 100;
+    h += `<div class="m"><div class="l">🎬 Giữ chân tại 15s</div><div class="v">${at15.toFixed(1).replace(".", ",")}%</div><div class="n">Chuẩn video: ${calTier(at15, 35, 25)}</div></div>` +
+      `<div class="m"><div class="l">⏱ TB xem</div><div class="v">${v.avg ? v.avg.toFixed(1).replace(".", ",") + "s" : "—"}</div><div class="n">Chuẩn: ${calTier(v.avg, 15, 10)}</div></div>`;
+  }
+  return h + `</div>`;
+}
+function calShowDetail(ix){
+  const it = CAL_ITEMS[ix]; if(!it) return;
+  CAL_OPEN_IX = ix;
+  const post = it.post;
+  if(post && post.cls.key === "video" && !CAL_VMAP){
+    calEnsureVideos().then(() => { if(CAL_OPEN_IX === ix) calShowDetail(ix); });
+  }
+  const title = document.getElementById("calModalTitle");
+  const box = document.getElementById("calDetail");
+  const dstr = d => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} (${DOWVN[d.getDay()]})`;
+  if(it.kind === "out"){
+    const p = it.post;
+    title.textContent = "🟣 Bài đăng ngoài kế hoạch";
+    box.innerHTML =
+      `<div style="font-size:15px;font-weight:700;line-height:1.45">${calEsc(p.title || "(không có tiêu đề)")}</div>` +
+      `<div class="cal-kv"><span class="k">Trạng thái</span><span><span class="fbadge f-other">🟣 Ngoài kế hoạch</span></span>` +
+      `<span class="k">Ngày đăng</span><span>${dstr(p.date)}${p.time ? " · lúc " + p.time : ""}</span>` +
+      `<span class="k">Hình thức</span><span>${p.cls.label}</span>` +
+      `<span class="k">Người làm</span><span style="color:var(--mut)">Không có trong Media Plan nên chưa rõ — bổ sung vào plan nếu muốn theo dõi</span></div>` +
+      calMetricsHtml(p) +
+      (p.link ? `<a class="cal-btn" href="${calEsc(p.link)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>` : "");
+  } else {
+    const p = it.plan;
+    const stBadge = it.status === "done" ? '<span class="fbadge f-group">✅ Đã đăng</span>'
+      : it.status === "late" ? '<span class="fbadge f-bad">⚠️ Quá hạn chưa đăng</span>'
+      : '<span class="fbadge f-warn">⏳ Sắp đăng</span>';
+    title.textContent = "📅 Chi tiết bài theo kế hoạch";
+    let h = `<div style="font-size:15px;font-weight:700;line-height:1.45">${calEsc(p.topic)}</div>` +
+      `<div class="cal-kv"><span class="k">Trạng thái</span><span>${stBadge}</span>` +
+      `<span class="k">Ngày đăng (KH)</span><span>${dstr(it.date)}</span>` +
+      `<span class="k">Giờ đăng thật</span><span>${post ? (post.time ? post.time + " · " + dstr(post.date) : dstr(post.date)) : "—"}</span>` +
+      `<span class="k">Người brief</span><span>${personChip(p.picC)}</span>` +
+      `<span class="k">Người làm</span><span>${p.picD ? personChip(p.picD) : '<span style="color:var(--down);font-weight:600">⚠️ Chưa phân công người làm</span>'}</span>` +
+      `<span class="k">Hình thức</span><span>${calEsc(p.form || "—")}</span></div>`;
+    if(post) h += calMetricsHtml(post);
+    if(!post && it.status === "done"){
+      h += `<div class="hint">ℹ️ Bài đã đăng (có Link Air) nhưng link ở dạng rút gọn nên chưa khớp được số liệu tự động — bấm “Mở bài trên Facebook” để xem trực tiếp trên page.</div>`;
+    }
+    if(!post && it.status !== "done"){
+      const sameDay = POSTS.filter(x => x.date && x.date.getTime() === it.date.getTime());
+      if(sameDay.length) h += `<div class="hint">ℹ️ Ngày này có ${sameDay.length} bài đã đăng thật trên page nhưng chưa khớp Link Air với bài này — nếu một trong số đó chính là bài này, hãy bổ sung Link Air vào Media Plan.</div>`;
+    }
+    const link = (post && post.link) || p.air;
+    if(link) h += `<a class="cal-btn" href="${calEsc(link)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>`;
+    if(p.brief && /^https?:\/\//i.test(p.brief)) h += `<a class="cal-btn ghost" href="${calEsc(p.brief)}" target="_blank" rel="noopener">📄 Mở Brief</a>`;
+    if(post && post.cls.key === "video") h += `<div class="hint">🎬 Muốn xem biểu đồ giữ chân chi tiết: mở tab 🎬 Phân tích content và bấm vào video này.</div>`;
+    box.innerHTML = h;
+  }
+  document.getElementById("calModal").classList.add("open");
+}
+(function(){
+  const close = () => { CAL_OPEN_IX = -1; document.getElementById("calModal").classList.remove("open"); };
+  document.getElementById("calClose").addEventListener("click", close);
+  document.getElementById("calBack").addEventListener("click", close);
+  document.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+  document.getElementById("sidenav").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-page]");
+    if(btn && btn.dataset.page === "page-calendar") calRender();
+  });
+  let tries = 0;
+  const iv = setInterval(() => { tries++; if(calRender() || tries > 40) clearInterval(iv); }, 700);
+})();
 
 // ===== 🌙 Chế độ sáng/tối (nhớ lựa chọn trên máy này) =====
 (function(){
