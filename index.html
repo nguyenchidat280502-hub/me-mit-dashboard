@@ -9,7 +9,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
-  :root{--bg:#f2f3fa;--card:#ffffff;--line:#e5e7eb;--txt:#111827;--mut:#6b7280;--acc:#4f46e5;--up:#16a34a;--down:#dc2626}
+  :root{--bg:#f2f3fa;--card:#ffffff;--line:#e5e7eb;--txt:#111827;--mut:#6b7280;--acc:#4f46e5;--up:#16a34a;--down:#dc2626;--kpi:#f8fafc;--track:#eef0f4;--lab:#4b5563}
+  html[data-theme="dark"]{--bg:#0e1120;--card:#171b2e;--line:#2b3153;--txt:#e9ebf7;--mut:#9aa3c7;--acc:#818cf8;--kpi:#1d2338;--track:#262c47;--lab:#a7aed0;color-scheme:dark}
+  html[data-theme="dark"] .kpi.t0{background:#232c52} html[data-theme="dark"] .kpi.t1{background:#3d2438} html[data-theme="dark"] .kpi.t2{background:#173d31} html[data-theme="dark"] .kpi.t3{background:#3d3018} html[data-theme="dark"] .kpi.t4{background:#2e2450} html[data-theme="dark"] .kpi.t5{background:#232a3d}
+  html[data-theme="dark"] .delta.up{background:rgba(22,163,74,.25);color:#4ade80}
+  html[data-theme="dark"] .delta.down{background:rgba(220,38,38,.25);color:#f87171}
+  html[data-theme="dark"] .chip-neu{background:#2b3153;color:#c3c9e8}
+  html[data-theme="dark"] .cbar.b{background:#3a4166}
+  html[data-theme="dark"] .f-other,html[data-theme="dark"] .role-guest,html[data-theme="dark"] .sub-none{color:#a8b0c8}
+  html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background-color:var(--card) !important;color:var(--txt)}
+  button.chip:disabled{opacity:.45;cursor:default}
   *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
   header{padding:20px 24px 4px;max-width:1180px;margin:0 auto}
   h1{font-size:22px;margin:0} .sub{color:var(--mut);font-size:13px;margin-top:4px}
@@ -18,13 +27,13 @@
   .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:2px 0;margin:4px 0 2px}
   .filters .grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .filters label{color:var(--mut);font-size:13px}
-  button.chip{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+  button.chip{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
   button.chip:hover{border-color:var(--acc)}
   button.chip.active{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
-  input[type=date],select{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  input[type=date],select{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
-  .kpi{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:15px 16px}
-  .kpi .label{color:#4b5563;font-size:12.5px;font-weight:600}
+  .kpi{background:var(--kpi);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+  .kpi .label{color:var(--lab);font-size:12.5px;font-weight:600}
   .kpi .value{font-size:27px;font-weight:800;margin-top:4px}
   .kpi .note{color:var(--mut);font-size:12px;margin-top:2px}
   .delta{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700} .delta.up{background:#dcfce7;color:#15803d} .delta.down{background:#fee2e2;color:#b91c1c} .kcap{color:var(--mut);font-size:12px;margin-left:6px}
@@ -54,7 +63,7 @@
   main{flex:1;min-width:0}
   @media (max-width:760px){ .layout{flex-direction:column} aside{width:100%;flex:none;height:auto;position:static} nav{display:flex;flex-wrap:wrap;gap:6px} nav button{width:auto} }
   .page{display:none} .page.show{display:block}
-  .bar{height:8px;background:#eef0f4;border-radius:99px;overflow:hidden}
+  .bar{height:8px;background:var(--track);border-radius:99px;overflow:hidden}
   .bar>i{display:block;height:100%;background:var(--acc)}
   .st-done{color:#059669;font-weight:600} .st-doing{color:#d97706;font-weight:600} .st-todo{color:var(--mut)}
   .fbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
@@ -62,15 +71,15 @@
   .f-single{background:rgba(2,132,199,.10);color:#0284c7;border-color:rgba(2,132,199,.40)}
   .f-group{background:rgba(5,150,105,.10);color:#059669;border-color:rgba(5,150,105,.40)}
   .f-other{background:rgba(100,116,139,.10);color:#475569;border-color:rgba(100,116,139,.35)}
-  .person{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:#f8fafc;border:1px solid var(--line);padding:3px 9px 3px 4px;border-radius:999px;font-size:12.5px}
+  .person{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:var(--kpi);border:1px solid var(--line);padding:3px 9px 3px 4px;border-radius:999px;font-size:12.5px}
   .avatar{width:22px;height:22px;border-radius:50%;color:#0b1220;font-weight:700;font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px}
   .pbadge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid}
   .hint{color:var(--mut);font-size:12px;margin-top:6px}
   .f-warn{background:rgba(217,119,6,.12);color:#b45309;border-color:rgba(217,119,6,.40)}
-  .radar-item{padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;background:#f8fafc;font-size:13px;line-height:1.7}
+  .radar-item{padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;background:var(--kpi);font-size:13px;line-height:1.7}
   th.deepth{cursor:pointer;user-select:none}
   th.deepth:hover{color:var(--acc)}
-  #deepTable tbody tr:hover{background:#f1f5f9}
+  #deepTable tbody tr:hover{background:var(--kpi)}
   .hdr-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
   .hdr-left{min-width:0}
   .acct{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
@@ -85,7 +94,7 @@
   .role-staff{background:rgba(2,132,199,.10);color:#0369a1;border-color:rgba(2,132,199,.45)}
   .role-guest{background:rgba(100,116,139,.10);color:#475569;border-color:rgba(100,116,139,.35)}
   .adm-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
-  .adm-form input[type=email],.adm-form input[type=text]{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  .adm-form input[type=email],.adm-form input[type=text]{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
   #previewBanner{position:sticky;top:0;z-index:9999;background:#f59e0b;color:#231303;padding:10px 16px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13.5px;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.45);text-align:center}
   #previewBanner button{background:#231303;color:#fcd34d;border:1px solid #231303;border-radius:999px;padding:5px 14px;cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
   .preview-mark{font-size:10.5px;color:var(--mut);font-weight:600}
@@ -96,9 +105,9 @@
   .sub-changes{background:rgba(220,38,38,.10);color:#dc2626;border-color:rgba(220,38,38,.40)}
   .sub-none{background:rgba(100,116,139,.10);color:#475569;border-color:rgba(100,116,139,.35)}
   .sub-form{display:flex;flex-direction:column;gap:6px;margin-top:8px;min-width:230px}
-  .sub-form input{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;width:100%}
+  .sub-form input{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;width:100%}
   .sub-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
-  .sub-actions input{flex:1;min-width:220px;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  .sub-actions input{flex:1;min-width:220px;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
   /* ===== v33: nộp link nhân viên (lớp phủ) ===== */
   .nvbadge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(124,58,237,.12);color:#6d28d9;border:1px solid rgba(124,58,237,.40);white-space:nowrap}
   .celladd{display:inline-block;background:transparent;color:#3730a3;border:1.5px dashed #a5b4fc;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12.5px;font-weight:600;white-space:nowrap}
@@ -108,13 +117,13 @@
   #linkModal{position:fixed;inset:0;z-index:10000;display:none}
   #linkModal.open{display:block}
   #linkModal .lm-back{position:absolute;inset:0;background:rgba(17,24,39,.45)}
-  #linkModal .lm-card{position:relative;background:#fff;border-radius:14px;max-width:480px;width:calc(100% - 28px);margin:8vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:86vh;overflow:auto}
+  #linkModal .lm-card{position:relative;background:var(--card);border-radius:14px;max-width:480px;width:calc(100% - 28px);margin:8vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:86vh;overflow:auto}
   #linkModal .lm-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
   #linkModal .lm-head b{font-size:16px}
   #linkModal .lm-x{background:transparent;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;flex:0 0 32px}
   #linkModal .lm-meta{font-size:13.5px;line-height:1.55;margin-top:8px}
   #linkModal label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
-  #linkModal input[type=url],#linkModal select{width:100%;background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px}
+  #linkModal input[type=url],#linkModal select{width:100%;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px}
   #linkModal .lm-err{color:var(--down);font-size:13px;margin-top:8px;min-height:16px}
   #linkModal .lm-ok{color:var(--up);font-size:13.5px;margin-top:8px;min-height:16px;font-weight:600}
   #linkModal .lm-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
@@ -122,7 +131,7 @@
   #deepModal{position:fixed;inset:0;z-index:10001;display:none}
   #deepModal.open{display:block}
   #deepModal .lm-back{position:absolute;inset:0;background:rgba(17,24,39,.45)}
-  #deepModal .lm-card{position:relative;background:#fff;border-radius:14px;max-width:980px;width:calc(100% - 28px);margin:5vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:90vh;overflow:auto}
+  #deepModal .lm-card{position:relative;background:var(--card);border-radius:14px;max-width:980px;width:calc(100% - 28px);margin:5vh auto 0;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.30);max-height:90vh;overflow:auto}
   #deepModal .lm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
   #deepModal .lm-head b{font-size:16px;line-height:1.45}
   #deepModal .lm-x{background:transparent;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;flex:0 0 32px}
@@ -180,6 +189,7 @@
   .blabel{font-size:13.5px;font-weight:600} .track{position:relative;height:17px;display:flex;align-items:center} .cbar{height:12px;border-radius:6px;min-width:3px} .cbar.a{background:var(--acc)} .cbar.b{background:#d4d9e3}
   .bval{font-size:12.5px;font-weight:700;margin-left:8px} .bval.mut{color:#9aa3b5;font-weight:600} .bchip{text-align:right} .chip-neu{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;background:#e5e7eb;color:#4b5563;white-space:nowrap}
 </style>
+<script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
 <body>
 <div class="layout">
@@ -195,8 +205,9 @@
     <button data-page="page-target" id="navTarget" style="display:none">🎯 Target</button>
   </nav>
   <div style="padding:12px 14px">
-    <button id="syncNowBtn" type="button" style="width:100%;background:#1d4ed8;color:#fff;border:1px solid #1d4ed8;border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
-    <div id="syncNowStatus" style="font-size:12px;color:var(--mut);margin-top:6px;line-height:1.5"></div>
+    <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
+    <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v38</b></div>
   </div>
 </aside>
 <main>
@@ -210,6 +221,7 @@
     Dữ liệu: <span id="rangeInfo">đang tải…</span> · <span id="updated"></span>
   </div>
   </div>
+  <button id="themeToggle" class="chip" type="button" style="margin-left:auto;flex:0 0 auto;align-self:flex-start">🌙 Chế độ tối</button>
   <div id="accountBox"></div>
  </div>
 </header>
@@ -247,6 +259,7 @@
       <button class="chip" id="applyRange">Áp dụng</button>
     </div>
     <span id="dataAsOf" style="color:var(--mut);font-size:13px"></span>
+    <div id="ovRangeLabel" style="width:100%;font-size:13.5px;margin-top:2px"></div>
   </div>
   <section class="kpis" id="kpis"></section>
     <div style="border-top:1px solid var(--line);margin:16px 0 2px"></div>
@@ -340,6 +353,7 @@
       <select id="planAir"><option value="">Link Air: tất cả</option><option value="co">Đã có link</option><option value="chua">Chưa có link</option></select>
       <input type="text" id="planSearch" placeholder="Tìm theo topic…" style="background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px">
     </div>
+    <div id="planCount" style="font-size:13px;color:var(--mut);margin:2px 0 6px"></div>
     <div class="scroll" style="max-height:640px">
     <table id="planTable"><thead><tr>
       <th>Ngày đăng</th><th>Giờ</th><th>Hình thức</th><th>Nền tảng</th><th>Topic</th>
@@ -362,6 +376,7 @@
       <select id="lcStatus"><option value="">Tình trạng: tất cả</option></select>
       <input type="text" id="lcSearch" placeholder="Tìm theo topic…" style="background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px">
     </div>
+    <div id="lcCount" style="font-size:13px;color:var(--mut);margin:2px 0 6px"></div>
     <div class="scroll" style="max-height:640px">
     <table id="lcTable"><thead><tr>
       <th>Ngày</th><th>Deadline</th><th>Pillar</th><th>Angle</th><th>Topic</th>
@@ -395,7 +410,8 @@
         <button class="chip" id="deepApply">Áp dụng</button>
       </div>
     </div>
-    <div class="hint" style="margin:0 0 8px">Lọc theo <b>ngày đăng video</b>; số liệu từng video là tổng toàn thời gian tính đến lần cập nhật gần nhất. “Hôm nay” = ngày của video mới nhất.</div>
+    <div class="hint" style="margin:0 0 8px">Lọc theo <b>ngày đăng video</b>; số liệu từng video là tổng toàn thời gian tính đến lần cập nhật gần nhất. “Hôm nay” = ngày của video mới nhất. <span id="deepUpdated"></span></div>
+    <div id="deepRangeLabel" style="font-size:13.5px;margin:2px 0 4px"></div>
     <section class="kpis" id="deepSummary" style="margin:6px 0 10px"></section>
     <div id="deepBox"><div class="loading">Đang tải dữ liệu video…</div></div>
   </div>
@@ -476,6 +492,12 @@
   <div class="lm-back" id="deepBack"></div>
   <div class="lm-card" role="dialog" aria-modal="true" aria-labelledby="deepModalTitle">
     <div class="lm-head"><b id="deepModalTitle">🎬 Chi tiết video</b><button type="button" class="lm-x" id="deepClose" aria-label="Đóng">✕</button></div>
+    <div style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
+      <button type="button" class="chip" id="deepPrev">◀ Video trước</button>
+      <span id="deepPos" style="font-size:12.5px;color:var(--mut)"></span>
+      <button type="button" class="chip" id="deepNext">Video sau ▶</button>
+      <span style="font-size:12px;color:var(--mut)">(phím ← → để chuyển nhanh)</span>
+    </div>
     <div id="deepDetail"></div>
   </div>
 </div>
@@ -506,6 +528,8 @@ async function fetchTab(tab){
 }
 const num = x => { const n = Number(x); return isNaN(n) ? 0 : n; };
 const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const DOWVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const isDark = () => document.documentElement.getAttribute("data-theme") === "dark";
 function parseDay(s){
   if(!s) return null;
   const p = String(s).trim().split("/"); if(p.length !== 3) return null;
@@ -552,6 +576,11 @@ function markActive(btn){
 
 function render(from, to){
   const inRange = DAYS.filter(d => d.date >= from && d.date <= to);
+  const ovl = document.getElementById("ovRangeLabel");
+  if(ovl){
+    const lastD = DAYS.length ? DAYS[DAYS.length - 1].date : null;
+    ovl.innerHTML = `Kỳ đang xem: <b>${dstr(from)} → ${dstr(to)}</b> · ${inRange.length} ngày` + (lastD ? ` · ngày số liệu mới nhất: ${dstr(lastD)}` : "");
+  }
   const len = inRange.length;
   const prevEnd = new Date(from); prevEnd.setDate(prevEnd.getDate() - 1);
   const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - (len - 1));
@@ -583,9 +612,10 @@ function render(from, to){
   if(typeof renderCompareBlock === "function") renderCompareBlock();
 
   const mk = (id, cfg) => { if(charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
-  const ax = { x: { ticks: { color: "#6b7280", maxTicksLimit: 14 }, grid: { color: "#eef0f4" } },
-               y: { ticks: { color: "#6b7280" }, grid: { color: "#e5e7eb" } } };
-  const leg = { legend: { labels: { color: "#374151" } } };
+  const ax = isDark()
+    ? { x: { ticks: { color: "#9aa3c7", maxTicksLimit: 14 }, grid: { color: "#232842" } }, y: { ticks: { color: "#9aa3c7" }, grid: { color: "#2b3153" } } }
+    : { x: { ticks: { color: "#6b7280", maxTicksLimit: 14 }, grid: { color: "#eef0f4" } }, y: { ticks: { color: "#6b7280" }, grid: { color: "#e5e7eb" } } };
+  const leg = { legend: { labels: { color: isDark() ? "#c3c9e8" : "#374151" } } };
   mk("chartViews", { data: { labels: inRange.map(d => d.label), datasets: [
       { type: "line", label: "Lượt xem", data: inRange.map(d => d.views), borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,.12)", fill: true, tension: .3, pointRadius: 0 },
       { type: "line", label: "Người xem (unique)", data: inRange.map(d => d.unique), borderColor: "#f59e0b", tension: .3, pointRadius: 0 } ] },
@@ -807,6 +837,7 @@ async function main(){
   document.getElementById("presets").addEventListener("click", e => {
     const btn = e.target.closest("button[data-preset]"); if(!btn) return;
     markActive(btn);
+    mSel.value = "";
     const p = btn.dataset.preset;
     if(p === "all") setRange(first, last);
     else if(p === "today") setRange(last, last);
@@ -824,6 +855,7 @@ async function main(){
     const f = document.getElementById("fromDate").value, t = document.getElementById("toDate").value;
     if(!f || !t) return;
     markActive(null);
+    document.getElementById("monthSel").value = "";
     render(new Date(f + "T00:00:00"), new Date(t + "T00:00:00"));
   });
   const cmpBtn = document.getElementById("cmpApply");
@@ -982,6 +1014,8 @@ function renderPlan(){
     (!fc || r.picC === fc) && (!fd || r.picD === fd) && (!ff || r.form === ff) &&
     (!fa || (fa === "co" ? !!r.air : !r.air)) &&
     (!q || r.topic.toLowerCase().includes(q)));
+  const pcEl = document.getElementById("planCount");
+  if(pcEl) pcEl.textContent = "Đang hiển thị " + rows.length + " / " + PLAN.length + " bài" + ((fc || fd || ff || fa || q) ? " theo bộ lọc" : "");
   const withAir = PLAN.filter(r => r.air).length;
   const videos = PLAN.filter(r => (r.form || "").toLowerCase().includes("video")).length;
   const perPic = {};
@@ -1048,11 +1082,15 @@ function renderLC(){
     (!fp || r.pillarShort === fp) &&
     (!fs || r.statusGroup === fs) &&
     (!q || r.topic.toLowerCase().includes(q)));
-  document.querySelector("#lcTable tbody").innerHTML = rows.map(r =>
-    `<tr><td style="white-space:nowrap">${r.date}</td><td>${r.deadline}</td><td>${pillarBadge(r.pillarShort)}</td><td>${r.angle}</td>` +
+  const lcEl = document.getElementById("lcCount");
+  if(lcEl) lcEl.textContent = "Đang hiển thị " + rows.length + " / " + LC.length + " mục" + ((fp || fs || q) ? " theo bộ lọc" : "");
+  document.querySelector("#lcTable tbody").innerHTML = rows.map(r => {
+    const dd = parsePostDate(r.date);
+    const dows = dd ? " (" + DOWVN[dd.getDay()] + ")" : "";
+    return `<tr><td style="white-space:nowrap">${r.date}${dows}</td><td>${r.deadline}</td><td>${pillarBadge(r.pillarShort)}</td><td>${r.angle}</td>` +
     `<td class="title-cell">${r.topic}</td><td>${linkOr(r.kb, "KB")}</td>` +
     `<td>${statusHtml(r.status)}</td>` +
-    `<td>${r.video ? linkOr(r.video, "▶ Mở") : ""}</td><td>${r.drive ? linkOr(r.drive, "📁 Mở") : ""}</td><td>${r.caption ? linkOr(r.caption, "✎ Mở") : ""}</td></tr>`).join("") ||
+    `<td>${r.video ? linkOr(r.video, "▶ Mở") : ""}</td><td>${r.drive ? linkOr(r.drive, "📁 Mở") : ""}</td><td>${r.caption ? linkOr(r.caption, "✎ Mở") : ""}</td></tr>`; }).join("") ||
     '<tr><td colspan="10" style="color:var(--mut)">Không có dòng phù hợp bộ lọc.</td></tr>';
 }
 
@@ -1115,7 +1153,7 @@ function refillPlanFilters(){
 function renderMonthChips(){
   const box = document.getElementById("planMonths"); if(!box) return;
   box.innerHTML = PLAN_MONTHS.map(m =>
-    `<button type="button" class="chip" data-month="${m.key}" style="${PLAN_MONTH && PLAN_MONTH.key === m.key ? "background:#1d4ed8;color:#fff;border-color:#1d4ed8" : ""}">${m.chip}</button>`).join("");
+    `<button type="button" class="chip" data-month="${m.key}" style="${PLAN_MONTH && PLAN_MONTH.key === m.key ? "background:var(--acc);color:#fff;border-color:var(--acc)" : ""}">${m.chip}</button>`).join("");
   box.querySelectorAll("button[data-month]").forEach(b => b.addEventListener("click", () => setPlanMonth(b.getAttribute("data-month"))));
 }
 function setPlanMonth(key){
@@ -1619,6 +1657,7 @@ initPlanPages();
 let VIDEOS = [];
 const DEEP_SORT = { key: "avg", dir: -1 };
 let DEEP_FROM = null, DEEP_TO = null;
+let DEEP_VIEW = [], DEEP_CUR = null;
 
 function deepFiltered(){
   if(!DEEP_FROM || !DEEP_TO) return VIDEOS.slice();
@@ -1692,13 +1731,14 @@ function renderDeepTable(){
     const x = val(a, DEEP_SORT.key), y = val(b, DEEP_SORT.key);
     return ((x < y ? -1 : x > y ? 1 : 0)) * (DEEP_SORT.dir === -1 ? -1 : 1);
   });
+  DEEP_VIEW = rows.map(v => v.postId);
   document.querySelectorAll("#deepTable th.deepth").forEach(th => {
     const a = th.querySelector(".arr");
     if(a) a.textContent = DEEP_SORT.key === th.dataset.key ? (DEEP_SORT.dir === -1 ? "▼" : "▲") : "";
   });
   document.querySelector("#deepTable tbody").innerHTML = rows.map(v =>
     `<tr data-pid="${v.postId}" style="cursor:pointer" title="Bấm để xem chi tiết">` +
-    `<td style="white-space:nowrap">${v.dateStr || ""}</td>` +
+    `<td style="white-space:nowrap">${v.dateStr || ""}${v.date ? " (" + DOWVN[v.date.getDay()] + ")" : ""}</td>` +
     `<td class="title-cell">${v.title || "(không tiêu đề)"}</td>` +
     `<td class="num">${fmt(v.views)}</td><td class="num">${fmt(v.minutes)}</td><td class="num">${fmt(v.avg)}</td>` +
     `<td>${qualityOf(v)}</td></tr>`).join("") ||
@@ -1717,6 +1757,7 @@ function drawRetention(pts){
   const cv = document.getElementById("retCanvas");
   if(!cv || !pts.length) return;
   const ctx = cv.getContext("2d");
+  const dark = isDark();
   const W = cv.width, H = cv.height, L = 46, R = 14, T = 14, B = 28;
   ctx.clearRect(0, 0, W, H);
   const maxT = Math.max(10, pts[pts.length - 1].t);
@@ -1725,12 +1766,12 @@ function drawRetention(pts){
   ctx.font = "11px system-ui, sans-serif";
   ctx.lineWidth = 1;
   [0, 25, 50, 75, 100].forEach(p => {
-    ctx.strokeStyle = "#334155";
+    ctx.strokeStyle = dark ? "#2b3153" : "#334155";
     ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - R, Y(p)); ctx.stroke();
-    ctx.fillStyle = "#94a3b8"; ctx.fillText(p + "%", 10, Y(p) + 4);
+    ctx.fillStyle = dark ? "#9aa3c7" : "#94a3b8"; ctx.fillText(p + "%", 10, Y(p) + 4);
   });
   const step = maxT <= 45 ? 5 : maxT <= 120 ? 15 : 30;
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = dark ? "#9aa3c7" : "#94a3b8";
   for(let t = 0; t <= maxT; t += step) ctx.fillText(Math.round(t) + "s", X(t) - 8, H - 9);
   if(maxT > 15){
     ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([4, 4]);
@@ -1740,13 +1781,19 @@ function drawRetention(pts){
   }
   ctx.beginPath();
   pts.forEach((p, i) => { if(i) ctx.lineTo(X(p.t), Y(p.p)); else ctx.moveTo(X(p.t), Y(p.p)); });
-  ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = dark ? "#a5b4fc" : "#4f46e5"; ctx.lineWidth = 2; ctx.stroke();
   ctx.lineTo(X(pts[pts.length - 1].t), Y(0)); ctx.lineTo(X(pts[0].t), Y(0)); ctx.closePath();
-  ctx.fillStyle = "rgba(79,70,229,.15)"; ctx.fill();
+  ctx.fillStyle = dark ? "rgba(129,140,248,.18)" : "rgba(79,70,229,.15)"; ctx.fill();
 }
 function showDeepDetail(postId){
   const v = VIDEOS.find(x => x.postId === postId);
   if(!v) return;
+  DEEP_CUR = postId; window.__deepCurrent = postId;
+  const idx = DEEP_VIEW.indexOf(postId);
+  const pvB = document.getElementById("deepPrev"), nxB = document.getElementById("deepNext"), posEl = document.getElementById("deepPos");
+  if(posEl) posEl.textContent = idx >= 0 ? ("Video " + (idx + 1) + " / " + DEEP_VIEW.length + " trong danh sách đang xem") : "";
+  if(pvB) pvB.disabled = idx <= 0;
+  if(nxB) nxB.disabled = idx < 0 || idx >= DEEP_VIEW.length - 1;
   const r15 = retAt(v.ret, 15), r30 = retAt(v.ret, 30), r60 = retAt(v.ret, 60);
   const drop = biggestEarlyDrop(v.ret);
   const pct = x => x === null ? "—" : (Math.round(x * 10) / 10) + "%";
@@ -1781,7 +1828,22 @@ function closeDeepDetail(){
   const el = document.getElementById(id);
   if(el) el.addEventListener("click", closeDeepDetail);
 });
-document.addEventListener("keydown", e => { if(e.key === "Escape") closeDeepDetail(); });
+function deepStep(d){
+  const i = DEEP_VIEW.indexOf(DEEP_CUR);
+  const j = i + d;
+  if(i >= 0 && j >= 0 && j < DEEP_VIEW.length) showDeepDetail(DEEP_VIEW[j]);
+}
+const pvBtn = document.getElementById("deepPrev"), nxBtn = document.getElementById("deepNext");
+if(pvBtn) pvBtn.addEventListener("click", () => deepStep(-1));
+if(nxBtn) nxBtn.addEventListener("click", () => deepStep(1));
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeDeepDetail();
+  const dm = document.getElementById("deepModal");
+  if(dm && dm.classList.contains("open")){
+    if(e.key === "ArrowLeft") deepStep(-1);
+    if(e.key === "ArrowRight") deepStep(1);
+  }
+});
 async function loadDeep(){
   const box = document.getElementById("deepBox");
   let rows = null;
@@ -1828,10 +1890,27 @@ async function loadDeep(){
     });
   const dMax = VIDEOS.reduce((mx, v) => (v.date && (!mx || v.date > mx)) ? v.date : mx, null);
   const dMark = btn => document.querySelectorAll("#deepPresets .chip").forEach(b => b.classList.toggle("active", b === btn));
-  const dSet = (f, t) => { DEEP_FROM = f; DEEP_TO = t; renderDeepSummary(); renderDeepTable(); };
+  const dSet = (f, t) => {
+    DEEP_FROM = f; DEEP_TO = t;
+    const fi = document.getElementById("deepFrom"), ti = document.getElementById("deepTo");
+    if(f && t){ if(fi) fi.value = iso(f); if(ti) ti.value = iso(t); }
+    const lb = document.getElementById("deepRangeLabel");
+    if(lb){
+      if(!f || !t){
+        const mn = VIDEOS.reduce((a, v) => (v.date && (!a || v.date < a)) ? v.date : a, null);
+        lb.innerHTML = "Đang xem: <b>tất cả video</b>" + (mn && dMax ? ` (${dstr(mn)} → ${dstr(dMax)})` : "");
+      } else if(f.getTime() === t.getTime()){
+        lb.innerHTML = `Đang xem: <b>${dstr(f)}</b>`;
+      } else {
+        lb.innerHTML = `Đang xem: <b>${dstr(f)} → ${dstr(t)}</b>`;
+      }
+    }
+    renderDeepSummary(); renderDeepTable();
+  };
   document.getElementById("deepPresets").addEventListener("click", e => {
     const btn = e.target.closest("button[data-dpreset]"); if(!btn || !dMax) return;
     dMark(btn);
+    dmSel.value = "";
     const p = btn.dataset.dpreset;
     if(p === "all") dSet(null, null);
     else if(p === "today") dSet(dMax, dMax);
@@ -1849,14 +1928,37 @@ async function loadDeep(){
     const f = document.getElementById("deepFrom").value, t = document.getElementById("deepTo").value;
     if(!f || !t) return;
     dMark(null);
+    dmSel.value = "";
     let df = new Date(f + "T00:00:00"), dt = new Date(t + "T00:00:00");
     if(df > dt){ const tmp = df; df = dt; dt = tmp; }
     dSet(df, dt);
   });
-  renderDeepSummary();
-  renderDeepTable();
+  const upEl = document.getElementById("deepUpdated");
+  if(upEl){
+    const upDate = s => { const m = String(s || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]) : null; };
+    const latest = VIDEOS.reduce((a, v) => { const d = upDate(v.updated); return (d && (!a || d > a.d)) ? { d, s: v.updated } : a; }, null);
+    if(latest) upEl.textContent = "· Dữ liệu video cập nhật: " + latest.s;
+  }
+  dSet(null, null);
 }
 loadDeep();
+
+// ===== 🌙 Chế độ sáng/tối (nhớ lựa chọn trên máy này) =====
+(function(){
+  const b = document.getElementById("themeToggle"); if(!b) return;
+  const sync = () => { b.textContent = isDark() ? "☀️ Chế độ sáng" : "🌙 Chế độ tối"; };
+  sync();
+  b.addEventListener("click", () => {
+    const dark = !isDark();
+    if(dark) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    try { localStorage.setItem("mm-theme", dark ? "dark" : "light"); } catch(e){}
+    sync();
+    try { if(typeof rerender === "function") rerender(); } catch(e){}
+    const dm = document.getElementById("deepModal");
+    if(dm && dm.classList.contains("open") && window.__deepCurrent){ try { showDeepDetail(window.__deepCurrent); } catch(e){} }
+  });
+})();
 </script>
 <script>
 // ===== 🔐 Đăng nhập Google + phân quyền 2 cấp (Firebase) =====

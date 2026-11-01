@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fanpage Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;background:#f6f7fb;margin:0;padding:24px;color:#111}
+  .wrap{max-width:1100px;margin:auto}
+  h1{margin:0 0 4px} .sub{color:#666;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .card .label{color:#666;font-size:13px} .card .value{font-size:28px;font-weight:700;margin-top:4px}
+  .card .delta{font-size:13px;margin-top:2px} .up{color:#0a7d2c} .down{color:#c5221f}
+  canvas{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  th,td{padding:10px 12px;border-bottom:1px solid #eee;text-align:left;font-size:14px} th{background:#1a73e8;color:#fff}
+  .err{background:#fce8e6;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 Fanpage Dashboard</h1>
+  <div class="sub" id="updated">Đang tải dữ liệu từ Google Sheet...</div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Followers</div><div class="value" id="kFollowers">-</div><div class="delta" id="kFollowersDelta"></div></div>
+    <div class="card"><div class="label">Views hôm qua</div><div class="value" id="kViews">-</div></div>
+    <div class="card"><div class="label">Engagement hôm qua</div><div class="value" id="kEng">-</div></div>
+    <div class="card"><div class="label">Profile Visits</div><div class="value" id="kVisits">-</div></div>
+  </div>
+
+  <h3>Xu hướng 30 ngày</h3>
+  <canvas id="chart" height="110"></canvas>
+
+  <h3 style="margin-top:28px">Số liệu theo ngày</h3>
+  <table><thead><tr><th>Ngày</th><th>Followers</th><th>Tăng ròng</th><th>Views</th><th>Unique Viewers</th><th>Engagement</th><th>Bài đăng</th></tr></thead>
+  <tbody id="tbody"></tbody></table>
+  <div id="error"></div>
+</div>
+
+<script>
+/**
+ * CẤU HÌNH - Điền ID Google Sheet của bạn:
+ * 1. Mở Sheet > File > Share > Anyone with the link (Viewer)
+ *    (hoặc Publish to web nếu muốn công khai hoàn toàn)
+ * 2. Copy ID trong URL: docs.google.com/spreadsheets/d/<SHEET_ID>/edit
+ */
+const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+const TAB = 'Daily_Insights';
+
+const fmt = n => (n===''||n==null||isNaN(n)) ? '-' : Number(n).toLocaleString('vi-VN');
+
+async function load(){
+  if (SHEET_ID.includes('YOUR_')) {
+    document.getElementById('error').innerHTML = '<div class="err">Chưa cấu hình SHEET_ID trong index.html (dòng const SHEET_ID).</div>';
+    document.getElementById('updated').textContent = '';
+    return;
+  }
+  // Đọc Sheet qua gviz JSON (không cần API key)
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(TAB)}`;
+  const text = await (await fetch(url)).text();
+  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
+  const cols = json.table.cols.map(c=>c.label);
+  const idx = name => cols.indexOf(name);
+  const rows = json.table.rows.map(r => (r.c||[]).map(c => c ? (c.v ?? c.f ?? '') : ''));
+
+  if (!rows.length) { document.getElementById('updated').textContent = 'Chưa có dữ liệu.'; return; }
+  const last = rows[rows.length-1], prev = rows[rows.length-2] || [];
+  const get = (row,name) => row[idx(name)];
+
+  document.getElementById('updated').textContent = 'Cập nhật gần nhất: ' + get(last,'date') + ' • Page: ' + (get(last,'page_name')||'');
+  document.getElementById('kFollowers').textContent = fmt(get(last,'follower_count'));
+  document.getElementById('kViews').textContent = fmt(get(last,'views'));
+  document.getElementById('kEng').textContent = fmt(get(last,'engagement'));
+  document.getElementById('kVisits').textContent = fmt(get(last,'profile_visits'));
+  const delta = get(last,'net_followers');
+  const dEl = document.getElementById('kFollowersDelta');
+  if (delta !== '' && delta != null) { dEl.textContent = (delta>=0?`▲ +${fmt(delta)}`:`▼ ${fmt(delta)}`) + ' so với hôm qua'; dEl.className='delta '+(delta>=0?'up':'down'); }
+
+  // Bảng (mới nhất lên đầu, tối đa 30 dòng)
+  document.getElementById('tbody').innerHTML = [...rows].reverse().slice(0,30).map(r =>
+    `<tr><td>${get(r,'date')}</td><td>${fmt(get(r,'follower_count'))}</td><td>${fmt(get(r,'net_followers'))}</td><td>${fmt(get(r,'views'))}</td><td>${fmt(get(r,'unique_viewers'))}</td><td>${fmt(get(r,'engagement'))}</td><td>${fmt(get(r,'posts_published_today'))}</td></tr>`
+  ).join('');
+
+  // Biểu đồ 30 ngày
+  const last30 = rows.slice(-30);
+  new Chart(document.getElementById('chart'), {
+    type:'line',
+    data:{ labels:last30.map(r=>get(r,'date')), datasets:[
+      {label:'Views', data:last30.map(r=>Number(get(r,'views'))||0), borderColor:'#1a73e8', tension:.3},
+      {label:'Engagement', data:last30.map(r=>Number(get(r,'engagement'))||0), borderColor:'#f9ab00', tension:.3},
+      {label:'Followers', data:last30.map(r=>Number(get(r,'follower_count'))||0), borderColor:'#0a7d2c', tension:.3, yAxisID:'y1'},
+    ]},
+    options:{responsive:true, scales:{y:{beginAtZero:true}, y1:{position:'right', grid:{drawOnChartArea:false}}}}
+  });
+}
+load().catch(e => { document.getElementById('error').innerHTML = '<div class="err">Lỗi tải dữ liệu: '+e.message+'<br>Hãy kiểm tra Sheet đã được Share dạng Viewer chưa.</div>'; });
+</script>
+</body>
+</html>
