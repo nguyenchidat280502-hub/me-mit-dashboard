@@ -368,6 +368,28 @@
  <section class="page" id="page-deep">
   <div class="card">
     <h2>🎬 Phân tích content chuyên sâu — chất lượng video &amp; giữ chân khán giả</h2>
+    <div class="filters" id="deepFilters" style="margin:6px 0 4px">
+      <div class="grp" id="deepPresets">
+        <button class="chip" data-dpreset="today">Hôm nay</button>
+        <button class="chip" data-dpreset="yesterday">Hôm qua</button>
+        <button class="chip" data-dpreset="7">7 ngày</button>
+        <button class="chip" data-dpreset="30">30 ngày</button>
+        <button class="chip" data-dpreset="90">90 ngày</button>
+        <button class="chip" data-dpreset="year">Năm 2026</button>
+        <button class="chip active" data-dpreset="all">Tất cả</button>
+      </div>
+      <div class="grp">
+        <label>Tháng:</label>
+        <select id="deepMonthSel"><option value="">— chọn tháng —</option></select>
+      </div>
+      <div class="grp">
+        <label>Từ</label><input type="date" id="deepFrom">
+        <label>Đến</label><input type="date" id="deepTo">
+        <button class="chip" id="deepApply">Áp dụng</button>
+      </div>
+    </div>
+    <div class="hint" style="margin:0 0 8px">Lọc theo <b>ngày đăng video</b>; số liệu từng video là tổng toàn thời gian tính đến lần cập nhật gần nhất. “Hôm nay” = ngày của video mới nhất.</div>
+    <section class="kpis" id="deepSummary" style="margin:6px 0 10px"></section>
     <div id="deepBox"><div class="loading">Đang tải dữ liệu video…</div></div>
     <div id="deepDetail"></div>
   </div>
@@ -1582,6 +1604,32 @@ initPlanPages();
 // ===== 🎬 Phân tích content chuyên sâu (tab Video Insights của Sheet chính) =====
 let VIDEOS = [];
 const DEEP_SORT = { key: "avg", dir: -1 };
+let DEEP_FROM = null, DEEP_TO = null;
+
+function deepFiltered(){
+  if(!DEEP_FROM || !DEEP_TO) return VIDEOS.slice();
+  return VIDEOS.filter(v => v.date && v.date >= DEEP_FROM && v.date <= DEEP_TO);
+}
+function renderDeepSummary(){
+  const el = document.getElementById("deepSummary");
+  if(!el) return;
+  const rows = deepFiltered();
+  if(!rows.length){ el.innerHTML = ""; return; }
+  const sumV = rows.reduce((s, v) => s + (v.views || 0), 0);
+  const sumM = rows.reduce((s, v) => s + (v.minutes || 0), 0);
+  const r15s = rows.map(v => retAt(v.ret, 15)).filter(x => x !== null);
+  const avgR15 = r15s.length ? r15s.reduce((a, b) => a + b, 0) / r15s.length : null;
+  const good = rows.filter(v => { const r = retAt(v.ret, 15); return r !== null && r >= 35; }).length;
+  const hours = sumM >= 120 ? ` (≈ ${(sumM / 60).toFixed(1)} giờ)` : "";
+  const items = [
+    { label: "Số video trong kỳ", value: fmt(rows.length) },
+    { label: "Tổng lượt xem", value: fmt(sumV) },
+    { label: "Tổng thời gian xem", value: fmt(Math.round(sumM)) + " phút" + hours },
+    { label: "Giữ chân TB tại 15s", value: avgR15 === null ? "—" : (Math.round(avgR15 * 10) / 10) + "%" },
+    { label: "Video giữ chân tốt (≥35% @15s)", value: good + " / " + rows.length },
+  ];
+  el.innerHTML = items.map(k => `<div class="kpi"><div class="label">${k.label}</div><div class="value" style="font-size:19px">${k.value}</div></div>`).join("");
+}
 
 function parseRetention(raw){
   if(raw == null || raw === "") return [];
@@ -1626,7 +1674,7 @@ function fbLink(postId){
 }
 function renderDeepTable(){
   const val = (v,k) => k === "date" ? (v.date ? v.date.getTime() : 0) : v[k];
-  const rows = [...VIDEOS].sort((a,b) => {
+  const rows = deepFiltered().sort((a,b) => {
     const x = val(a, DEEP_SORT.key), y = val(b, DEEP_SORT.key);
     return ((x < y ? -1 : x > y ? 1 : 0)) * (DEEP_SORT.dir === -1 ? -1 : 1);
   });
@@ -1640,7 +1688,7 @@ function renderDeepTable(){
     `<td class="title-cell">${v.title || "(không tiêu đề)"}</td>` +
     `<td class="num">${fmt(v.views)}</td><td class="num">${fmt(v.minutes)}</td><td class="num">${fmt(v.avg)}</td>` +
     `<td>${qualityOf(v)}</td></tr>`).join("") ||
-    '<tr><td colspan="6" style="color:var(--mut)">Chưa có video nào.</td></tr>';
+    '<tr><td colspan="6" style="color:var(--mut)">Không có video nào trong khoảng đã chọn.</td></tr>';
 }
 function biggestEarlyDrop(pts){
   let best = null;
@@ -1744,6 +1792,44 @@ async function loadDeep(){
     const tr = e.target.closest("tr[data-pid]");
     if(tr) showDeepDetail(tr.dataset.pid);
   });
+  // --- Bộ lọc ngày theo ngày đăng video (preset giống Tổng quan) ---
+  const dmSel = document.getElementById("deepMonthSel");
+  [...new Set(VIDEOS.filter(v => v.date).map(v => v.date.getFullYear() * 100 + v.date.getMonth() + 1))].sort()
+    .forEach(m => {
+      const y = Math.floor(m / 100), mo = m % 100;
+      const o = document.createElement("option");
+      o.value = y + "-" + String(mo).padStart(2, "0");
+      o.textContent = "Tháng " + mo + "/" + y;
+      dmSel.appendChild(o);
+    });
+  const dMax = VIDEOS.reduce((mx, v) => (v.date && (!mx || v.date > mx)) ? v.date : mx, null);
+  const dMark = btn => document.querySelectorAll("#deepPresets .chip").forEach(b => b.classList.toggle("active", b === btn));
+  const dSet = (f, t) => { DEEP_FROM = f; DEEP_TO = t; renderDeepSummary(); renderDeepTable(); };
+  document.getElementById("deepPresets").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-dpreset]"); if(!btn || !dMax) return;
+    dMark(btn);
+    const p = btn.dataset.dpreset;
+    if(p === "all") dSet(null, null);
+    else if(p === "today") dSet(dMax, dMax);
+    else if(p === "yesterday"){ const yd = new Date(dMax); yd.setDate(yd.getDate() - 1); dSet(yd, yd); }
+    else if(p === "year") dSet(new Date(2026, 0, 1), dMax);
+    else { const f = new Date(dMax); f.setDate(f.getDate() - (+p - 1)); dSet(f, dMax); }
+  });
+  dmSel.addEventListener("change", () => {
+    if(!dmSel.value) return;
+    dMark(null);
+    const parts = dmSel.value.split("-").map(Number);
+    dSet(new Date(parts[0], parts[1] - 1, 1), new Date(parts[0], parts[1], 0));
+  });
+  document.getElementById("deepApply").addEventListener("click", () => {
+    const f = document.getElementById("deepFrom").value, t = document.getElementById("deepTo").value;
+    if(!f || !t) return;
+    dMark(null);
+    let df = new Date(f + "T00:00:00"), dt = new Date(t + "T00:00:00");
+    if(df > dt){ const tmp = df; df = dt; dt = tmp; }
+    dSet(df, dt);
+  });
+  renderDeepSummary();
   renderDeepTable();
 }
 loadDeep();
