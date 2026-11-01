@@ -242,6 +242,24 @@
   .cal-mgrid .m .n{color:var(--mut);font-size:11.5px;margin-top:1px}
   a.cal-btn{display:inline-block;background:var(--acc);color:#fff;border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:600;text-decoration:none;margin:4px 8px 4px 0}
   a.cal-btn.ghost{background:var(--card);color:var(--acc);border:1px solid var(--acc)}
+  /* --- 📊 Tổng quan v42 (bố cục kiểu ảnh mẫu) --- */
+  .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  @media (max-width:900px){ .kpirow{grid-template-columns:repeat(2,1fr)} }
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+  .kcard .kl{color:var(--lab);font-size:13px;font-weight:600}
+  .kcard .kv2{font-size:32px;font-weight:800;margin:6px 0 4px;letter-spacing:-.5px}
+  .kcard .ks{color:var(--mut);font-size:12.5px;margin-top:5px}
+  .ovgrid{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start}
+  @media (max-width:900px){ .ovgrid{grid-template-columns:1fr} }
+  .ovgrid .card{margin:0 0 14px}
+  .ovmini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px}
+  @media (max-width:640px){ .ovmini{grid-template-columns:1fr} }
+  .ovms .mv{font-size:21px;font-weight:800}
+  .ovms .ml{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .ovbig{font-size:34px;font-weight:800;letter-spacing:-.5px}
+  .ovsplit{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--track);margin:10px 0 6px}
+  .ovsplit>i{display:block;height:100%}
+  .ovspark{max-height:90px}
 </style>
 <script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
@@ -262,7 +280,7 @@
   <div style="padding:12px 14px">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v41</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v42</b></div>
   </div>
 </aside>
 <main>
@@ -290,10 +308,13 @@
   </div>
 
   <div class="card">
-    <h2>⭐ Chỉ số quan trọng — hôm nay &amp; theo kỳ</h2>
-    <div id="keyStats"><div class="loading">Đang tổng hợp…</div></div>
-    <div style="border-top:1px solid var(--line);margin:18px 0 2px"></div>
-    <div style="font-weight:700;font-size:15px;margin:10px 0 8px">📈 Số liệu theo kỳ</div>
+    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
+    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
+    <div class="hint">Lấy từ Media Plan cả 2 tháng (ngày đăng + Link Air): bài đã qua ngày đăng mà chưa có Link Air là quá hạn (đỏ); bài đăng hôm nay/ngày mai chưa có link là sắp tới hạn (vàng).</div>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:700;font-size:15px;margin:2px 0 8px">📈 Số liệu theo kỳ</div>
   <div class="filters">
     <div class="grp" id="presets">
       <button class="chip" data-preset="today">Hôm nay</button>
@@ -316,35 +337,39 @@
     <span id="dataAsOf" style="color:var(--mut);font-size:13px"></span>
     <div id="ovRangeLabel" style="width:100%;font-size:13.5px;margin-top:2px"></div>
   </div>
-  <section class="kpis" id="kpis"></section>
-    <div style="border-top:1px solid var(--line);margin:16px 0 2px"></div>
-    <h2>🔀 So sánh 2 kỳ — kỳ đang xem vs kỳ liền trước</h2>
-    <div class="grp" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 8px">
-      <label style="color:var(--mut);font-size:13px">Kỳ A từ</label><input type="date" id="cmpFrom">
-      <label style="color:var(--mut);font-size:13px">đến</label><input type="date" id="cmpTo">
-      <button class="chip" id="cmpApply" type="button">Áp dụng</button>
-      <span style="color:var(--mut);font-size:12.5px">Chưa chọn ngày thì mặc định so tháng này với tháng trước.</span>
-    </div>
-    <div id="cmpSummary" style="font-size:13px;color:var(--mut);margin:-2px 0 8px"></div>
-    <div style="display:flex;gap:16px;font-size:12.5px;color:var(--mut);margin-bottom:6px">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--acc);margin-right:5px;vertical-align:-1px"></span>Kỳ A (đang xem)</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#d4d9e3;margin-right:5px;vertical-align:-1px"></span>Kỳ B (liền trước)</span>
-    </div>
-    <div id="cmpBars"></div>
-    <div id="cmpChart" style="margin-top:14px"></div>
-    <div class="hint">Khối so sánh này độc lập với bộ lọc “Số liệu theo kỳ” ở trên: chọn khoảng ngày cho Kỳ A rồi bấm Áp dụng — Kỳ B tự động là kỳ liền trước có cùng độ dài. Chưa chọn ngày thì mặc định Kỳ A = tháng này (ngày 1 → ngày số liệu mới nhất), Kỳ B = tháng trước cùng khoảng ngày đó. Với Unfollow, giảm là tốt (xanh), tăng là xấu (đỏ).</div>
   </div>
-
-  <div class="card">
-    <h2>⏰ Deadline radar — việc trễ &amp; sắp tới hạn</h2>
-    <div id="deadlineRadar"><div class="loading">Đang kiểm tra deadline…</div></div>
-    <div class="hint">Lấy từ Media Plan cả 2 tháng (ngày đăng + Link Air): bài đã qua ngày đăng mà chưa có Link Air là quá hạn (đỏ); bài đăng hôm nay/ngày mai chưa có link là sắp tới hạn (vàng).</div>
+  <section class="kpirow" id="ovKpiRow"></section>
+  <div class="ovgrid">
+    <div>
+      <div class="card">
+        <h2>📊 Thống kê theo ngày</h2>
+        <div class="ovmini" id="ovMiniStats"></div>
+        <canvas id="ovDayChart"></canvas>
+        <div class="hint" id="ovChartNote">Cột tím = Lượt xem · cột vàng = Tương tác, theo từng ngày trong kỳ đang xem.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>👥 Người theo dõi</h2>
+        <div class="ovbig" id="ovFansTotal">—</div>
+        <div class="hint" id="ovFansAsOf"></div>
+        <div class="ovsplit"><i id="ovFansNewBar" style="background:#16a34a;width:50%"></i><i id="ovFansUnBar" style="background:#dc2626;width:50%"></i></div>
+        <div style="font-size:13px;line-height:1.9">
+          <div>🟢 Follow mới trong kỳ: <b id="ovFansNew">—</b> <span id="ovFansNewDelta"></span></div>
+          <div>🔴 Hủy theo dõi: <b id="ovFansUn">—</b></div>
+          <div>📈 Tăng ròng trong kỳ: <b id="ovFansNet">—</b></div>
+        </div>
+        <div class="hint">Chưa có dữ liệu giới tính/độ tuổi (tab Demographics đang trống) nên chưa có vòng tròn Nam/Nữ.</div>
+      </div>
+      <div class="card">
+        <h2>👁 Lượt xem trang</h2>
+        <div class="ovbig" id="ovPvTotal">—</div>
+        <div style="font-size:13px;color:var(--mut)">tổng trong kỳ · <span id="ovPvDelta"></span></div>
+        <canvas id="ovPvSpark" class="ovspark" style="margin-top:10px"></canvas>
+        <div class="hint">Đường biến động lượt xem trang theo từng ngày trong kỳ.</div>
+      </div>
+    </div>
   </div>
-
-  <div class="card"><h2>Lượt xem &amp; Người xem theo ngày</h2><canvas id="chartViews"></canvas></div>
-  <div class="card"><h2>Lượt tương tác theo ngày</h2><canvas id="chartEng"></canvas></div>
-  <div class="card"><h2>Follow mới / Unfollow theo ngày</h2><canvas id="chartFol"></canvas></div>
-
   <div class="card">
     <h2>🏆 Bài viết trong kỳ —
       <label style="color:var(--mut);font-size:13px">phân loại</label>
@@ -372,22 +397,6 @@
     <div class="hint">Bấm vào tiêu đề cột để sắp xếp tăng dần / giảm dần theo biến số đó.</div>
   </div>
 
-  <div class="card">
-    <h2>Số liệu chi tiết theo ngày</h2>
-    <div class="scroll">
-    <table id="dailyTable"><thead><tr>
-      <th class="sortable" data-table="daily" data-key="date">Ngày <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="unique">Người xem <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="views">Lượt xem <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="eng">Tương tác <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="follows">Follow mới <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="unfollows">Unfollow <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="pageViews">Lượt vào trang <span class="arr"></span></th>
-      <th class="num sortable" data-table="daily" data-key="rate">Tỷ lệ TT <span class="arr"></span></th>
-    </tr></thead><tbody></tbody></table>
-    </div>
-    <div class="hint">Bấm vào tiêu đề cột để sắp xếp tăng dần / giảm dần theo biến số đó.</div>
-  </div>
   <div class="loading" id="loading">Đang đọc dữ liệu từ Google Sheet…</div>
  </section>
 
@@ -679,37 +688,76 @@ function render(from, to){
     return `<svg width="86" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="flex:0 0 auto"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
   };
 
-  const kpis = [
-    { label: "Lượt xem trong kỳ", value: fmt(sum(inRange,"views")), delta: dPct(sum(inRange,"views"), sum(prev,"views")), spark: sparkSvg(inRange, "views", "#4f46e5"), tint: "t0" },
-    { label: "Tương tác trong kỳ", value: fmt(sum(inRange,"eng")), delta: dPct(sum(inRange,"eng"), sum(prev,"eng")), spark: sparkSvg(inRange, "eng", "#db2777"), tint: "t1" },
-    { label: "Người xem TB / ngày", value: fmt(len ? sum(inRange,"unique")/len : 0), delta: dPct(len?sum(inRange,"unique")/len:0, prev.length?sum(prev,"unique")/prev.length:0), spark: sparkSvg(inRange, "unique", "#059669"), tint: "t2" },
-    { label: "Follow ròng trong kỳ", value: fmt(sum(inRange,"follows") - sum(inRange,"unfollows")), note: `+${fmt(sum(inRange,"follows"))} follow, −${fmt(sum(inRange,"unfollows"))} unfollow`, spark: sparkSvg(inRange, "follows", "#d97706"), tint: "t3" },
-    { label: "Người theo dõi hiện tại", value: fmt(FOLLOWERS_SNAPSHOT), note: "mốc 30/10/2026", tint: "t4" },
-    { label: "Số ngày trong kỳ", value: fmt(len), note: inRange.length ? inRange[0].label + " → " + inRange[inRange.length-1].label : "", tint: "t5" },
-  ];
-  document.getElementById("kpis").innerHTML = kpis.map(k =>
-    `<div class="kpi ${k.tint || ""}"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div class="label">${k.label}</div>${k.spark || ""}</div><div class="value">${k.value}</div>` +
-    `<div class="note">${k.delta !== undefined ? deltaHtml(k.delta) : (k.note || "")}</div></div>`).join("");
+  // v42: hàng 4 thẻ số lớn kiểu ảnh mẫu — tổng kỳ + chip % so kỳ trước + TB/ngày
+  const sV = sum(inRange,"views"), sU = sum(inRange,"unique"), sE = sum(inRange,"eng");
+  const sFN = sum(inRange,"follows"), sFU = sum(inRange,"unfollows"), sNET = sFN - sFU;
+  const pNET = sum(prev,"follows") - sum(prev,"unfollows");
+  const chip = (cur, old) => {
+    const v = dPct(cur, old);
+    if(v === null) return '<span class="delta" style="background:#e5e7eb;color:#4b5563">— vs kỳ trước</span>';
+    return `<span class="delta ${v >= 0 ? "up" : "down"}">${v >= 0 ? "↗" : "↘"} ${Math.abs(v).toFixed(1).replace(".", ",")}% vs kỳ trước</span>`;
+  };
+  const kcard = (label, valStr, cur, old, sub) =>
+    `<div class="kcard"><div class="kl">${label}</div><div class="kv2">${valStr}</div>${chip(cur, old)}<div class="ks">${sub}</div></div>`;
+  document.getElementById("ovKpiRow").innerHTML =
+    kcard("👁 Lượt xem", fmt(sV), sV, sum(prev,"views"), `TB ${fmt(len ? sV/len : 0)} / ngày`) +
+    kcard("🧑 Người xem", fmt(sU), sU, sum(prev,"unique"), `TB ${fmt(len ? sU/len : 0)} / ngày`) +
+    kcard("💬 Tương tác", fmt(sE), sE, sum(prev,"eng"), `TB ${fmt(len ? sE/len : 0)} / ngày`) +
+    kcard("➕ Follow mới (ròng)", (sNET >= 0 ? "+" : "") + fmt(sNET), sNET, pNET, `${fmt(sFN)} follow mới · ${fmt(sFU)} hủy theo dõi`);
   document.getElementById("rangeInfo").textContent =
     `đang xem ${len} ngày` + (inRange.length ? ` (${inRange[0].label} – ${inRange[inRange.length-1].label})` : "");
-  if(typeof renderCompareBlock === "function") renderCompareBlock();
-
   const mk = (id, cfg) => { if(charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
   const ax = isDark()
     ? { x: { ticks: { color: "#aab3d6", maxTicksLimit: 14 }, grid: { color: "#262c47" } }, y: { ticks: { color: "#aab3d6" }, grid: { color: "#2b3153" } } }
     : { x: { ticks: { color: "#6b7280", maxTicksLimit: 14 }, grid: { color: "#eef0f4" } }, y: { ticks: { color: "#6b7280" }, grid: { color: "#e5e7eb" } } };
   const leg = { legend: { labels: { color: isDark() ? "#c3c9e8" : "#374151" } } };
-  mk("chartViews", { data: { labels: inRange.map(d => d.label), datasets: [
-      { type: "line", label: "Lượt xem", data: inRange.map(d => d.views), borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,.12)", fill: true, tension: .3, pointRadius: 0 },
-      { type: "line", label: "Người xem (unique)", data: inRange.map(d => d.unique), borderColor: "#f59e0b", tension: .3, pointRadius: 0 } ] },
-    options: { responsive: true, interaction: { mode: "index", intersect: false }, scales: ax, plugins: leg } });
-  mk("chartEng", { type: "bar", data: { labels: inRange.map(d => d.label), datasets: [
-      { label: "Lượt tương tác", data: inRange.map(d => d.eng), backgroundColor: "#10b981" } ] },
+  // v42: khối Thống kê theo ngày — 3 số TB + biểu đồ cột Lượt xem/Tương tác
+  const avg = (arr, k) => arr.length ? sum(arr, k) / arr.length : 0;
+  const msHtml = (label, valStr, cur, old) =>
+    `<div class="ovms"><div class="mv">${valStr}</div><div class="ml">${label}</div><div style="margin-top:3px">${chip(cur, old)}</div></div>`;
+  document.getElementById("ovMiniStats").innerHTML =
+    msHtml("TB lượt xem / ngày", fmt(avg(inRange,"views")), avg(inRange,"views"), avg(prev,"views")) +
+    msHtml("TB tương tác / ngày", fmt(avg(inRange,"eng")), avg(inRange,"eng"), avg(prev,"eng")) +
+    msHtml("TB follow mới (ròng) / ngày", (len && sNET/len >= 0 ? "+" : "") + (len ? (sNET/len).toFixed(1).replace(".", ",") : "0"), len ? sNET/len : 0, prev.length ? pNET/prev.length : 0);
+  let dLabels, dViews, dEngs, dNote = "Cột tím = Lượt xem · cột vàng = Tương tác, theo từng ngày trong kỳ đang xem.";
+  if(inRange.length > 62){
+    const weeks = {};
+    inRange.forEach(d => {
+      const monday = new Date(d.date); monday.setDate(d.date.getDate() - ((d.date.getDay() + 6) % 7));
+      const k = iso(monday);
+      weeks[k] = weeks[k] || { views: 0, eng: 0 };
+      weeks[k].views += d.views; weeks[k].eng += d.eng;
+    });
+    const ks = Object.keys(weeks).sort();
+    dLabels = ks.map(k => { const p = k.split("-"); return p[2] + "/" + p[1]; });
+    dViews = ks.map(k => weeks[k].views); dEngs = ks.map(k => weeks[k].eng);
+    dNote = "Kỳ dài trên 62 ngày — biểu đồ gộp theo tuần (nhãn = thứ 2 của tuần). Cột tím = Lượt xem · cột vàng = Tương tác.";
+  } else {
+    dLabels = inRange.map(d => d.label); dViews = inRange.map(d => d.views); dEngs = inRange.map(d => d.eng);
+  }
+  document.getElementById("ovChartNote").textContent = dNote;
+  mk("ovDayChart", { type: "bar", data: { labels: dLabels, datasets: [
+      { label: "Lượt xem", data: dViews, backgroundColor: "#6366f1", borderRadius: 3, maxBarThickness: 16 },
+      { label: "Tương tác", data: dEngs, backgroundColor: "#f5a623", borderRadius: 3, maxBarThickness: 16 } ] },
     options: { responsive: true, scales: ax, plugins: leg } });
-  mk("chartFol", { data: { labels: inRange.map(d => d.label), datasets: [
-      { type: "bar", label: "Follow mới", data: inRange.map(d => d.follows), backgroundColor: "#4f46e5" },
-      { type: "bar", label: "Unfollow", data: inRange.map(d => -d.unfollows), backgroundColor: "#ef4444" } ] },
-    options: { responsive: true, scales: ax, plugins: leg } });
+  // v42: cột phải — Người theo dõi + Lượt xem trang
+  let fansVal = FOLLOWERS_SNAPSHOT, fansNote = "mốc 30/10/2026";
+  for(let i = DAYS.length - 1; i >= 0; i--){ if(DAYS[i].fans > 0){ fansVal = DAYS[i].fans; fansNote = "tính đến " + DAYS[i].label; break; } }
+  document.getElementById("ovFansTotal").textContent = fmt(fansVal);
+  document.getElementById("ovFansAsOf").textContent = "tổng người theo dõi " + fansNote;
+  const fTot = sFN + sFU || 1;
+  document.getElementById("ovFansNewBar").style.width = (sFN / fTot * 100) + "%";
+  document.getElementById("ovFansUnBar").style.width = (sFU / fTot * 100) + "%";
+  document.getElementById("ovFansNew").textContent = fmt(sFN);
+  document.getElementById("ovFansNewDelta").innerHTML = chip(sFN, sum(prev,"follows"));
+  document.getElementById("ovFansUn").textContent = fmt(sFU);
+  document.getElementById("ovFansNet").textContent = (sNET >= 0 ? "+" : "") + fmt(sNET);
+  const sPV = sum(inRange,"pageViews");
+  document.getElementById("ovPvTotal").textContent = fmt(sPV);
+  document.getElementById("ovPvDelta").innerHTML = chip(sPV, sum(prev,"pageViews"));
+  mk("ovPvSpark", { type: "line", data: { labels: inRange.map(d => d.label), datasets: [
+      { label: "Lượt xem trang", data: inRange.map(d => d.pageViews), borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,.16)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2 } ] },
+    options: { responsive: true, scales: { x: { display: false }, y: { display: false, beginAtZero: true } }, plugins: { legend: { display: false } } } });
 
   // Posts — per-post classification + sortable columns
   const typeKey = document.getElementById("typeSel").value;
@@ -730,139 +778,11 @@ function render(from, to){
     `<td class="num">${fmt(p.comments)}</td><td class="num">${fmt(p.shares)}</td><td class="num">${p.rate.toFixed(2)}%</td></tr>`).join("") ||
     '<tr><td colspan="9" style="color:var(--mut)">Không có bài viết trong kỳ đã chọn.</td></tr>';
 
-  // Daily — sortable columns
-  const ds = SORT.daily;
-  const dVal = (d,k) => k === "date" ? d.date.getTime() : k === "rate" ? (d.views ? d.eng/d.views*100 : 0) : d[k];
-  const sortedDays = [...inRange].sort((a,b) => (dVal(a, ds.key) - dVal(b, ds.key)) * (ds.dir === -1 ? -1 : 1));
-  document.querySelector("#dailyTable tbody").innerHTML = sortedDays.map(d =>
-    `<tr><td>${d.label}</td><td class="num">${fmt(d.unique)}</td><td class="num">${fmt(d.views)}</td>` +
-    `<td class="num">${fmt(d.eng)}</td><td class="num">${fmt(d.follows)}</td><td class="num">${fmt(d.unfollows)}</td>` +
-    `<td class="num">${fmt(d.pageViews)}</td><td class="num">${d.views ? (d.eng/d.views*100).toFixed(2) : "0.00"}%</td></tr>`).join("");
   updateArrows();
 }
 
 const dstr = d => String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
 const isoLocal = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-
-function statGroup(title, items){
-  return `<div style="font-weight:600;margin:12px 0 2px">${title}</div>` +
-    `<section class="kpis" style="margin:6px 0 2px">` + items.map(k =>
-    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="note">${k.note || ""}</div></div>`).join("") + `</section>`;
-}
-function vnTodayGroup(){
-  if(!SNAP.length) return "";
-  const now = new Date();
-  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tLabel = dstr(today0);
-  const times = [...new Set(SNAP.map(s => s.date.getTime()))].sort((a,b) => a - b);
-  const todayRows = SNAP.filter(s => s.date.getTime() === today0.getTime());
-  const prevTimes = times.filter(t => t < today0.getTime());
-  if(!todayRows.length || !prevTimes.length) return "";
-  const prevT = prevTimes[prevTimes.length - 1];
-  const prevMap = {};
-  SNAP.filter(s => s.date.getTime() === prevT).forEach(s => { prevMap[s.id] = s; });
-  const sum = k => todayRows.reduce((acc, s) => {
-    const b = prevMap[s.id];
-    return acc + Math.max(0, b ? (s[k] - b[k]) : s[k]);
-  }, 0);
-  const items = [
-    { label: "Lượt xem tăng", value: fmt(sum("views")), note: "trên các bài viết" },
-    { label: "Reaction mới", value: fmt(sum("reactions")) },
-    { label: "Bình luận mới", value: fmt(sum("comments")) },
-    { label: "Chia sẻ mới", value: fmt(sum("shares")) },
-  ];
-  return statGroup(`🇻🇳 Hôm nay theo giờ Việt Nam — ${tLabel} (tính đến hiện tại, đối chiếu mốc cuối ngày ${dstr(new Date(prevT))})`, items) +
-    `<div class="hint" style="margin:2px 0 4px">Số tạm, tự cập nhật mỗi 30 phút — chỉ tính phần tăng trên bài viết. Số toàn Page theo ngày của Facebook ở khối ngay trên.</div>`;
-}
-function renderKeyStats(){
-  const box = document.getElementById("keyStats");
-  if(!DAYS.length){ box.innerHTML = '<div class="hint">Chưa có dữ liệu.</div>'; return; }
-  const last = DAYS[DAYS.length - 1];
-  const mets = [["Lượt xem","views"],["Người xem","unique"],["Tương tác","eng"],
-                ["Follow mới","follows"],["Unfollow","unfollows"],["Lượt xem trang","pageViews"]];
-  const dayItems = mets.map(([label,k]) => ({ label, value: fmt(last[k] || 0) }));
-  if(MSG.length){
-    const m = MSG.find(x => x.date.getTime() === last.date.getTime());
-    dayItems.push({ label: "Hội thoại", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
-  }
-  box.innerHTML =
-    statGroup(`📅 Ngày số liệu mới nhất — ${last.label}`, dayItems) +
-    `<div class="hint" style="margin:2px 0 4px">Lưu ý: Facebook chốt số theo giờ Mỹ — ngày ${String(last.date.getDate()).padStart(2,"0")}/${String(last.date.getMonth()+1).padStart(2,"0")} chốt lúc 14:00 hôm sau (giờ VN) và còn được cập nhật thêm sau đó.</div>` +
-    vnTodayGroup();
-}
-
-const CMP_METS = [
-  { label: "Lượt xem", key: "views", good: "up" },
-  { label: "Người xem", key: "unique", good: "up" },
-  { label: "Tương tác", key: "eng", good: "up" },
-  { label: "Follow mới", key: "follows", good: "up" },
-  { label: "Unfollow", key: "unfollows", good: "down" },
-  { label: "Lượt xem trang", key: "pageViews", good: "up" },
-];
-let CMP_PICK = null;
-function cmpDefaultRanges(){
-  const last = DAYS[DAYS.length - 1].date;
-  const aFrom = new Date(last.getFullYear(), last.getMonth(), 1);
-  const aTo = last;
-  const dimPrev = new Date(last.getFullYear(), last.getMonth(), 0).getDate();
-  const bFrom = new Date(last.getFullYear(), last.getMonth() - 1, 1);
-  const bTo = new Date(last.getFullYear(), last.getMonth() - 1, Math.min(last.getDate(), dimPrev));
-  return { aFrom, aTo, bFrom, bTo };
-}
-function renderCompareBlock(){
-  if(!DAYS.length) return;
-  if(CMP_PICK){ renderCompare(CMP_PICK.from, CMP_PICK.to); return; }
-  const d = cmpDefaultRanges();
-  const fEl = document.getElementById("cmpFrom"), tEl = document.getElementById("cmpTo");
-  if(fEl && !fEl.value) fEl.value = iso(d.aFrom);
-  if(tEl && !tEl.value) tEl.value = iso(d.aTo);
-  renderCompare(d.aFrom, d.aTo, d.bFrom, d.bTo);
-}
-function renderCompare(from, to, bFrom, bTo){
-  const sumEl = document.getElementById("cmpSummary"), barsEl = document.getElementById("cmpBars"), chEl = document.getElementById("cmpChart");
-  if(!sumEl || !barsEl || !chEl) return;
-  const A = DAYS.filter(d => d.date >= from && d.date <= to);
-  const len = A.length;
-  if(!len){ sumEl.textContent = ""; barsEl.innerHTML = '<div class="hint">Chưa có dữ liệu cho kỳ đang xem.</div>'; chEl.innerHTML = ""; return; }
-  let B;
-  if(bFrom && bTo){ B = DAYS.filter(d => d.date >= bFrom && d.date <= bTo); }
-  else {
-    const prevEnd = new Date(from); prevEnd.setDate(prevEnd.getDate() - 1);
-    const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - (len - 1));
-    B = DAYS.filter(d => d.date >= prevStart && d.date <= prevEnd);
-  }
-  const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
-  sumEl.textContent = `Kỳ A: ${A[0].label} – ${A[A.length - 1].label} (${len} ngày)` + (B.length ? ` · Kỳ B: ${B[0].label} – ${B[B.length - 1].label} (${B.length} ngày)` : " · Chưa có dữ liệu kỳ trước để so sánh.");
-  if(!B.length){ barsEl.innerHTML = ""; chEl.innerHTML = ""; return; }
-  const pill = (a, b, goodUp) => {
-    if(!b) return '<span class="chip-neu">mới phát sinh</span>';
-    const pc = Math.round((a - b) / b * 100);
-    if(pc === 0) return '<span class="chip-neu">0%</span>';
-    const good = goodUp ? pc > 0 : pc < 0;
-    return `<span class="delta ${good ? "up" : "down"}">${pc > 0 ? "▲ +" : "▼ "}${pc}%</span>`;
-  };
-  barsEl.innerHTML = CMP_METS.map(m => {
-    const a = sum(A, m.key), b = sum(B, m.key), mx = Math.max(a, b) || 1;
-    return `<div class="brow"><div class="blabel">${m.label}</div><div>` +
-      `<div class="track"><div class="cbar a" style="width:${(a / mx * 100).toFixed(0)}%"></div><span class="bval">${fmt(a)}</span></div>` +
-      `<div class="track"><div class="cbar b" style="width:${(b / mx * 100).toFixed(0)}%"></div><span class="bval mut">${fmt(b)}</span></div></div>` +
-      `<div class="bchip">${pill(a, b, m.good === "up")}</div></div>`;
-  }).join("");
-  const n = Math.min(A.length, B.length);
-  if(n >= 2){
-    const W = 660, H = 190, pad = 8;
-    const mx = Math.max(...A.map(d => d.views), ...B.map(d => d.views)) || 1;
-    const path = arr => "M" + arr.slice(0, n).map((d, i) => (pad + i * (W - 2 * pad) / (n - 1)).toFixed(0) + "," + (H - 14 - d.views / mx * (H - 34)).toFixed(0)).join(" L");
-    const imx = A.findIndex(d => d.views === Math.max(...A.map(x => x.views)));
-    const px = pad + imx * (W - 2 * pad) / (n - 1), py = H - 14 - A[imx].views / mx * (H - 34);
-    const ly = py < 44 ? py + 12 : py - 30, lty = py < 44 ? py + 26 : py - 16;
-    chEl.innerHTML = `<div style="font-weight:600;margin:6px 0 2px">Lượt xem theo ngày — 2 kỳ chồng lên nhau</div>` +
-      `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><path d="${path(B)}" fill="none" stroke="#c3c9d6" stroke-width="2.2" stroke-linejoin="round"/><path d="${path(A)}" fill="none" stroke="#4f46e5" stroke-width="2.8" stroke-linejoin="round"/>` +
-      `<circle cx="${px.toFixed(0)}" cy="${py.toFixed(0)}" r="4.5" fill="#4f46e5"/>` +
-      `<rect x="${(px - 40).toFixed(0)}" y="${ly.toFixed(0)}" width="92" height="19" rx="6" fill="#111827"/><text x="${(px + 6).toFixed(0)}" y="${lty.toFixed(0)}" fill="#fff" text-anchor="middle" font-weight="700" font-size="11.5">Đỉnh ${fmt(A[imx].views)}</text>` +
-      `<text x="8" y="186" font-size="11" fill="#9aa3b5">Ngày 1</text><text x="${W - 52}" y="186" font-size="11" fill="#9aa3b5">Ngày ${n}</text></svg>`;
-  } else chEl.innerHTML = "";
-}
 
 async function main(){
   let insights, posts, msgRows, snapRows;
@@ -876,13 +796,12 @@ async function main(){
     document.getElementById("loading").style.display = "none";
     document.getElementById("error").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu từ Google Sheet. Kiểm tra Sheet đã bật chia sẻ “Bất kỳ ai có đường liên kết đều có thể xem”. (' + e.message + ')</div>';
-    document.getElementById("keyStats").innerHTML = "";
     return;
   }
   document.getElementById("loading").style.display = "none";
 
   DAYS = insights.filter(r => r[0]).map(r => ({
-      date: parseDay(r[0]), label: r[0], unique: num(r[1]), views: num(r[2]),
+      date: parseDay(r[0]), label: r[0], unique: num(r[1]), views: num(r[2]), fans: num(r[5]),
       follows: num(r[6]), unfollows: num(r[7]), pageViews: num(r[8]), eng: num(r[9]) }))
     .filter(d => d.date).sort((a,b) => a.date - b.date);
 
@@ -943,15 +862,6 @@ async function main(){
     document.getElementById("monthSel").value = "";
     render(new Date(f + "T00:00:00"), new Date(t + "T00:00:00"));
   });
-  const cmpBtn = document.getElementById("cmpApply");
-  if(cmpBtn) cmpBtn.addEventListener("click", () => {
-    const f = document.getElementById("cmpFrom").value, t = document.getElementById("cmpTo").value;
-    if(!f || !t) return;
-    let cf = new Date(f + "T00:00:00"), ct = new Date(t + "T00:00:00");
-    if(cf > ct){ const tmp = cf; cf = ct; ct = tmp; }
-    CMP_PICK = { from: cf, to: ct };
-    renderCompareBlock();
-  });
   const rerender = () => {
     const f = new Date(document.getElementById("fromDate").value + "T00:00:00");
     const t = new Date(document.getElementById("toDate").value + "T00:00:00");
@@ -968,7 +878,6 @@ async function main(){
   });
 
   document.getElementById("dataAsOf").textContent = "Dữ liệu tới ngày " + DAYS[DAYS.length - 1].label;
-  renderKeyStats();
   if(typeof renderTargetStrip === "function") renderTargetStrip();
 
   document.getElementById("updated").textContent = "tải lúc " + new Date().toLocaleString("vi-VN");
