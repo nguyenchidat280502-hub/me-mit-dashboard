@@ -208,6 +208,11 @@
  <section class="page show" id="page-overview">
   <div id="error"></div>
 
+  <div class="card" id="ovTargetCard" style="display:none">
+    <h2 id="ovTargetTitle">🎯 Target Tháng</h2>
+    <div id="ovTarget"></div>
+  </div>
+
   <div class="card">
     <h2>⭐ Chỉ số quan trọng — hôm nay &amp; theo kỳ</h2>
     <div id="keyStats"><div class="loading">Đang tổng hợp…</div></div>
@@ -215,7 +220,8 @@
     <div style="font-weight:700;font-size:15px;margin:10px 0 8px">📈 Số liệu theo kỳ</div>
   <div class="filters">
     <div class="grp" id="presets">
-      <button class="chip" data-preset="today">Ngày mới nhất</button>
+      <button class="chip" data-preset="today">Hôm nay</button>
+      <button class="chip" data-preset="yesterday">Hôm qua</button>
       <button class="chip" data-preset="7">7 ngày</button>
       <button class="chip active" data-preset="30">30 ngày</button>
       <button class="chip" data-preset="90">90 ngày</button>
@@ -236,6 +242,12 @@
   <section class="kpis" id="kpis"></section>
     <div style="border-top:1px solid var(--line);margin:16px 0 2px"></div>
     <h2>🔀 So sánh 2 kỳ — kỳ đang xem vs kỳ liền trước</h2>
+    <div class="grp" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 8px">
+      <label style="color:var(--mut);font-size:13px">Kỳ A từ</label><input type="date" id="cmpFrom">
+      <label style="color:var(--mut);font-size:13px">đến</label><input type="date" id="cmpTo">
+      <button class="chip" id="cmpApply" type="button">Áp dụng</button>
+      <span style="color:var(--mut);font-size:12.5px">Chưa chọn ngày thì mặc định so tháng này với tháng trước.</span>
+    </div>
     <div id="cmpSummary" style="font-size:13px;color:var(--mut);margin:-2px 0 8px"></div>
     <div style="display:flex;gap:16px;font-size:12.5px;color:var(--mut);margin-bottom:6px">
       <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--acc);margin-right:5px;vertical-align:-1px"></span>Kỳ A (đang xem)</span>
@@ -243,12 +255,7 @@
     </div>
     <div id="cmpBars"></div>
     <div id="cmpChart" style="margin-top:14px"></div>
-    <div class="hint">Kỳ B tự động là kỳ liền trước có cùng độ dài với kỳ đang xem ở bộ lọc phía trên — đổi kỳ là cả khối (thẻ KPI, thanh so sánh, biểu đồ) cập nhật theo. Với Unfollow, giảm là tốt (xanh), tăng là xấu (đỏ).</div>
-  </div>
-
-  <div class="card" id="ovTargetCard" style="display:none">
-    <h2 id="ovTargetTitle">🎯 Tiến độ target tháng này</h2>
-    <div id="ovTarget"></div>
+    <div class="hint">Khối so sánh này độc lập với bộ lọc “Số liệu theo kỳ” ở trên: chọn khoảng ngày cho Kỳ A rồi bấm Áp dụng — Kỳ B tự động là kỳ liền trước có cùng độ dài. Chưa chọn ngày thì mặc định Kỳ A = tháng này (ngày 1 → ngày số liệu mới nhất), Kỳ B = tháng trước cùng khoảng ngày đó. Với Unfollow, giảm là tốt (xanh), tăng là xấu (đỏ).</div>
   </div>
 
   <div class="card">
@@ -536,7 +543,7 @@ function render(from, to){
     `<div class="note">${k.delta !== undefined ? deltaHtml(k.delta) : (k.note || "")}</div></div>`).join("");
   document.getElementById("rangeInfo").textContent =
     `đang xem ${len} ngày` + (inRange.length ? ` (${inRange[0].label} – ${inRange[inRange.length-1].label})` : "");
-  if(typeof renderCompare === "function") renderCompare(from, to);
+  if(typeof renderCompareBlock === "function") renderCompareBlock();
 
   const mk = (id, cfg) => { if(charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
   const ax = { x: { ticks: { color: "#6b7280", maxTicksLimit: 14 }, grid: { color: "#eef0f4" } },
@@ -628,11 +635,9 @@ function renderKeyStats(){
     const m = MSG.find(x => x.date.getTime() === last.date.getTime());
     dayItems.push({ label: "Hội thoại", value: fmt(m ? m.conv : 0), note: "hội thoại mới trong ngày" });
   }
-  const dNext = new Date(last.date); dNext.setDate(dNext.getDate() + 1);
-  const dAfter = new Date(last.date); dAfter.setDate(dAfter.getDate() + 2);
   box.innerHTML =
     statGroup(`📅 Ngày số liệu mới nhất — ${last.label}`, dayItems) +
-    `<div class="hint" style="margin:2px 0 4px">Facebook chốt số theo ngày giờ Mỹ, chậm hơn giờ Việt Nam 14 tiếng: “ngày ${last.label}” ở đây = 14:00 ${last.label} → 14:00 ${dstr(dNext)} giờ VN. Số của ngày ${dstr(dNext)} sẽ có sau 14:00 ${dstr(dAfter)}, và số ngày mới nhất còn được Facebook cập nhật thêm trong ít giờ sau khi chốt.</div>` +
+    `<div class="hint" style="margin:2px 0 4px">Lưu ý: Facebook chốt số theo giờ Mỹ — ngày ${String(last.date.getDate()).padStart(2,"0")}/${String(last.date.getMonth()+1).padStart(2,"0")} chốt lúc 14:00 hôm sau (giờ VN) và còn được cập nhật thêm sau đó.</div>` +
     vnTodayGroup();
 }
 
@@ -644,15 +649,38 @@ const CMP_METS = [
   { label: "Unfollow", key: "unfollows", good: "down" },
   { label: "Lượt xem trang", key: "pageViews", good: "up" },
 ];
-function renderCompare(from, to){
+let CMP_PICK = null;
+function cmpDefaultRanges(){
+  const last = DAYS[DAYS.length - 1].date;
+  const aFrom = new Date(last.getFullYear(), last.getMonth(), 1);
+  const aTo = last;
+  const dimPrev = new Date(last.getFullYear(), last.getMonth(), 0).getDate();
+  const bFrom = new Date(last.getFullYear(), last.getMonth() - 1, 1);
+  const bTo = new Date(last.getFullYear(), last.getMonth() - 1, Math.min(last.getDate(), dimPrev));
+  return { aFrom, aTo, bFrom, bTo };
+}
+function renderCompareBlock(){
+  if(!DAYS.length) return;
+  if(CMP_PICK){ renderCompare(CMP_PICK.from, CMP_PICK.to); return; }
+  const d = cmpDefaultRanges();
+  const fEl = document.getElementById("cmpFrom"), tEl = document.getElementById("cmpTo");
+  if(fEl && !fEl.value) fEl.value = iso(d.aFrom);
+  if(tEl && !tEl.value) tEl.value = iso(d.aTo);
+  renderCompare(d.aFrom, d.aTo, d.bFrom, d.bTo);
+}
+function renderCompare(from, to, bFrom, bTo){
   const sumEl = document.getElementById("cmpSummary"), barsEl = document.getElementById("cmpBars"), chEl = document.getElementById("cmpChart");
   if(!sumEl || !barsEl || !chEl) return;
   const A = DAYS.filter(d => d.date >= from && d.date <= to);
   const len = A.length;
   if(!len){ sumEl.textContent = ""; barsEl.innerHTML = '<div class="hint">Chưa có dữ liệu cho kỳ đang xem.</div>'; chEl.innerHTML = ""; return; }
-  const prevEnd = new Date(from); prevEnd.setDate(prevEnd.getDate() - 1);
-  const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - (len - 1));
-  const B = DAYS.filter(d => d.date >= prevStart && d.date <= prevEnd);
+  let B;
+  if(bFrom && bTo){ B = DAYS.filter(d => d.date >= bFrom && d.date <= bTo); }
+  else {
+    const prevEnd = new Date(from); prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - (len - 1));
+    B = DAYS.filter(d => d.date >= prevStart && d.date <= prevEnd);
+  }
   const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
   sumEl.textContent = `Kỳ A: ${A[0].label} – ${A[A.length - 1].label} (${len} ngày)` + (B.length ? ` · Kỳ B: ${B[0].label} – ${B[B.length - 1].label} (${B.length} ngày)` : " · Chưa có dữ liệu kỳ trước để so sánh.");
   if(!B.length){ barsEl.innerHTML = ""; chEl.innerHTML = ""; return; }
@@ -745,6 +773,7 @@ async function main(){
     const p = btn.dataset.preset;
     if(p === "all") setRange(first, last);
     else if(p === "today") setRange(last, last);
+    else if(p === "yesterday"){ const yd = new Date(last); yd.setDate(yd.getDate() - 1); setRange(yd, yd); }
     else if(p === "year") setRange(new Date(2026, 0, 1), last);
     else { const f = new Date(last); f.setDate(f.getDate() - (+p - 1)); setRange(f, last); }
   });
@@ -759,6 +788,15 @@ async function main(){
     if(!f || !t) return;
     markActive(null);
     render(new Date(f + "T00:00:00"), new Date(t + "T00:00:00"));
+  });
+  const cmpBtn = document.getElementById("cmpApply");
+  if(cmpBtn) cmpBtn.addEventListener("click", () => {
+    const f = document.getElementById("cmpFrom").value, t = document.getElementById("cmpTo").value;
+    if(!f || !t) return;
+    let cf = new Date(f + "T00:00:00"), ct = new Date(t + "T00:00:00");
+    if(cf > ct){ const tmp = cf; cf = ct; ct = tmp; }
+    CMP_PICK = { from: cf, to: ct };
+    renderCompareBlock();
   });
   const rerender = () => {
     const f = new Date(document.getElementById("fromDate").value + "T00:00:00");
@@ -1167,7 +1205,7 @@ function renderTargetStrip(){
   if(!t){ card.style.display = "none"; return; }
   card.style.display = "";
   const title = document.getElementById("ovTargetTitle");
-  if(title) title.textContent = (key === cur) ? "🎯 Tiến độ target tháng này" : "🎯 Target tháng " + key.slice(5) + "/" + key.slice(0,4) + " (tháng tới)";
+  if(title) title.textContent = "🎯 Target Tháng " + Number(key.slice(5));
   box.innerHTML = tgBars(key) +
     `<div class="hint">Target tháng ${key.slice(5)}/${key.slice(0,4)}${t.by ? " · do " + tgEsc(t.by) + " đặt" : ""}${t.updated ? " · cập nhật " + tgEsc(t.updated) : ""}. Số bài đăng = số bài trong Media Plan đã có Link Air.</div>`;
 }
