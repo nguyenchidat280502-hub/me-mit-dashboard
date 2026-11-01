@@ -179,8 +179,26 @@ function personChip(name){
   return `<span class="person"><span class="avatar" style="background:${personColor(name)}">${esc(initials)}</span>${esc(name)}</span>`;
 }
 function linkId(url){
-  const m = String(url || "").match(/(?:posts|reel|videos)\/(\d{6,})/);
-  return m ? m[1] : null;
+  const u = String(url || "");
+  let m = u.match(/(?:posts|reel|videos)\/(\d{6,})/);
+  if(m) return "n:" + m[1];
+  m = u.match(/story_fbid=(\d{6,})/);
+  if(m) return "n:" + m[1];
+  m = u.match(/(pfbid[\w-]+)/);
+  if(m) return "p:" + m[1];
+  m = u.match(/\/share\/[prv]\/([\w-]+)/);
+  if(m) return "s:" + m[1];
+  return null;
+}
+function normText(s){
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+function simScore(a, b){
+  const A = new Set(normText(a).split(" ").filter(w => w.length > 1));
+  const B = new Set(normText(b).split(" ").filter(w => w.length > 1));
+  if(!A.size || !B.size) return 0;
+  let hit = 0; A.forEach(w => { if(B.has(w)) hit++; });
+  return hit / Math.max(A.size, B.size);
 }
 function parseRetention(raw){
   if(!raw) return {};
@@ -234,7 +252,7 @@ async function init(){
 function buildItems(mo){
   const items = [];
   const usedPost = new Set();
-  mo.rows.forEach(p => {
+  const built = mo.rows.map(p => {
     const airId = linkId(p.air);
     let post = null;
     if(airId) post = POSTS.find(x => x.lid === airId) || null;
@@ -243,8 +261,21 @@ function buildItems(mo){
     if(p.air) status = "done";
     else if(p.date < todayD) status = "late";
     else status = "soon";
-    items.push({ kind: "plan", date: p.date, plan: p, post, status });
+    return { kind: "plan", date: p.date, plan: p, post, status };
   });
+  // Khớp dự phòng: bài CÓ Link Air nhưng link ở dạng không trích được mã (pfbid/share/fb.watch)
+  // → khớp với bài đăng thật cùng ngày theo độ giống tiêu đề. Bài KHÔNG có Link Air không bao giờ tự khớp.
+  built.forEach(it => {
+    if(it.post || !it.plan.air) return;
+    const cands = POSTS.filter(x => !usedPost.has(x.id) && x.date.getTime() === it.date.getTime());
+    if(cands.length === 1){ it.post = cands[0]; usedPost.add(cands[0].id); return; }
+    if(cands.length > 1){
+      let best = null, bestScore = 0;
+      cands.forEach(x => { const s = simScore(it.plan.topic, x.title); if(s > bestScore){ bestScore = s; best = x; } });
+      if(best && bestScore >= 0.35){ it.post = best; usedPost.add(best.id); }
+    }
+  });
+  items.push(...built);
   POSTS.filter(x => x.date.getFullYear() === mo.y && x.date.getMonth() === mo.m - 1 && !usedPost.has(x.id))
     .forEach(x => items.push({ kind: "out", date: x.date, post: x, status: "out" }));
   items.sort((a, b) => (a.date - b.date) || ((a.post && a.post.time || "99") < (b.post && b.post.time || "99") ? -1 : 1));
@@ -345,6 +376,9 @@ function showDetail(ix){
       `<span class="k">Người làm</span><span>${p.picD ? personChip(p.picD) : '<span style="color:var(--down);font-weight:600">⚠️ Chưa phân công người làm</span>'}</span>` +
       `<span class="k">Hình thức</span><span>${esc(p.form || "—")}</span></div>`;
     if(post) h += metricsHtml(post);
+    if(!post && it.status === "done"){
+      h += `<div class="hint">ℹ️ Bài đã đăng (có Link Air) nhưng link ở dạng rút gọn nên chưa khớp được số liệu tự động — bấm “Mở bài trên Facebook” để xem trực tiếp trên page.</div>`;
+    }
     if(!post && it.status !== "done"){
       const sameDay = POSTS.filter(x => x.date.getTime() === p.date.getTime());
       if(sameDay.length) h += `<div class="hint">ℹ️ Ngày này có ${sameDay.length} bài đã đăng thật trên page nhưng chưa khớp Link Air với bài này — nếu một trong số đó chính là bài này, hãy bổ sung Link Air vào Media Plan.</div>`;
