@@ -345,7 +345,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v47</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v48</b></div>
   </div>
 </aside>
 <main>
@@ -1253,7 +1253,7 @@ function setPlanMonth(key){
   renderPlan();
 }
 
-/* ===== Targets (Mẹ Mít: tab "Targets" trong Sheet cầu nối, đặt qua Apps Script; Kim Chi: tab "Targets" trong Sheet Kim Chi Dashboard, đặt/sửa trực tiếp trong Sheet) ===== */
+/* ===== Targets (cả 2 project đặt ngay trên dashboard qua Apps Script "Dong bo Dashboard": Mẹ Mít = action targets -> tab "Targets" của Sheet cầu nối; Kim Chi = action targets_kc -> tab "Targets" của Sheet Kim Chi Dashboard) ===== */
 let TARGETS = {};
 const TG_METS = [["Lượt xem","views"],["Tương tác","eng"],["Follow mới","follows"],["Người xem","reach"],["Số bài đăng","posts"]];
 function tgEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -1316,6 +1316,8 @@ function tgBars(key){
 }
 function tgNextKey(key){ const [y, m] = key.split("-").map(Number); const d = new Date(y, m, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function tgRoundTo(v, step){ return Math.max(0, Math.round(v / step) * step); }
+function tgStepFor(v, big){ return v >= big ? big : (v >= big / 10 ? big / 10 : Math.max(1, big / 100)); }
+function tgAdapt(v, big){ const x = v * 1.1; const s = tgStepFor(x, big); return Math.max(0, Math.round(x / s) * s); }
 function tgReportData(){
   if(typeof DAYS === "undefined" || !DAYS || !DAYS.length) return null;
   const keys = [...new Set(DAYS.filter(d => d.date).map(d => d.date.getFullYear() + "-" + String(d.date.getMonth() + 1).padStart(2, "0")))].sort();
@@ -1338,8 +1340,8 @@ function tgReportData(){
   const propKey = tgNextKey(last.key);
   const [py, pm] = propKey.split("-").map(Number);
   const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === py && d.getMonth() === pm - 1; }).length;
-  const prop = { views: tgRoundTo(base.views * f, 1000), eng: tgRoundTo(base.eng * f, 100),
-    follows: Math.max(1, tgRoundTo(base.follows * f, 5)), reach: tgRoundTo(base.reach * f, 1000),
+  const prop = { views: tgRoundTo(base.views * f, tgStepFor(base.views * f, 1000)), eng: tgRoundTo(base.eng * f, tgStepFor(base.eng * f, 100)),
+    follows: Math.max(1, tgRoundTo(base.follows * f, tgStepFor(base.follows * f, 5))), reach: tgRoundTo(base.reach * f, tgStepFor(base.reach * f, 1000)),
     posts: planN || tgRoundTo(last.posts * f, 1) };
   const lastDay = DAYS[DAYS.length - 1];
   return { rows, propKey, prop, dipped, lastLabel: lastDay && lastDay.label ? lastDay.label : "" };
@@ -1413,7 +1415,6 @@ function renderTargetPage(){
     }
   }
   tgApplyMode();
-  if(CUR.kcMode){ renderKcTargetPage(); return; }
   if(!monthEl.value){
     const curK = tgCurKey();
     monthEl.value = TARGETS[curK] ? curK : (TARGETS[tgNextKey(curK)] ? tgNextKey(curK) : curK);
@@ -1431,16 +1432,12 @@ function renderTargetPage(){
 }
 function tgApplyMode(){
   const kc = !!CUR.kcMode;
-  const rep = document.getElementById("tgReport");
-  if(rep && rep.parentElement) rep.parentElement.style.display = kc ? "none" : "";
-  ["tgSuggest", "tgSave"].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = kc ? "none" : ""; });
-  ["tgViews", "tgEng", "tgFollows", "tgReach", "tgPosts"].forEach(id => { const el = document.getElementById(id); const lb = el && el.parentElement; if(lb) lb.style.display = kc ? "none" : ""; });
-  const kb = document.getElementById("tgKcBox"); if(kb) kb.style.display = kc ? "" : "none";
+  const kb = document.getElementById("tgKcBox"); if(kb) kb.style.display = "none";
   const tt = document.getElementById("tgFormTitle");
-  if(tt) tt.textContent = kc ? "🎯 Target tháng — Nội Thất Kim Chi" : "🎯 Đặt target tháng — Quản Lí";
+  if(tt) tt.textContent = kc ? "🎯 Đặt target tháng — Nội Thất Kim Chi" : "🎯 Đặt target tháng — Quản Lí";
   const th = document.getElementById("tgFormHint");
   if(th) th.textContent = kc
-    ? "\"Số lượng sản phẩm\" = số bài đăng (content). Target của Nội Thất Kim Chi được lưu ở tab \"Targets\" trong Sheet Kim Chi Dashboard — đặt/sửa số trực tiếp trong Sheet theo hướng dẫn bên dưới; dashboard tự đọc số mới mỗi lần tải trang."
+    ? "\"Số lượng sản phẩm\" = số bài đăng (content). Target được lưu vào tab \"Targets\" trong Sheet Kim Chi Dashboard; trang Tổng quan, tiến độ và mail tuần sẽ đối chiếu theo đúng các số này."
     : "\"Số lượng sản phẩm\" = số bài đăng (content). Target được lưu vào tab \"Targets\" trong Sheet kế hoạch; trang Tổng quan và các báo cáo sẽ đối chiếu theo đúng các số này.";
 }
 function renderKcTargetPage(){
@@ -1469,7 +1466,6 @@ function renderKcTargetPage(){
   if(prog) prog.innerHTML = t ? tgBars(key) : '<div class="hint">Chưa đặt target tháng này nên chưa có tiến độ để đối chiếu.</div>';
 }
 function tgFillSuggest(){
-  if(CUR.kcMode){ const st = document.getElementById("tgStatus"); if(st) st.textContent = "Target của Nội Thất Kim Chi được đặt trong tab “Targets” của Sheet Kim Chi Dashboard — bấm nút mở Sheet trong khung phía trên để điền số."; return; }
   const key = tgKey();
   const [y, m] = key.split("-").map(Number);
   const prev = new Date(y, m - 2, 1);
@@ -1478,20 +1474,19 @@ function tgFillSuggest(){
   const r100 = v => Math.max(0, Math.round(v * 1.1 / 100) * 100);
   const r10 = v => Math.max(0, Math.round(v * 1.1 / 10) * 10);
   const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === y && d.getMonth() === m - 1; }).length;
-  tgSet("tgViews", r100(a.views)); tgSet("tgEng", r100(a.eng)); tgSet("tgFollows", Math.max(0, Math.round(a.follows * 1.1 / 5) * 5));
+  tgSet("tgViews", r100(a.views)); tgSet("tgEng", tgAdapt(a.eng, 100)); tgSet("tgFollows", tgAdapt(a.follows, 5));
   tgSet("tgReach", r100(a.reach)); tgSet("tgPosts", planN || Math.max(0, Math.round(a.posts * 1.1)));
   const st = document.getElementById("tgStatus");
   if(st) st.textContent = "Đã điền gợi ý theo thực tế tháng " + pk.slice(5) + "/" + pk.slice(0,4) + " (+10%) — kiểm tra lại rồi bấm Lưu target.";
 }
 async function tgSave(){
   const st = document.getElementById("tgStatus");
-  if(CUR.kcMode){ if(st) st.textContent = "Target của Nội Thất Kim Chi được đặt trong tab “Targets” của Sheet Kim Chi Dashboard — bấm nút mở Sheet trong khung phía trên để điền số."; return; }
   if(window.MMAuth && MMAuth.preview){ if(st) st.textContent = "Đang ở chế độ XEM THỬ — thoát xem thử mới lưu được."; return; }
   const key = tgKey();
   const vals = { views: tgGet("tgViews"), eng: tgGet("tgEng"), follows: tgGet("tgFollows"), reach: tgGet("tgReach"), posts: tgGet("tgPosts") };
   if(!vals.views && !vals.eng && !vals.follows && !vals.reach && !vals.posts){ if(st) st.textContent = "Chưa có số nào để lưu — nhập ít nhất một chỉ số."; return; }
   const by = (window.MMAuth && MMAuth.email) ? MMAuth.email : "Quản Lí";
-  const url = SYNC_WEBAPP + "?action=targets&month=" + encodeURIComponent(key) +
+  const url = SYNC_WEBAPP + "?action=" + (CUR.kcMode ? "targets_kc" : "targets") + "&month=" + encodeURIComponent(key) +
     "&views=" + vals.views + "&eng=" + vals.eng + "&follows=" + vals.follows + "&reach=" + vals.reach + "&posts=" + vals.posts +
     "&by=" + encodeURIComponent(by);
   if(st) st.textContent = "Đang lưu…";
@@ -1500,7 +1495,7 @@ async function tgSave(){
   for(let i = 0; i < 9; i++){
     await new Promise(r => setTimeout(r, 10000));
     try {
-      const rows = await fetchTabFrom(PLAN_ID, "Targets");
+      const rows = await fetchTabFrom(CUR.targetsId || PLAN_ID, "Targets");
       parseTargets(rows);
       if(TARGETS[key] && String(TARGETS[key].updated || "") !== before){
         if(st) st.textContent = "✅ Đã lưu target tháng " + key.slice(5) + "/" + key.slice(0,4) + " lúc " + TARGETS[key].updated + ".";
