@@ -1316,6 +1316,8 @@ function tgBars(key){
 }
 function tgNextKey(key){ const [y, m] = key.split("-").map(Number); const d = new Date(y, m, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function tgRoundTo(v, step){ return Math.max(0, Math.round(v / step) * step); }
+function tgStepFor(v, big){ return v >= big ? big : (v >= big / 10 ? big / 10 : Math.max(1, big / 100)); }
+function tgAdapt(v, big){ const x = v * 1.1; const s = tgStepFor(x, big); return Math.max(0, Math.round(x / s) * s); }
 function tgReportData(){
   if(typeof DAYS === "undefined" || !DAYS || !DAYS.length) return null;
   const keys = [...new Set(DAYS.filter(d => d.date).map(d => d.date.getFullYear() + "-" + String(d.date.getMonth() + 1).padStart(2, "0")))].sort();
@@ -1338,8 +1340,8 @@ function tgReportData(){
   const propKey = tgNextKey(last.key);
   const [py, pm] = propKey.split("-").map(Number);
   const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === py && d.getMonth() === pm - 1; }).length;
-  const prop = { views: tgRoundTo(base.views * f, 1000), eng: tgRoundTo(base.eng * f, 100),
-    follows: Math.max(1, tgRoundTo(base.follows * f, 5)), reach: tgRoundTo(base.reach * f, 1000),
+  const prop = { views: tgRoundTo(base.views * f, tgStepFor(base.views * f, 1000)), eng: tgRoundTo(base.eng * f, tgStepFor(base.eng * f, 100)),
+    follows: Math.max(1, tgRoundTo(base.follows * f, tgStepFor(base.follows * f, 5))), reach: tgRoundTo(base.reach * f, tgStepFor(base.reach * f, 1000)),
     posts: planN || tgRoundTo(last.posts * f, 1) };
   const lastDay = DAYS[DAYS.length - 1];
   return { rows, propKey, prop, dipped, lastLabel: lastDay && lastDay.label ? lastDay.label : "" };
@@ -1472,7 +1474,7 @@ function tgFillSuggest(){
   const r100 = v => Math.max(0, Math.round(v * 1.1 / 100) * 100);
   const r10 = v => Math.max(0, Math.round(v * 1.1 / 10) * 10);
   const planN = PLAN_ALL.filter(r => { const d = parsePostDate(r.date); return d && d.getFullYear() === y && d.getMonth() === m - 1; }).length;
-  tgSet("tgViews", r100(a.views)); tgSet("tgEng", r100(a.eng)); tgSet("tgFollows", Math.max(0, Math.round(a.follows * 1.1 / 5) * 5));
+  tgSet("tgViews", r100(a.views)); tgSet("tgEng", tgAdapt(a.eng, 100)); tgSet("tgFollows", tgAdapt(a.follows, 5));
   tgSet("tgReach", r100(a.reach)); tgSet("tgPosts", planN || Math.max(0, Math.round(a.posts * 1.1)));
   const st = document.getElementById("tgStatus");
   if(st) st.textContent = "Đã điền gợi ý theo thực tế tháng " + pk.slice(5) + "/" + pk.slice(0,4) + " (+10%) — kiểm tra lại rồi bấm Lưu target.";
