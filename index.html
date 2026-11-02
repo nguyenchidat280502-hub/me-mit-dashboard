@@ -281,6 +281,40 @@
   .tgtick{position:absolute;top:-3px;width:2px;height:16px;background:var(--txt);opacity:.55;border-radius:2px}
   .tgrow-sub{color:var(--mut);font-size:12.5px;margin-top:4px}
   .st-ok{color:#16a34a} .st-warn{color:#d97706} .st-bad{color:#dc2626}
+  /* --- 👤 Việc theo nhân sự v44 --- */
+  .sw-toggle{display:flex;gap:8px;flex-wrap:wrap}
+  .sw-pchip{cursor:pointer;border:2px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:700;color:var(--txt);display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+  .sw-pchip .dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+  .sw-pchip.active{border-color:var(--acc);background:var(--track)}
+  .sw-pchip .cnt{background:var(--track);color:var(--lab);font-size:11.5px;padding:1px 7px;border-radius:999px}
+  .sw-pchip.active .cnt{background:var(--card)}
+  .sw-note{margin-top:12px;background:var(--kpi);border:1px dashed var(--mut);color:var(--lab);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.55}
+  .sw-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media (max-width:560px){ .sw-stats{grid-template-columns:repeat(2,1fr)} }
+  .sw-stat{background:var(--kpi);border:1px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center}
+  .sw-stat .n{font-size:24px;font-weight:800}
+  .sw-stat .l{font-size:12px;color:var(--mut);margin-top:3px}
+  .sw-stat.red .n{color:#b91c1c} .sw-stat.green .n{color:#15803d}
+  html[data-theme="dark"] .sw-stat.red .n{color:#f87171} html[data-theme="dark"] .sw-stat.green .n{color:#4ade80}
+  .sw-task{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px}
+  .sw-task .d1{font-weight:700;font-size:14.5px}
+  .sw-task .topic{font-size:14px;margin-top:3px;line-height:1.5}
+  .sw-task .partner{font-size:13px;color:var(--lab);margin-top:4px}
+  .sw-chips{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .sw-chip{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+  .sw-chip.done{background:#dcfce7;color:#15803d}
+  .sw-chip.late{background:#fee2e2;color:#b91c1c}
+  .sw-chip.warn{background:#fef3c7;color:#b45309}
+  .sw-chip.miss{background:#ffedd5;color:#c2410c}
+  .sw-chip.dead{background:#e5e7eb;color:#4b5563}
+  html[data-theme="dark"] .sw-chip.done{background:rgba(22,163,74,.32);color:#4ade80}
+  html[data-theme="dark"] .sw-chip.late{background:rgba(220,38,38,.32);color:#f87171}
+  html[data-theme="dark"] .sw-chip.warn{background:rgba(217,119,6,.32);color:#fbbf24}
+  html[data-theme="dark"] .sw-chip.miss{background:rgba(234,88,12,.32);color:#fdba74}
+  html[data-theme="dark"] .sw-chip.dead{background:rgba(100,116,139,.35);color:#cbd5e1}
+  .sw-airlink{font-size:12.5px;font-weight:700;color:var(--acc);text-decoration:none}
+  .sw-airlink:hover{text-decoration:underline}
+  .sw-empty{color:var(--mut);font-size:13.5px;font-style:italic;padding:6px 0 2px}
 </style>
 <script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
@@ -295,13 +329,14 @@
     <button data-page="page-content">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
+    <button data-page="page-staff" id="navStaff" style="display:none">👤 Việc theo nhân sự</button>
     <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
     <button data-page="page-target" id="navTarget" style="display:none">🎯 Target</button>
   </nav>
   <div style="padding:12px 14px">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v43</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v44</b></div>
   </div>
 </aside>
 <main>
@@ -524,6 +559,10 @@
 
  <section class="page" id="page-mine">
   <div id="mineBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
+ </section>
+
+ <section class="page" id="page-staff">
+  <div id="staffBox"><div class="card"><div class="loading">Đang tải…</div></div></div>
  </section>
 
  <section class="page" id="page-target">
@@ -1464,6 +1503,7 @@ async function initPlanPages(){
     document.getElementById("lcSearch").addEventListener("input", renderLC);
     renderLC(); renderMatrix(); renderDeadlineRadar(); renderWeek();
     renderTargetStrip(); renderTargetPage();
+    try { renderStaff(); } catch(e){}
   }catch(e){
     document.getElementById("matrixBox").innerHTML =
       '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
@@ -1669,7 +1709,7 @@ document.addEventListener("click", e => {
   const r = findPlanRow(b.getAttribute("data-tab"), b.getAttribute("data-date"), b.getAttribute("data-topic"));
   if(r) openSubmitLink(r, b.getAttribute("data-submit-link"));
 });
-window.addEventListener("mmauth", () => { try { renderPlan(); renderWeek(); renderDeadlineRadar(); } catch(e){} });
+window.addEventListener("mmauth", () => { try { renderPlan(); renderWeek(); renderDeadlineRadar(); } catch(e){} try { renderStaff(); } catch(e){} });
 (function(){
   const c = document.getElementById("lmClose"); if(c) c.addEventListener("click", closeSubmitLink);
   const x = document.getElementById("lmCancel"); if(x) x.addEventListener("click", closeSubmitLink);
@@ -1686,6 +1726,150 @@ document.getElementById("sidenav").addEventListener("click", e => {
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("show", p.id === btn.dataset.page));
   window.dispatchEvent(new Event("resize"));
 });
+/* ===== 👤 Việc theo nhân sự (v44 — chỉ Quản Lí; port từ demo-staff-work.html) ===== */
+const STAFF_PEOPLE = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
+const SW_DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+let STAFF_MONTH = null, STAFF_PERSON = "Huy";
+function swEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+const swNorm = s => (s || "").trim().toLowerCase();
+function swCurKey(){ const n = new Date(); return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0"); }
+function swToday0(){ const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+function swWeekRange(){
+  const t = swToday0(); const dow = (t.getDay() + 6) % 7; // Mon=0
+  const mon = new Date(t); mon.setDate(t.getDate() - dow);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23, 59, 59, 999);
+  return [mon, sun];
+}
+function swStatus(t){
+  const d = parsePostDate(t.date);
+  return { d: d, posted: !!t.air, late: !t.air && !!d && d < swToday0() };
+}
+function swChips(t, role, frozen){
+  const st = swStatus(t);
+  const today = swToday0();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  let h = "";
+  if(st.posted){
+    h += '<span class="sw-chip done">ĐÃ ĐĂNG</span>';
+    if(isUrl(t.air)) h += ' <a class="sw-airlink" href="' + swEsc(t.air) + '" target="_blank" rel="noopener">🔗 Link bài</a>';
+  } else if(frozen && st.late){
+    h += '<span class="sw-chip dead">ĐÃ HỦY · ĐÓNG BĂNG</span>';
+  } else if(st.late){
+    h += '<span class="sw-chip late">TRỄ</span>';
+  } else if(st.d && sameDay(st.d, today)){
+    h += '<span class="sw-chip warn">HÔM NAY</span>';
+  } else if(st.d && sameDay(st.d, tomorrow)){
+    h += '<span class="sw-chip warn">NGÀY MAI</span>';
+  } else {
+    h += '<span class="sw-chip warn">CHƯA ĐĂNG</span>';
+  }
+  if(!st.posted){
+    if(!t.brief) h += ' <span class="sw-chip miss">CHƯA CÓ BRIEF</span>';
+    if(role === "brief" && !t.picD) h += ' <span class="sw-chip miss">CHƯA CÓ NGƯỜI LÀM</span>';
+    if(role === "maker" && !t.picC) h += ' <span class="sw-chip miss">CHƯA CÓ NGƯỜI BRIEF</span>';
+  }
+  return h;
+}
+function swTaskCard(t, role, frozen){
+  const st = swStatus(t);
+  const dateTxt = st.d ? (SW_DOW[st.d.getDay()] + " · " + String(st.d.getDate()).padStart(2, "0") + "/" + String(st.d.getMonth() + 1).padStart(2, "0")) : (t.date || "Chưa có ngày");
+  const partner = role === "brief"
+    ? "Người làm: <b>" + (t.picD ? swEsc(t.picD) : "— chưa phân công") + "</b>"
+    : "Người brief: <b>" + (t.picC ? swEsc(t.picC) : "— chưa phân công") + "</b>";
+  return '<div class="sw-task"><div class="d1">' + swEsc(dateTxt) + (t.form ? " — " + swEsc(t.form) : "") + '</div>' +
+    '<div class="topic">' + swEsc(t.topic) + '</div>' +
+    '<div class="partner">' + partner + '</div>' +
+    '<div class="sw-chips">' + swChips(t, role, frozen) + '</div></div>';
+}
+function swSort(tasks){
+  return tasks.slice().sort((a, b) => {
+    const sa = swStatus(a), sb = swStatus(b);
+    const la = sa.late ? 0 : 1, lb = sb.late ? 0 : 1;
+    if(la !== lb) return la - lb;
+    const da = sa.d ? sa.d.getTime() : Infinity, db = sb.d ? sb.d.getTime() : Infinity;
+    return da - db;
+  });
+}
+function renderStaff(){
+  const box = document.getElementById("staffBox");
+  if(!box) return;
+  const M = window.MMAuth;
+  const er = M ? M.effectiveRole : "anon";
+  if(er !== "owner" && er !== "manager"){
+    box.innerHTML = '<div class="card"><h2>👤 Việc theo nhân sự</h2><div class="hint">Trang này chỉ dành cho Quản Lí.</div></div>';
+    return;
+  }
+  if(!PLAN_MONTHS.length){
+    box.innerHTML = '<div class="card"><h2>👤 Việc theo nhân sự</h2><div class="loading">Đang tải dữ liệu Media Plan…</div></div>';
+    return;
+  }
+  const curKey = swCurKey();
+  if(!STAFF_MONTH || !PLAN_MONTHS.some(m => m.key === STAFF_MONTH)){
+    const def = PLAN_MONTHS.find(m => m.key === curKey) || PLAN_MONTHS[PLAN_MONTHS.length - 1];
+    STAFF_MONTH = def.key;
+  }
+  const month = PLAN_MONTHS.find(m => m.key === STAFF_MONTH);
+  const rows = month.rows || [];
+  const frozen = month.key !== curKey;
+  const toggle = PLAN_MONTHS.map(m => {
+    const label = m.chip + (m.key === curKey ? " (hiện tại)" : " — đã đóng băng");
+    return '<button type="button" class="chip' + (m.key === STAFF_MONTH ? " active" : "") + '" data-sw-month="' + m.key + '">' + swEsc(label) + '</button>';
+  }).join("");
+  const people = STAFF_PEOPLE.map(p => {
+    const n = rows.filter(r => swNorm(r.picC) === swNorm(p) || swNorm(r.picD) === swNorm(p)).length;
+    return '<button type="button" class="sw-pchip' + (p === STAFF_PERSON ? " active" : "") + '" data-sw-person="' + swEsc(p) + '">' +
+      '<span class="dot" style="background:' + (PERSON_COLORS[swNorm(p)] || "#e5e7eb") + '"></span>' + swEsc(p) +
+      ' <span class="cnt">' + n + ' việc</span></button>';
+  }).join("");
+  const mine = rows.filter(r => swNorm(r.picC) === swNorm(STAFF_PERSON) || swNorm(r.picD) === swNorm(STAFF_PERSON));
+  const briefTasks = rows.filter(r => swNorm(r.picC) === swNorm(STAFF_PERSON));
+  const makerTasks = rows.filter(r => swNorm(r.picD) === swNorm(STAFF_PERSON));
+  const wk = swWeekRange(), wMon = wk[0], wSun = wk[1];
+  const posted = mine.filter(t => !!t.air).length;
+  const lateN = mine.filter(t => swStatus(t).late).length;
+  const weekN = mine.filter(t => { const d = parsePostDate(t.date); return d && d >= wMon && d <= wSun; }).length;
+  let h = '<div class="card"><h2>👤 Việc theo nhân sự — ' + swEsc(STAFF_PERSON) + ' · ' + swEsc(month.label) + '</h2>' +
+    '<div class="hint" style="margin:0 0 10px">Tab riêng cho Leader: xem toàn bộ việc brief + việc làm của từng nhân sự trong tháng — ai đang trễ, bài nào chưa có brief, bài nào đã đăng. Đã đăng := bài có Link Air. PIC Content = người brief · PIC Design = người làm.</div>' +
+    '<div style="font-weight:700;font-size:13.5px;margin:2px 0 6px">📅 Chọn tháng</div>' +
+    '<div class="sw-toggle">' + toggle + '</div>' +
+    (frozen ? '<div class="sw-note">❄️ <b>' + swEsc(month.chip) + ' đã đóng băng</b>: các bài chưa đăng coi như <b>đã hủy</b>, không nhắc nữa — trang này chỉ để xem lại.</div>' : "") +
+    '<div style="font-weight:700;font-size:13.5px;margin:14px 0 6px">🧑‍🤝‍🧑 Chọn nhân sự</div>' +
+    '<div class="sw-toggle">' + people + '</div>' +
+    '<div class="sw-stats" style="margin-top:14px">' +
+    '<div class="sw-stat"><div class="n">' + mine.length + '</div><div class="l">Tổng việc</div></div>' +
+    '<div class="sw-stat green"><div class="n">' + posted + '</div><div class="l">Đã đăng</div></div>' +
+    '<div class="sw-stat red"><div class="n">' + lateN + '</div><div class="l">' + (frozen ? "Chưa đăng (đã hủy)" : "Đang trễ") + '</div></div>' +
+    '<div class="sw-stat"><div class="n">' + weekN + '</div><div class="l">Việc tuần này</div></div>' +
+    '</div></div>';
+  if(briefTasks.length){
+    h += '<div class="card"><h2>✍️ Việc brief (' + briefTasks.length + ')</h2>' +
+      swSort(briefTasks).map(t => swTaskCard(t, "brief", frozen)).join("") + '</div>';
+  }
+  if(makerTasks.length){
+    h += '<div class="card"><h2>🛠️ Việc làm (' + makerTasks.length + ')</h2>' +
+      swSort(makerTasks).map(t => swTaskCard(t, "maker", frozen)).join("") + '</div>';
+  }
+  if(!briefTasks.length && !makerTasks.length){
+    h += '<div class="card"><div class="sw-empty">' + swEsc(STAFF_PERSON) + ' không có việc nào trong ' + swEsc(month.label) + '.</div></div>';
+  }
+  box.innerHTML = h;
+}
+(function(){
+  const box = document.getElementById("staffBox");
+  if(box) box.addEventListener("click", e => {
+    const mb = e.target.closest("button[data-sw-month]");
+    if(mb){ STAFF_MONTH = mb.getAttribute("data-sw-month"); renderStaff(); return; }
+    const pb = e.target.closest("button[data-sw-person]");
+    if(pb){ STAFF_PERSON = pb.getAttribute("data-sw-person"); renderStaff(); }
+  });
+  const nav = document.getElementById("sidenav");
+  if(nav) nav.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-page]");
+    if(btn && btn.dataset.page === "page-staff") setTimeout(renderStaff, 0);
+  });
+})();
+
 initPlanPages();
 (function(){
   const m = document.getElementById("tgMonth");
@@ -2426,6 +2610,8 @@ function calShowDetail(ix){
     if(nav) nav.style.display = (effRole() === "owner") ? "" : "none";
     var nt = document.getElementById("navTarget");
     if(nt) nt.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
+    var ns = document.getElementById("navStaff");
+    if(ns) ns.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
   }
   function emit(){
     updateAdminNav();
