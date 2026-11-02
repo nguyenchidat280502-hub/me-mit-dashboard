@@ -345,7 +345,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v45</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v45.1</b></div>
   </div>
 </aside>
 <main>
@@ -667,14 +667,14 @@
 const PROJECTS = {
   memit: { key: "memit", label: "Mẹ Mít", brand: "MẸ MÍT", pageName: "NGŨ CỐC MẸ MÍT", pageId: "224645764799502",
     sheetId: "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM", planId: "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE",
-    followersSnapshot: 4859, staffCol: "staff", hasTargets: true, hasList: true, hasSubmit: true, syncWebapp: true,
+    followersSnapshot: 4859, staffCol: "staff", kcMode: false, hasTargets: true, hasList: true, hasSubmit: true, syncWebapp: true,
     planSrc: "Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút.",
     planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN THÁNG 10" },
                 { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN THÁNG 11" } ],
     planCols: "memit" },
   kimchi: { key: "kimchi", label: "Nội Thất", brand: "NỘI THẤT KIM CHI", pageName: "Siêu Thị Nội Thất Kim Chi", pageId: "104944459206545",
     sheetId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", planId: "1TNBMZh4vPJGZR2ERfMFh4PHNVsx7C--dYELC5X5J1UU",
-    followersSnapshot: 417, staffCol: "staff_kc", hasTargets: false, hasList: false, hasSubmit: false, syncWebapp: false,
+    followersSnapshot: 417, staffCol: "staff", kcMode: true, hasTargets: false, hasList: false, hasSubmit: false, syncWebapp: false,
     planSrc: "Dữ liệu đọc trực tiếp từ Sheet kế hoạch “Media Plan_Nội thất Kim Chi” — sửa trong Sheet là dashboard cập nhật theo.",
     planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN T10" },
                 { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN T11" } ],
@@ -2901,7 +2901,8 @@ function calShowDetail(ix){
         '<button class="chip" type="submit">Lưu tài khoản</button>' +
       '</form>' +
       '<div id="admStatus" style="font-size:13px;min-height:18px"></div>' +
-      '<div class="hint">Chỉ chủ kênh mới thêm/sửa/xoá được tài khoản. Thay đổi có hiệu lực ở lần đăng nhập kế tiếp của người đó (hoặc khi họ tải lại trang).</div>';
+      '<div class="hint">Chỉ chủ kênh mới thêm/sửa/xoá được tài khoản. Thay đổi có hiệu lực ở lần đăng nhập kế tiếp của người đó (hoặc khi họ tải lại trang).</div>' +
+      (CUR.kcMode ? '<div class="hint">Project Nội Thất dùng chung hồ sơ tài khoản với Mẹ Mít: cấp quyền ở đây chỉ thêm/gỡ quyền xem Nội Thất, không đổi quyền Mẹ Mít của họ. Người không có quyền Nội Thất (kể cả Quản Lí của Mẹ Mít) sẽ không thấy project này.</div>' : '');
 
     document.getElementById("admForm").addEventListener("submit", function(ev){
       ev.preventDefault();
@@ -2912,11 +2913,10 @@ function calShowDetail(ix){
       if(!email || email.indexOf("@") < 0){ admStatus("Email chưa hợp lệ.", true); return; }
       if(email === OWNER_EMAIL){ admStatus("Đây là email của chủ kênh — tài khoản gốc luôn là Quản Lí, không cần thêm.", true); return; }
       admStatus("Đang lưu…", false);
-      db.collection(CUR.staffCol).doc(email).set({
-        name: name, pic: pic, role: role,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: OWNER_EMAIL
-      }, { merge: true }).then(function(){
+      var _payload = CUR.kcMode
+        ? { kc: { name: name, pic: pic, role: role, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: OWNER_EMAIL } }
+        : { name: name, pic: pic, role: role, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: OWNER_EMAIL };
+      db.collection(CUR.staffCol).doc(email).set(_payload, { merge: true }).then(function(){
         admStatus("Đã lưu tài khoản " + email + ".", false);
         document.getElementById("admForm").reset();
       }).catch(function(e){ console.warn("staff set", e); admStatus(fsErr(e), true); });
@@ -2928,11 +2928,10 @@ function calShowDetail(ix){
       if(!sel) return;
       var email = sel.getAttribute("data-role-for");
       admStatus("Đang đổi cấp cho " + email + "…", false);
-      db.collection(CUR.staffCol).doc(email).set({
-        role: sel.value,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: OWNER_EMAIL
-      }, { merge: true }).then(function(){
+      var _rp = CUR.kcMode
+        ? { kc: { role: sel.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: OWNER_EMAIL } }
+        : { role: sel.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: OWNER_EMAIL };
+      db.collection(CUR.staffCol).doc(email).set(_rp, { merge: true }).then(function(){
         admStatus("Đã đổi cấp của " + email + " thành " + (sel.value === "manager" ? "Quản Lí" : "Nhân viên") + ".", false);
       }).catch(function(e){ console.warn("staff role", e); admStatus(fsErr(e), true); });
     });
@@ -2940,6 +2939,13 @@ function calShowDetail(ix){
       var btn = ev.target.closest("button[data-del-for]");
       if(!btn) return;
       var email = btn.getAttribute("data-del-for");
+      if(CUR.kcMode){
+        if(!confirm("Gỡ quyền Nội Thất của " + email + "? Tài khoản Mẹ Mít của họ không bị ảnh hưởng.")) return;
+        db.collection(CUR.staffCol).doc(email).update({ kc: firebase.firestore.FieldValue.delete() }).then(function(){
+          admStatus("Đã gỡ quyền Nội Thất của " + email + ".", false);
+        }).catch(function(e){ console.warn("staff kc delete", e); admStatus(fsErr(e), true); });
+        return;
+      }
       if(!confirm("Xoá tài khoản " + email + " khỏi danh sách phân quyền?")) return;
       db.collection(CUR.staffCol).doc(email).delete().then(function(){
         admStatus("Đã xoá tài khoản " + email + ".", false);
@@ -2948,7 +2954,10 @@ function calShowDetail(ix){
 
     adminUnsub = db.collection(CUR.staffCol).onSnapshot(function(snap){
       var docs = [];
-      snap.forEach(function(d){ var v = d.data() || {}; docs.push({ email: d.id, name: v.name || "", pic: v.pic || "", role: v.role === "manager" ? "manager" : "staff" }); });
+      snap.forEach(function(d){ var v = d.data() || {};
+        if(CUR.kcMode){ if(v.kc && v.kc.role) docs.push({ email: d.id, name: v.kc.name || v.name || "", pic: v.kc.pic || "", role: v.kc.role === "manager" ? "manager" : "staff" }); }
+        else if(v.role) docs.push({ email: d.id, name: v.name || "", pic: v.pic || "", role: v.role === "manager" ? "manager" : "staff" });
+      });
       docs.sort(function(a, b){ return (a.name || a.email).localeCompare(b.name || b.email, "vi"); });
       var empty = document.getElementById("staffEmpty");
       if(empty) empty.style.display = docs.length ? "none" : "";
@@ -3000,13 +3009,10 @@ function calShowDetail(ix){
           finishAuth();
           return;
         }
-        db.collection("staff_kc").doc(state.email).get().then(function(d2){
-          if(d2.exists){
-            var v = d2.data() || {};
-            state.kc = { role: (v.role === "manager") ? "manager" : "staff", pic: v.pic || "", name: v.name || "" };
-          } else state.kc = null;
-          finishAuth();
-        }).catch(function(){ state.kc = null; finishAuth(); });
+        var kv = (state._raw && state._raw.kc) ? state._raw.kc : null;
+        if(kv && kv.role) state.kc = { role: (kv.role === "manager") ? "manager" : "staff", pic: kv.pic || "", name: kv.name || "" };
+        else state.kc = null;
+        finishAuth();
       };
       if(state.email === OWNER_EMAIL){
         state.role = "owner"; state.pic = ""; state.staffName = "";
@@ -3017,17 +3023,20 @@ function calShowDetail(ix){
       db.collection("staff").doc(state.email).get().then(function(doc){
         if(doc.exists){
           var d = doc.data() || {};
-          state.role = (d.role === "manager") ? "manager" : "staff";
+          state._raw = d;
+          state.role = (d.role === "manager") ? "manager" : ((d.role === "staff") ? "staff" : "guest");
           state.pic = d.pic || "";
           state.staffName = d.name || "";
         } else {
           state.role = "guest"; state.pic = ""; state.staffName = "";
+          state._raw = null;
         }
         state.memit = { role: state.role, pic: state.pic, name: state.staffName };
         finishWithKc();
       }).catch(function(e){
         console.warn("staff doc read failed — treating as guest", e);
         state.role = "guest"; state.pic = ""; state.staffName = "";
+        state._raw = null;
         state.memit = { role: "guest", pic: "", name: "" };
         finishWithKc();
       });
