@@ -1641,7 +1641,7 @@ async function manualSync(){
   st.textContent = "Đang gửi yêu cầu đồng bộ…";
   const iv = setInterval(() => { if(st.dataset.done !== "1") st.textContent = "⏳ Đang đồng bộ " + (kc ? "Nội Thất Kim Chi" : "Mẹ Mít") + "… đã chờ " + fmtWait(Date.now() - t0); }, 500);
   try { await fetch(SYNC_WEBAPP + (kc ? "?action=sync_kc" : ""), { mode: "no-cors" }); } catch(e){}
-  const deadline = Date.now() + 240000;
+  const deadline = Date.now() + 360000;
   while(Date.now() < deadline){
     await new Promise(r => setTimeout(r, 10000));
     try {
@@ -1656,7 +1656,7 @@ async function manualSync(){
     } catch(e){}
   }
   st.dataset.done = "1"; clearInterval(iv);
-  st.textContent = "Chưa thấy tem hoàn tất sau 4 phút. Dữ liệu vẫn tự đồng bộ mỗi 30 phút — thử tải lại trang sau ít phút.";
+  st.textContent = "Chưa thấy tem hoàn tất sau 6 phút. Dữ liệu vẫn tự đồng bộ mỗi 30 phút — thử tải lại trang sau ít phút.";
   btn.disabled = false;
 }
 (function(){ const b = document.getElementById("syncNowBtn"); if(b) b.addEventListener("click", manualSync); })();
@@ -1978,7 +1978,7 @@ async function swDoRemind(pic){
   REMIND = { pic: pic, proj: CUR.key, text: "Đang gửi yêu cầu nhắc việc…" };
   renderStaff();
   try { await fetch(SYNC_WEBAPP + "?action=" + (CUR.kcMode ? "remind_kc" : "remind") + "&pic=" + encodeURIComponent(pic) + "&by=" + encodeURIComponent(by), { mode: "no-cors" }); } catch(e){}
-  const deadline = Date.now() + 240000;
+  const deadline = Date.now() + 360000;
   while(Date.now() < deadline){
     REMIND.text = "⏳ Đã ghi yêu cầu — hệ thống đang soạn + gửi mail… đã chờ " + fmtWait(Date.now() - t0);
     renderStaff();
@@ -1996,7 +1996,7 @@ async function swDoRemind(pic){
       }
     } catch(e){}
   }
-  REMIND.text = "Chưa thấy kết quả sau 4 phút — yêu cầu đã ghi lại, kiểm tra lại sau ít phút.";
+  REMIND.text = "Chưa thấy kết quả sau 6 phút — yêu cầu đã ghi lại, kiểm tra lại sau ít phút.";
   renderStaff();
 }
 
@@ -2883,7 +2883,7 @@ function calShowDetail(ix){
     document.title = "Dashboard Fanpage " + CUR.pageName;
     var fp = document.getElementById("fpLink"); if(fp) fp.href = "https://www.facebook.com/" + CUR.pageId;
     var sl = document.getElementById("sheetLink"); if(sl) sl.href = "https://docs.google.com/spreadsheets/d/" + CUR.sheetId + "/edit";
-    var sb = document.getElementById("syncBox"); if(sb) sb.style.display = CUR.syncWebapp ? "" : "none";
+    var sb = document.getElementById("syncBox"); if(sb) sb.style.display = "";
     var nc = document.getElementById("navContent"); if(nc) nc.style.display = CUR.hasList ? "" : "none";
     var pst = document.getElementById("planSrcTxt"); if(pst) pst.textContent = CUR.planSrc || "";
     paintProjSwitch();
