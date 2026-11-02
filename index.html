@@ -349,7 +349,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v50</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v51</b></div>
   </div>
 </aside>
 <main>
@@ -679,7 +679,7 @@ const PROJECTS = {
     planCols: "memit" },
   kimchi: { key: "kimchi", label: "Nội Thất", brand: "NỘI THẤT KIM CHI", pageName: "Siêu Thị Nội Thất Kim Chi", pageId: "104944459206545",
     sheetId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", planId: "1TNBMZh4vPJGZR2ERfMFh4PHNVsx7C--dYELC5X5J1UU",
-    followersSnapshot: 417, staffCol: "staff", kcMode: true, hasTargets: true, targetsId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", targetsGid: 2010191074, hasList: false, hasSubmit: false, syncWebapp: false,
+    followersSnapshot: 417, staffCol: "staff", kcMode: true, hasTargets: true, targetsId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", targetsGid: 2010191074, hasList: false, hasSubmit: true, syncWebapp: false,
     planSrc: "Dữ liệu đọc trực tiếp từ Sheet kế hoạch “Media Plan_Nội thất Kim Chi” — sửa trong Sheet là dashboard cập nhật theo.",
     planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN T10" },
                 { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN T11" } ],
@@ -1542,11 +1542,15 @@ async function initPlanPages(){
     _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "List of Content").catch(() => []) : Promise.resolve([]));
     _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "Matrix Control").catch(() => []) : Promise.resolve([]));
     _jobs.push(CUR.hasTargets ? fetchTabFrom(CUR.targetsId || PLAN_ID, "Targets").catch(() => []) : Promise.resolve([]));
-    _jobs.push(CUR.hasSubmit ? fetchTabFrom(PLAN_ID, "Link nhân viên gửi").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.hasSubmit ? fetchTabFrom(CUR.kcMode ? CUR.sheetId : PLAN_ID, "Link nhân viên gửi").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.kcMode ? fetchTabFrom(CUR.sheetId, "Plan Links").catch(() => []) : Promise.resolve([]));
     const _res = await Promise.all(_jobs);
     const planRowsArr = _res.slice(0, CUR.planTabs.length);
     const lcRows = _res[CUR.planTabs.length], mxRows = _res[CUR.planTabs.length + 1];
     const tgRows = _res[CUR.planTabs.length + 2], ovRows = _res[CUR.planTabs.length + 3];
+    const plRows = _res[CUR.planTabs.length + 4];
+    const PLANLINKS = {};
+    (plRows || []).forEach(r => { const u1 = cell(r,3), u2 = cell(r,4); if(u1 || u2) PLANLINKS[(cell(r,0) || "") + "|" + ovNorm(cell(r,2))] = { b: u1, d: u2 }; });
     parseOverlay(ovRows);
     parseTargets(tgRows);
     if(!CUR.syncWebapp){
@@ -1565,12 +1569,14 @@ async function initPlanPages(){
     const mapPlan = (rows, tabName) => rows.filter(r => cell(r,6)).map(r => {
       if(CUR.planCols === "kimchi"){
         const _d = parseDay(cell(r,1));
+        const _pl = PLANLINKS[tabName + "|" + ovNorm(cell(r,6))] || {};
         return {
           dow: _d ? DOWVN[_d.getDay()] : "", date: cell(r,1), hour: cell(r,2), form: cell(r,3),
           plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: "",
           picC: cell(r,7), caption: cell(r,8), picD: cell(r,9), brief: cell(r,10),
           linkDesign: cell(r,11), air: "", check: cell(r,14),
           tab: tabName, briefOv: false, airOv: false,
+          briefUrl: _pl.b || "", designUrl: _pl.d || "",
         };
       }
       return {
@@ -1734,7 +1740,7 @@ function cellEditBtn(r, type){
 window.cellEditBtn = cellEditBtn;
 // Ô Brief trong Media Plan: chính ô này là điểm nộp link Brief.
 function briefCellHtml(r){
-  if(r.brief) return `${linkOr(r.brief, "Brief")}${r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : ""}${isMgrRole() ? " " + cellEditBtn(r, "Brief") : ""}`;
+  if(r.brief){ const _bu = isUrl(r.brief) ? r.brief : (r.briefUrl || r.brief); return `${linkOr(_bu, "Brief")}${r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : ""}${isMgrRole() ? " " + cellEditBtn(r, "Brief") : ""}`; }
   if(canSubmitType(r, "Brief")) return cellSubmitBtn(r, "Brief");
   return linkOr(r.brief, "Brief");
 }
@@ -1790,12 +1796,17 @@ async function lmSubmit(){
   const link = document.getElementById("lmInput").value.trim();
   const err = document.getElementById("lmError"), ok = document.getElementById("lmOk");
   err.textContent = ""; ok.textContent = "";
-  if(!/(facebook\.com|fb\.watch|fb\.com)/i.test(link)){
-    err.textContent = "Link chưa hợp lệ — hãy dán link bài trên Facebook (chứa facebook.com hoặc fb.watch).";
+  if(type === "Link Air" || !CUR.kcMode){
+    if(!/(facebook\.com|fb\.watch|fb\.com)/i.test(link)){
+      err.textContent = "Link chưa hợp lệ — hãy dán link bài trên Facebook (chứa facebook.com hoặc fb.watch).";
+      return;
+    }
+  } else if(!/^https?:\/\//i.test(link)){
+    err.textContent = "Link chưa hợp lệ — hãy dán link tài liệu (bắt đầu bằng http/https).";
     return;
   }
   const a = ovAuth();
-  const url = SYNC_WEBAPP + "?action=submit" +
+  const url = SYNC_WEBAPP + "?action=" + (CUR.kcMode ? "submit_kc" : "submit") +
     "&tab=" + encodeURIComponent(LM_ROW.tab || "") +
     "&date=" + encodeURIComponent(LM_ROW.date || "") +
     "&topic=" + encodeURIComponent(LM_ROW.topic || "") +
@@ -2635,7 +2646,8 @@ function calShowDetail(ix){
     }
     const link = (post && post.link) || p.air;
     if(link) h += `<a class="cal-btn" href="${calEsc(link)}" target="_blank" rel="noopener">🔗 Mở bài trên Facebook</a>`;
-    if(p.brief && /^https?:\/\//i.test(p.brief)) h += `<a class="cal-btn ghost" href="${calEsc(p.brief)}" target="_blank" rel="noopener">📄 Mở Brief</a>`;
+    const _cb = /^https?:\/\//i.test(p.brief || "") ? p.brief : (p.briefUrl || "");
+    if(_cb) h += `<a class="cal-btn ghost" href="${calEsc(_cb)}" target="_blank" rel="noopener">📄 Mở Brief</a>`;
     if(post && post.cls.key === "video") h += `<div class="hint">🎬 Muốn xem biểu đồ giữ chân chi tiết: mở tab 🎬 Phân tích content và bấm vào video này.</div>`;
     box.innerHTML = h;
   }
@@ -2920,6 +2932,31 @@ function calShowDetail(ix){
   window.MMSetProject = setProject;
 
   // ---------- Trang "Việc của tôi" ----------
+  var MINE_FILTER = "all";
+  function mineInFilter(r){
+    if(MINE_FILTER === "all") return true;
+    var d = (typeof parsePostDate === "function") ? parsePostDate(r.date) : null;
+    if(!d) return false;
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    if(MINE_FILTER === "today") return d.getTime() === t0.getTime();
+    if(MINE_FILTER === "over") return d < t0 && !r.air;
+    if(MINE_FILTER === "month") return d.getMonth() === t0.getMonth() && d.getFullYear() === t0.getFullYear();
+    if(MINE_FILTER === "week"){
+      var mon = new Date(t0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+      var sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+      return d >= mon && d <= sun;
+    }
+    return true;
+  }
+  function mineChipsHtml(){
+    var opts = [["all", "Tất cả"], ["month", "Tháng này"], ["week", "Tuần này"], ["today", "Hôm nay"], ["over", "Quá hạn"]];
+    return '<div style="margin:10px 0 2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:13px;color:var(--mut)">Lọc theo thời gian:</span>' +
+      opts.map(function(x){ return '<button type="button" class="chip' + (MINE_FILTER === x[0] ? " active" : "") + '" data-mine-filter="' + x[0] + '">' + x[1] + '</button>'; }).join("") + '</div>';
+  }
+  document.addEventListener("click", function(e){
+    var c = e.target.closest("[data-mine-filter]");
+    if(c){ MINE_FILTER = c.getAttribute("data-mine-filter"); renderMine(); }
+  });
   function renderMine(signInErr){
     var box = document.getElementById("mineBox");
     if(!box) return;
@@ -2973,14 +3010,15 @@ function calShowDetail(ix){
       var d = (typeof parsePostDate === "function") ? parsePostDate(r.date) : null;
       return d && d >= today;
     }).length;
-    var sorted = rows.slice().sort(function(a, b){
+    var frows = rows.filter(mineInFilter);
+    var sorted = frows.slice().sort(function(a, b){
       var da = (typeof parsePostDate === "function") ? parsePostDate(a.date) : null;
       var db = (typeof parsePostDate === "function") ? parsePostDate(b.date) : null;
       return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
     });
     var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
     var stCnt = { done: 0, over: 0, today: 0, soon: 0 };
-    rows.forEach(function(r){
+    frows.forEach(function(r){
       var s = (typeof planStatus === "function") ? planStatus(r) : "soon";
       stCnt[s] = (stCnt[s] || 0) + 1;
     });
@@ -2994,8 +3032,9 @@ function calShowDetail(ix){
       }
       var briefCell;
       if(r.brief){
-        briefCell = (/^https?:\/\//i.test(r.brief)
-          ? '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>'
+        var bUrl = /^https?:\/\//i.test(r.brief) ? r.brief : (r.briefUrl || "");
+        briefCell = (bUrl
+          ? '<a href="' + esc(bUrl) + '" target="_blank" rel="noopener">📄 Mở brief</a>'
           : '<span>📄 ' + esc(r.brief) + '</span>') + (r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : '')
           + ((window.isMgrRole && window.isMgrRole()) ? ' ' + window.cellEditBtn(r, "Brief") : '');
       } else if(window.canSubmitType && window.canSubmitType(r, "Brief")){
@@ -3015,10 +3054,10 @@ function calShowDetail(ix){
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
       '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài được phân cho bạn trong toàn bộ Media Plan' + (monthTxt ? ' (' + monthTxt + ')' : '') + ' · ' +
       'Việc brief (Content): <b>' + asContent + '</b> · Việc làm (Design): <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
-      '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' +
-      (rows.length
+      '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' + mineChipsHtml() +
+      (frows.length
         ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
-        : '<div class="hint" style="margin-top:8px">Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan.</div>') +
+        : '<div class="hint" style="margin-top:8px">' + (MINE_FILTER === "all" ? 'Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan.' : 'Không có bài nào khớp bộ lọc đang chọn.') + '</div>') +
       '</div>';
   }
   function gotoPage(id){
