@@ -289,6 +289,10 @@
   .sw-pchip .cnt{background:var(--track);color:var(--lab);font-size:11.5px;padding:1px 7px;border-radius:999px}
   .sw-pchip.active .cnt{background:var(--card)}
   .sw-note{margin-top:12px;background:var(--kpi);border:1px dashed var(--mut);color:var(--lab);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.55}
+  .sw-mail{margin-top:12px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:10px 14px;font-size:13.5px;line-height:1.6;color:#1e1b4b}
+  .sw-remind-btn{background:#26215c;color:#fff;border:0;border-radius:8px;padding:7px 14px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:6px}
+  .sw-remind-btn:hover{background:#3730a3}
+  .sw-remind-status{margin-top:6px;font-weight:600}
   .sw-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   @media (max-width:560px){ .sw-stats{grid-template-columns:repeat(2,1fr)} }
   .sw-stat{background:var(--kpi);border:1px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center}
@@ -345,7 +349,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v49</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v50</b></div>
   </div>
 </aside>
 <main>
@@ -1014,6 +1018,24 @@ async function syncInfoKV(){
   });
   return kv;
 }
+async function kcSyncInfoKV(){
+  const res = await fetch("https://docs.google.com/spreadsheets/d/" + CUR.sheetId +
+    "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent("Sync Info"));
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  const kv = {};
+  const cols = json.table.cols || [];
+  if(cols.length >= 2 && cols[0] && cols[0].label) kv[cols[0].label] = cols[1].label || "";
+  (json.table.rows || []).forEach(r => {
+    const c = (r.c || []).map(x => {
+      if(!x) return "";
+      if(x.f != null && typeof x.v === "string" && x.v.startsWith("Date(")) return x.f;
+      return x.v == null ? "" : String(x.v);
+    });
+    if(c[0]) kv[c[0]] = c[1] || "";
+  });
+  return kv;
+}
 const cell = (r,i) => (r && r[i] != null) ? String(r[i]).trim() : "";
 const isUrl = s => /^https?:\/\//i.test(s || "");
 const linkOr = (s, txt) => isUrl(s) ? `<a href="${s}" target="_blank" rel="noopener">${txt}</a>` : (s || "");
@@ -1607,29 +1629,34 @@ function parseStampVN(s){
   if(!m) return null;
   return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0));
 }
+function fmtWait(ms){ const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 async function manualSync(){
   const btn = document.getElementById("syncNowBtn");
   const st = document.getElementById("syncNowStatus");
   if(!btn || btn.disabled || !st) return;
   btn.disabled = true;
   const t0 = Date.now();
+  const kc = !!CUR.kcMode;
+  delete st.dataset.done;
   st.textContent = "Đang gửi yêu cầu đồng bộ…";
-  try { await fetch(SYNC_WEBAPP, { mode: "no-cors" }); } catch(e){}
-  st.textContent = "Đã gửi yêu cầu — đang chờ hệ thống chạy đồng bộ (thường 1–2 phút)…";
-  const deadline = Date.now() + 240000;
+  const iv = setInterval(() => { if(st.dataset.done !== "1") st.textContent = "⏳ Đang đồng bộ " + (kc ? "Nội Thất Kim Chi" : "Mẹ Mít") + "… đã chờ " + fmtWait(Date.now() - t0); }, 500);
+  try { await fetch(SYNC_WEBAPP + (kc ? "?action=sync_kc" : ""), { mode: "no-cors" }); } catch(e){}
+  const deadline = Date.now() + 360000;
   while(Date.now() < deadline){
-    await new Promise(r => setTimeout(r, 15000));
+    await new Promise(r => setTimeout(r, 10000));
     try {
-      const kv = await syncInfoKV();
+      const kv = kc ? await kcSyncInfoKV() : await syncInfoKV();
       const done = parseStampVN(kv["Đồng bộ tay hoàn tất"]);
       if(done && done.getTime() >= t0 - 10000){
-        st.textContent = "✅ Đồng bộ xong: " + kv["Đồng bộ tay hoàn tất"] + " — đang tải lại dữ liệu…";
+        st.dataset.done = "1"; clearInterval(iv);
+        st.textContent = "✅ Đồng bộ xong: " + kv["Đồng bộ tay hoàn tất"] + " — mất " + fmtWait(Date.now() - t0) + " — đang tải lại dữ liệu…";
         setTimeout(() => location.reload(), 1200);
         return;
       }
     } catch(e){}
   }
-  st.textContent = "Chưa thấy tem hoàn tất sau 4 phút. Dữ liệu vẫn tự đồng bộ mỗi 30 phút — thử tải lại trang sau ít phút.";
+  st.dataset.done = "1"; clearInterval(iv);
+  st.textContent = "Chưa thấy tem hoàn tất sau 6 phút. Dữ liệu vẫn tự đồng bộ mỗi 30 phút — thử tải lại trang sau ít phút.";
   btn.disabled = false;
 }
 (function(){ const b = document.getElementById("syncNowBtn"); if(b) b.addEventListener("click", manualSync); })();
@@ -1884,6 +1911,95 @@ function swSort(tasks){
     return da - db;
   });
 }
+/* ===== v50: trạng thái mail + nút Nhắc việc — CHỈ Chủ kênh / Quản Lí (nhân viên không thấy tab này) ===== */
+let MAILLOG = null, MAILLOG_PROJ = null, REMIND = null;
+async function loadMailLog(){
+  const key = CUR.key;
+  if(MAILLOG && MAILLOG_PROJ === key) return MAILLOG;
+  try {
+    const rows = await fetchTabFrom(CUR.kcMode ? CUR.sheetId : PLAN_ID, "Mail Log");
+    MAILLOG = (rows || []).map(r => ({ time: cell(r,0), pic: cell(r,2), type: cell(r,4), result: cell(r,6) }));
+    MAILLOG_PROJ = key;
+  } catch(e){ MAILLOG = []; MAILLOG_PROJ = key; }
+  return MAILLOG;
+}
+function swRemindables(){
+  const month = PLAN_MONTHS.find(m => m.key === STAFF_MONTH);
+  const rows = (month && month.rows) || [];
+  const t0 = swToday0(), tm = new Date(t0); tm.setDate(tm.getDate() + 1);
+  return rows.filter(t => {
+    if(swNorm(t.picC) !== swNorm(STAFF_PERSON) && swNorm(t.picD) !== swNorm(STAFF_PERSON)) return false;
+    const d = parsePostDate(t.date); if(!d) return false;
+    if(!t.air && d < t0) return true;
+    if(d.getTime() === tm.getTime() && !String(t.brief || "").trim()) return true;
+    return false;
+  });
+}
+function swMailPanel(frozen){
+  if(frozen) return "";
+  const M = window.MMAuth;
+  const er = M ? M.effectiveRole : "anon";
+  if(er !== "owner" && er !== "manager") return "";
+  if(!MAILLOG || MAILLOG_PROJ !== CUR.key){
+    loadMailLog().then(() => { try { renderStaff(); } catch(e){} });
+    return '<div class="sw-mail">Đang tải trạng thái mail…</div>';
+  }
+  const wk = swWeekRange();
+  const mine = MAILLOG.filter(r => swNorm(r.pic) === swNorm(STAFF_PERSON));
+  const weekly = mine.filter(r => { if(r.type !== "Mail tuần" || r.result !== "Đã gửi") return false; const d = parseStampVN(r.time); return d && d >= wk[0] && d <= wk[1]; });
+  const lastRemind = mine.filter(r => r.type === "Nhắc tay").slice(-1)[0];
+  let s = '<div class="sw-mail"><div>📧 Mail việc tuần này: ' +
+    (weekly.length ? '<b style="color:#15803d">Đã gửi ' + swEsc(weekly[weekly.length - 1].time) + '</b>'
+                   : '<b style="color:#b45309">Chưa gửi</b>') +
+    (lastRemind ? ' · Nhắc tay gần nhất: ' + swEsc(lastRemind.time) + ' (' + swEsc(lastRemind.result) + ')' : '') +
+    '</div>';
+  if(REMIND && REMIND.pic === STAFF_PERSON && REMIND.proj === CUR.key){
+    s += '<div class="sw-remind-status">' + swEsc(REMIND.text) + '</div>';
+  } else {
+    const rem = swRemindables();
+    if(rem.length){
+      s += '<button type="button" class="sw-remind-btn" data-remind="' + swEsc(STAFF_PERSON) + '">🔔 Nhắc việc (' + rem.length + ' việc cần xử lý)</button>' +
+        ' <span style="color:#4338ca">Gửi mail nhắc ngay cho ' + swEsc(STAFF_PERSON) + ' về việc đang trễ / mai chưa có brief.</span>';
+    } else {
+      s += '<div style="color:#4338ca;margin-top:2px">Không có việc tồn cần nhắc cho ' + swEsc(STAFF_PERSON) + ' lúc này.</div>';
+    }
+  }
+  s += '</div>';
+  return s;
+}
+async function swDoRemind(pic){
+  const M = window.MMAuth;
+  if(M && M.preview){
+    REMIND = { pic: pic, proj: CUR.key, text: "Đang ở chế độ XEM THỬ — thoát xem thử mới nhắc được." };
+    renderStaff(); return;
+  }
+  const by = M ? (M.email || "") : "";
+  const t0 = Date.now();
+  REMIND = { pic: pic, proj: CUR.key, text: "Đang gửi yêu cầu nhắc việc…" };
+  renderStaff();
+  try { await fetch(SYNC_WEBAPP + "?action=" + (CUR.kcMode ? "remind_kc" : "remind") + "&pic=" + encodeURIComponent(pic) + "&by=" + encodeURIComponent(by), { mode: "no-cors" }); } catch(e){}
+  const deadline = Date.now() + 360000;
+  while(Date.now() < deadline){
+    REMIND.text = "⏳ Đã ghi yêu cầu — hệ thống đang soạn + gửi mail… đã chờ " + fmtWait(Date.now() - t0);
+    renderStaff();
+    await new Promise(r => setTimeout(r, 10000));
+    try {
+      const rows = await fetchTabFrom(CUR.kcMode ? CUR.sheetId : PLAN_ID, "Mail Queue");
+      const mine = (rows || []).filter(r => swNorm(cell(r,2)) === swNorm(pic))
+        .map(r => ({ req: cell(r,0), st: cell(r,4), at: cell(r,5), note: cell(r,6) }));
+      const hit = mine.filter(r => { const d = parseStampVN(r.req); return d && d.getTime() >= t0 - 15000 && r.st && r.st !== "PENDING"; }).slice(-1)[0];
+      if(hit){
+        REMIND.text = hit.st === "SENT" ? ("✅ Đã gửi mail nhắc lúc " + hit.at + (hit.note ? " — " + hit.note : ""))
+          : (hit.st === "SKIPPED" ? ("ℹ️ Không gửi: " + hit.note) : ("⚠️ Gửi lỗi: " + hit.note));
+        MAILLOG = null;
+        renderStaff(); return;
+      }
+    } catch(e){}
+  }
+  REMIND.text = "Chưa thấy kết quả sau 6 phút — yêu cầu đã ghi lại, kiểm tra lại sau ít phút.";
+  renderStaff();
+}
+
 function renderStaff(){
   const box = document.getElementById("staffBox");
   if(!box) return;
@@ -1934,7 +2050,7 @@ function renderStaff(){
     '<div class="sw-stat green"><div class="n">' + posted + '</div><div class="l">Đã đăng</div></div>' +
     '<div class="sw-stat red"><div class="n">' + lateN + '</div><div class="l">' + (frozen ? "Chưa đăng (đã hủy)" : "Đang trễ") + '</div></div>' +
     '<div class="sw-stat"><div class="n">' + weekN + '</div><div class="l">Việc tuần này</div></div>' +
-    '</div></div>';
+    '</div>' + swMailPanel(frozen) + '</div>';
   if(briefTasks.length){
     h += '<div class="card"><h2>✍️ Việc brief (' + briefTasks.length + ')</h2>' +
       swSort(briefTasks).map(t => swTaskCard(t, "brief", frozen)).join("") + '</div>';
@@ -1954,7 +2070,9 @@ function renderStaff(){
     const mb = e.target.closest("button[data-sw-month]");
     if(mb){ STAFF_MONTH = mb.getAttribute("data-sw-month"); renderStaff(); return; }
     const pb = e.target.closest("button[data-sw-person]");
-    if(pb){ STAFF_PERSON = pb.getAttribute("data-sw-person"); renderStaff(); }
+    if(pb){ STAFF_PERSON = pb.getAttribute("data-sw-person"); renderStaff(); return; }
+    const rb = e.target.closest("button[data-remind]");
+    if(rb){ swDoRemind(rb.getAttribute("data-remind")); }
   });
   const nav = document.getElementById("sidenav");
   if(nav) nav.addEventListener("click", e => {
@@ -2765,7 +2883,7 @@ function calShowDetail(ix){
     document.title = "Dashboard Fanpage " + CUR.pageName;
     var fp = document.getElementById("fpLink"); if(fp) fp.href = "https://www.facebook.com/" + CUR.pageId;
     var sl = document.getElementById("sheetLink"); if(sl) sl.href = "https://docs.google.com/spreadsheets/d/" + CUR.sheetId + "/edit";
-    var sb = document.getElementById("syncBox"); if(sb) sb.style.display = CUR.syncWebapp ? "" : "none";
+    var sb = document.getElementById("syncBox"); if(sb) sb.style.display = "";
     var nc = document.getElementById("navContent"); if(nc) nc.style.display = CUR.hasList ? "" : "none";
     var pst = document.getElementById("planSrcTxt"); if(pst) pst.textContent = CUR.planSrc || "";
     paintProjSwitch();
