@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>👤 Việc theo nhân sự — Demo Mẹ Mít</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f2f3fa; color: #111827; padding: 20px 14px 48px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .banner { background: #26215c; color: #fff; border-radius: 14px; padding: 20px 22px; }
+  .banner h1 { font-size: 21px; line-height: 1.35; }
+  .banner p { font-size: 13.5px; opacity: .88; margin-top: 6px; line-height: 1.55; }
+  .demo-tag { display: inline-block; background: #f59e0b; color: #111827; font-size: 11.5px; font-weight: bold; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px 18px; margin-top: 14px; }
+  .card h2 { font-size: 16px; margin-bottom: 12px; }
+  .toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggle button, .pchip { cursor: pointer; border: 2px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: bold; color: #374151; }
+  .toggle button.active { background: #26215c; border-color: #26215c; color: #fff; }
+  .frozen-note { margin-top: 12px; background: #f3f4f6; border: 1px dashed #9ca3af; color: #4b5563; border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.55; }
+  .people { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pchip { display: inline-flex; align-items: center; gap: 7px; }
+  .pchip .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .pchip.active { border-color: #26215c; background: #eef2ff; color: #111827; }
+  .pchip .cnt { background: #e5e7eb; color: #374151; font-size: 11.5px; padding: 1px 7px; border-radius: 999px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .stat { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 10px; text-align: center; }
+  .stat .n { font-size: 24px; font-weight: bold; }
+  .stat .l { font-size: 12px; color: #6b7280; margin-top: 3px; }
+  .stat.red .n { color: #b91c1c; } .stat.green .n { color: #15803d; }
+  .task { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; margin-top: 10px; }
+  .task .d1 { font-weight: bold; font-size: 14.5px; }
+  .task .topic { font-size: 14px; margin-top: 3px; line-height: 1.5; }
+  .task .partner { font-size: 13px; color: #374151; margin-top: 4px; }
+  .chips { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chip { font-size: 12px; font-weight: bold; padding: 2px 9px; border-radius: 999px; }
+  .chip.done { background: #dcfce7; color: #15803d; }
+  .chip.late { background: #fee2e2; color: #b91c1c; }
+  .chip.warn { background: #fef3c7; color: #b45309; }
+  .chip.miss { background: #ffedd5; color: #c2410c; }
+  .chip.dead { background: #e5e7eb; color: #4b5563; }
+  .airlink { font-size: 12.5px; font-weight: bold; color: #2563eb; text-decoration: none; }
+  .airlink:hover { text-decoration: underline; }
+  .empty { color: #6b7280; font-size: 13.5px; font-style: italic; padding: 6px 0 2px; }
+  .err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; margin-top: 14px; line-height: 1.55; }
+  .loading { color: #6b7280; font-size: 14px; margin-top: 18px; text-align: center; }
+  .foot { font-size: 12px; color: #6b7280; margin-top: 16px; line-height: 1.6; }
+  @media (max-width: 560px){ .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <h1>👤 Việc theo nhân sự<span class="demo-tag">BẢN DEMO CHỜ DUYỆT</span></h1>
+    <p>Tab riêng cho Leader: chọn 1 nhân sự để xem toàn bộ việc brief + việc làm của người đó trong tháng — ai đang trễ, bài nào chưa có brief, bài nào đã đăng. Khi được duyệt, tab này sẽ gắn vào dashboard chính và chỉ tài khoản Quản Lí/Leader mới thấy.</p>
+  </div>
+
+  <div class="card">
+    <h2>📅 Chọn tháng</h2>
+    <div class="toggle" id="monthToggle">
+      <button data-month="11" class="active">Tháng 11 (hiện tại)</button>
+      <button data-month="10">Tháng 10 — đã đóng băng</button>
+    </div>
+    <div class="frozen-note" id="frozenNote" style="display:none">❄️ <b>Tháng 10 đã đóng băng</b> (chốt 02/11): các bài chưa đăng coi như <b>đã hủy</b>, không nhắc nữa — trang này chỉ để xem lại.</div>
+  </div>
+
+  <div class="card">
+    <h2>🧑‍🤝‍🧑 Chọn nhân sự</h2>
+    <div class="people" id="people"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="sumTitle">Tổng quan</h2>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div id="sections"></div>
+  <div class="loading" id="loading">⏳ Đang tải dữ liệu kế hoạch từ Sheet…</div>
+  <div id="errBox"></div>
+
+  <div class="foot">Dữ liệu lấy trực tiếp từ Sheet cầu nối “Me Mit Content Plan (Dashboard)” — tab Media Plan của tháng. Đã đăng := bài có Link Air. PIC Content = người brief · PIC Design = người làm.</div>
+</div>
+
+<script>
+const PLAN_ID = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
+const PEOPLE = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
+const PERSON_COLORS = { "tuyền": "#f9a8d4", "như": "#c4b5fd", "vân": "#5eead4", "huy": "#fdba74", "changgi": "#93c5fd", "xuân nhi": "#86efac" };
+const DOWVN = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+let state = { month: "11", person: "Huy", data: { "10": null, "11": null }, errors: [] };
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cell = (r, i) => (r && r[i] != null) ? String(r[i]).trim() : "";
+const isUrl = s => /^https?:\/\//i.test(s || "");
+
+async function fetchTabFrom(id, tab){
+  const res = await fetch("https://docs.google.com/spreadsheets/d/" + id +
+    "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(tab));
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return json.table.rows.map(r => (r.c || []).map(c => {
+    if(!c) return null;
+    if(c.f != null && typeof c.v === "string" && c.v.startsWith("Date(")) return c.f;
+    return c.v;
+  }));
+}
+function parsePostDate(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+  if(!m) return null;
+  const d = new Date(+(m[3] || 2026), +m[2] - 1, +m[1]);
+  return isNaN(d) ? null : d;
+}
+function mapPlan(rows){
+  return rows.filter(r => cell(r, 6)).map(r => ({
+    dow: cell(r, 0), date: cell(r, 1), d: parsePostDate(cell(r, 1)), form: cell(r, 3),
+    topic: cell(r, 6), picC: cell(r, 8), picD: cell(r, 10),
+    brief: cell(r, 11), air: cell(r, 13),
+  }));
+}
+const norm = s => (s || "").trim().toLowerCase();
+const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+function today0(){ const t = new Date(); t.setHours(0,0,0,0); return t; }
+function weekRange(){
+  const t = today0(); const dow = (t.getDay() + 6) % 7; // Mon=0
+  const mon = new Date(t); mon.setDate(t.getDate() - dow);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+  return [mon, sun];
+}
+function taskStatus(t, frozen){
+  const today = today0();
+  const posted = !!t.air;
+  const late = !posted && t.d && t.d < today;
+  return { posted, late };
+}
+function chipsFor(t, role, frozen){
+  const { posted, late } = taskStatus(t, frozen);
+  const today = today0();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  let h = "";
+  if(posted){
+    h += '<span class="chip done">ĐÃ ĐĂNG</span>';
+    if(isUrl(t.air)) h += ' <a class="airlink" href="' + esc(t.air) + '" target="_blank" rel="noopener">🔗 Link bài</a>';
+  } else if(frozen && late){
+    h += '<span class="chip dead">ĐÃ HỦY · ĐÓNG BĂNG</span>';
+  } else if(late){
+    h += '<span class="chip late">TRỄ</span>';
+  } else if(t.d && sameDay(t.d, today)){
+    h += '<span class="chip warn">HÔM NAY</span>';
+  } else if(t.d && sameDay(t.d, tomorrow)){
+    h += '<span class="chip warn">NGÀY MAI</span>';
+  } else {
+    h += '<span class="chip warn">CHƯA ĐĂNG</span>';
+  }
+  if(!posted){
+    if(!t.brief) h += ' <span class="chip miss">CHƯA CÓ BRIEF</span>';
+    if(role === "brief" && !t.picD) h += ' <span class="chip miss">CHƯA CÓ NGƯỜI LÀM</span>';
+    if(role === "maker" && !t.picC) h += ' <span class="chip miss">CHƯA CÓ NGƯỜI BRIEF</span>';
+  }
+  return h;
+}
+function taskCard(t, role, frozen){
+  const dateTxt = t.d ? (DOWVN[t.d.getDay()] + " · " + String(t.d.getDate()).padStart(2,"0") + "/" + String(t.d.getMonth()+1).padStart(2,"0")) : esc(t.date || "Chưa có ngày");
+  const partner = role === "brief"
+    ? "Người làm: <b>" + (t.picD ? esc(t.picD) : "— chưa phân công") + "</b>"
+    : "Người brief: <b>" + (t.picC ? esc(t.picC) : "— chưa phân công") + "</b>";
+  return '<div class="task"><div class="d1">' + esc(dateTxt) + (t.form ? " — " + esc(t.form) : "") + '</div>' +
+    '<div class="topic">' + esc(t.topic) + '</div>' +
+    '<div class="partner">' + partner + '</div>' +
+    '<div class="chips">' + chipsFor(t, role, frozen) + '</div></div>';
+}
+function sortTasks(tasks, frozen){
+  return tasks.slice().sort((a, b) => {
+    const la = taskStatus(a, frozen).late ? 0 : 1, lb = taskStatus(b, frozen).late ? 0 : 1;
+    if(la !== lb) return la - lb;
+    const da = a.d ? a.d.getTime() : Infinity, db = b.d ? b.d.getTime() : Infinity;
+    return da - db;
+  });
+}
+function render(){
+  const rows = state.data[state.month] || [];
+  const frozen = state.month === "10";
+  document.getElementById("frozenNote").style.display = frozen ? "block" : "none";
+  document.querySelectorAll("#monthToggle button").forEach(b => b.classList.toggle("active", b.dataset.month === state.month));
+
+  // Person chips with task counts for the selected month
+  const ppl = document.getElementById("people");
+  ppl.innerHTML = PEOPLE.map(p => {
+    const n = rows.filter(r => norm(r.picC) === norm(p) || norm(r.picD) === norm(p)).length;
+    return '<button class="pchip' + (p === state.person ? " active" : "") + '" data-person="' + esc(p) + '">' +
+      '<span class="dot" style="background:' + (PERSON_COLORS[norm(p)] || "#e5e7eb") + '"></span>' + esc(p) +
+      ' <span class="cnt">' + n + ' việc</span></button>';
+  }).join("");
+  ppl.querySelectorAll(".pchip").forEach(b => b.addEventListener("click", () => { state.person = b.dataset.person; render(); }));
+
+  const mine = rows.filter(r => norm(r.picC) === norm(state.person) || norm(r.picD) === norm(state.person));
+  const briefTasks = rows.filter(r => norm(r.picC) === norm(state.person));
+  const makerTasks = rows.filter(r => norm(r.picD) === norm(state.person));
+  const [wMon, wSun] = weekRange();
+  const posted = mine.filter(t => !!t.air).length;
+  const lateN = mine.filter(t => taskStatus(t, frozen).late).length;
+  const weekN = mine.filter(t => t.d && t.d >= wMon && t.d <= wSun).length;
+
+  document.getElementById("sumTitle").textContent = "Tổng quan — " + state.person + " · Tháng " + state.month + "/2026";
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><div class="n">' + mine.length + '</div><div class="l">Tổng việc</div></div>' +
+    '<div class="stat green"><div class="n">' + posted + '</div><div class="l">Đã đăng</div></div>' +
+    '<div class="stat red"><div class="n">' + lateN + '</div><div class="l">' + (frozen ? "Chưa đăng (đã hủy)" : "Đang trễ") + '</div></div>' +
+    '<div class="stat"><div class="n">' + weekN + '</div><div class="l">Việc tuần này</div></div>';
+
+  let h = "";
+  if(briefTasks.length){
+    h += '<div class="card"><h2>✍️ Việc brief (' + briefTasks.length + ')</h2>' +
+      sortTasks(briefTasks, frozen).map(t => taskCard(t, "brief", frozen)).join("") + '</div>';
+  }
+  if(makerTasks.length){
+    h += '<div class="card"><h2>🛠️ Việc làm (' + makerTasks.length + ')</h2>' +
+      sortTasks(makerTasks, frozen).map(t => taskCard(t, "maker", frozen)).join("") + '</div>';
+  }
+  if(!briefTasks.length && !makerTasks.length){
+    h += '<div class="card"><div class="empty">' + esc(state.person) + ' không có việc nào trong tháng ' + state.month + '.</div></div>';
+  }
+  document.getElementById("sections").innerHTML = h;
+}
+
+async function init(){
+  document.querySelectorAll("#monthToggle button").forEach(b => b.addEventListener("click", () => { state.month = b.dataset.month; render(); }));
+  const jobs = [
+    ["11", "MEDIA PLAN THÁNG 11"],
+    ["10", "MEDIA PLAN THÁNG 10"],
+  ];
+  await Promise.all(jobs.map(async ([key, tab]) => {
+    try { state.data[key] = mapPlan(await fetchTabFrom(PLAN_ID, tab)); }
+    catch(e){ state.data[key] = []; state.errors.push(tab + ": " + e.message); }
+  }));
+  document.getElementById("loading").style.display = "none";
+  if(state.errors.length){
+    document.getElementById("errBox").innerHTML = '<div class="err">⚠️ Không tải được dữ liệu: ' + esc(state.errors.join(" · ")) + '. Kiểm tra kết nối mạng rồi tải lại trang.</div>';
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
