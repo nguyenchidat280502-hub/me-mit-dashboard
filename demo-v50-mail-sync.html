@@ -1918,7 +1918,7 @@ async function loadMailLog(){
   if(MAILLOG && MAILLOG_PROJ === key) return MAILLOG;
   try {
     const rows = await fetchTabFrom(CUR.kcMode ? CUR.sheetId : PLAN_ID, "Mail Log");
-    MAILLOG = (rows || []).slice(1).map(r => ({ time: cell(r,0), pic: cell(r,2), type: cell(r,4), result: cell(r,6) }));
+    MAILLOG = (rows || []).map(r => ({ time: cell(r,0), pic: cell(r,2), type: cell(r,4), result: cell(r,6) }));
     MAILLOG_PROJ = key;
   } catch(e){ MAILLOG = []; MAILLOG_PROJ = key; }
   return MAILLOG;
@@ -1985,7 +1985,7 @@ async function swDoRemind(pic){
     await new Promise(r => setTimeout(r, 10000));
     try {
       const rows = await fetchTabFrom(CUR.kcMode ? CUR.sheetId : PLAN_ID, "Mail Queue");
-      const mine = (rows || []).slice(1).filter(r => swNorm(cell(r,2)) === swNorm(pic))
+      const mine = (rows || []).filter(r => swNorm(cell(r,2)) === swNorm(pic))
         .map(r => ({ req: cell(r,0), st: cell(r,4), at: cell(r,5), note: cell(r,6) }));
       const hit = mine.filter(r => { const d = parseStampVN(r.req); return d && d.getTime() >= t0 - 15000 && r.st && r.st !== "PENDING"; }).slice(-1)[0];
       if(hit){
