@@ -345,7 +345,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v45.1</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v47</b></div>
   </div>
 </aside>
 <main>
@@ -580,8 +580,8 @@
     <div id="tgReport"><div class="loading">Đang tải…</div></div>
   </div>
   <div class="card">
-    <h2>🎯 Đặt target tháng — Quản Lí</h2>
-    <div class="hint">"Số lượng sản phẩm" = số bài đăng (content). Target được lưu vào tab "Targets" trong Sheet kế hoạch; trang Tổng quan và các báo cáo sẽ đối chiếu theo đúng các số này.</div>
+    <h2 id="tgFormTitle">🎯 Đặt target tháng — Quản Lí</h2>
+    <div class="hint" id="tgFormHint">"Số lượng sản phẩm" = số bài đăng (content). Target được lưu vào tab "Targets" trong Sheet kế hoạch; trang Tổng quan và các báo cáo sẽ đối chiếu theo đúng các số này.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0">
       <label style="font-size:13.5px">Tháng
         <input type="month" id="tgMonth" min="2026-01" max="2026-12" style="background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px">
@@ -605,6 +605,7 @@
       <span id="tgStatus" style="font-size:13px"></span>
     </div>
     <div class="hint" id="tgMeta" style="margin-top:6px"></div>
+    <div id="tgKcBox" style="display:none;margin-top:10px"></div>
   </div>
   <div class="card">
     <h2>📈 Tiến độ tháng đang chọn so với target</h2>
@@ -667,14 +668,14 @@
 const PROJECTS = {
   memit: { key: "memit", label: "Mẹ Mít", brand: "MẸ MÍT", pageName: "NGŨ CỐC MẸ MÍT", pageId: "224645764799502",
     sheetId: "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM", planId: "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE",
-    followersSnapshot: 4859, staffCol: "staff", kcMode: false, hasTargets: true, hasList: true, hasSubmit: true, syncWebapp: true,
+    followersSnapshot: 4859, staffCol: "staff", kcMode: false, hasTargets: true, targetsId: null, hasList: true, hasSubmit: true, syncWebapp: true,
     planSrc: "Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút.",
     planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN THÁNG 10" },
                 { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN THÁNG 11" } ],
     planCols: "memit" },
   kimchi: { key: "kimchi", label: "Nội Thất", brand: "NỘI THẤT KIM CHI", pageName: "Siêu Thị Nội Thất Kim Chi", pageId: "104944459206545",
     sheetId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", planId: "1TNBMZh4vPJGZR2ERfMFh4PHNVsx7C--dYELC5X5J1UU",
-    followersSnapshot: 417, staffCol: "staff", kcMode: true, hasTargets: false, hasList: false, hasSubmit: false, syncWebapp: false,
+    followersSnapshot: 417, staffCol: "staff", kcMode: true, hasTargets: true, targetsId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", targetsGid: 2010191074, hasList: false, hasSubmit: false, syncWebapp: false,
     planSrc: "Dữ liệu đọc trực tiếp từ Sheet kế hoạch “Media Plan_Nội thất Kim Chi” — sửa trong Sheet là dashboard cập nhật theo.",
     planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN T10" },
                 { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN T11" } ],
@@ -1252,7 +1253,7 @@ function setPlanMonth(key){
   renderPlan();
 }
 
-/* ===== Targets (tab "Targets" trong Sheet cầu nối; Quản Lí đặt qua Apps Script) ===== */
+/* ===== Targets (Mẹ Mít: tab "Targets" trong Sheet cầu nối, đặt qua Apps Script; Kim Chi: tab "Targets" trong Sheet Kim Chi Dashboard, đặt/sửa trực tiếp trong Sheet) ===== */
 let TARGETS = {};
 const TG_METS = [["Lượt xem","views"],["Tương tác","eng"],["Follow mới","follows"],["Người xem","reach"],["Số bài đăng","posts"]];
 function tgEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -1411,6 +1412,8 @@ function renderTargetPage(){
       return;
     }
   }
+  tgApplyMode();
+  if(CUR.kcMode){ renderKcTargetPage(); return; }
   if(!monthEl.value){
     const curK = tgCurKey();
     monthEl.value = TARGETS[curK] ? curK : (TARGETS[tgNextKey(curK)] ? tgNextKey(curK) : curK);
@@ -1426,7 +1429,47 @@ function renderTargetPage(){
   if(prog) prog.innerHTML = t ? tgBars(key) : '<div class="hint">Chưa có target cho tháng này nên chưa có tiến độ để đối chiếu.</div>';
   renderTargetReport();
 }
+function tgApplyMode(){
+  const kc = !!CUR.kcMode;
+  const rep = document.getElementById("tgReport");
+  if(rep && rep.parentElement) rep.parentElement.style.display = kc ? "none" : "";
+  ["tgSuggest", "tgSave"].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = kc ? "none" : ""; });
+  ["tgViews", "tgEng", "tgFollows", "tgReach", "tgPosts"].forEach(id => { const el = document.getElementById(id); const lb = el && el.parentElement; if(lb) lb.style.display = kc ? "none" : ""; });
+  const kb = document.getElementById("tgKcBox"); if(kb) kb.style.display = kc ? "" : "none";
+  const tt = document.getElementById("tgFormTitle");
+  if(tt) tt.textContent = kc ? "🎯 Target tháng — Nội Thất Kim Chi" : "🎯 Đặt target tháng — Quản Lí";
+  const th = document.getElementById("tgFormHint");
+  if(th) th.textContent = kc
+    ? "\"Số lượng sản phẩm\" = số bài đăng (content). Target của Nội Thất Kim Chi được lưu ở tab \"Targets\" trong Sheet Kim Chi Dashboard — đặt/sửa số trực tiếp trong Sheet theo hướng dẫn bên dưới; dashboard tự đọc số mới mỗi lần tải trang."
+    : "\"Số lượng sản phẩm\" = số bài đăng (content). Target được lưu vào tab \"Targets\" trong Sheet kế hoạch; trang Tổng quan và các báo cáo sẽ đối chiếu theo đúng các số này.";
+}
+function renderKcTargetPage(){
+  const monthEl = document.getElementById("tgMonth"); if(!monthEl) return;
+  if(!monthEl.value){
+    const curK = tgCurKey();
+    monthEl.value = TARGETS[curK] ? curK : (TARGETS[tgNextKey(curK)] ? tgNextKey(curK) : curK);
+  }
+  const key = monthEl.value, t = TARGETS[key];
+  const mLabel = "tháng " + key.slice(5) + "/" + key.slice(0, 4);
+  const url = "https://docs.google.com/spreadsheets/d/" + CUR.sheetId + "/edit" + (CUR.targetsGid != null ? "#gid=" + CUR.targetsGid : "");
+  const meta = document.getElementById("tgMeta");
+  if(meta) meta.textContent = t
+    ? `Target hiện tại của ${mLabel}${t.by ? " — do " + t.by + " đặt" : ""}${t.updated ? ", cập nhật " + t.updated : ""} (đọc từ tab “Targets” trong Sheet Kim Chi Dashboard).`
+    : `${mLabel} chưa có target trong Sheet Kim Chi Dashboard.`;
+  const box = document.getElementById("tgKcBox");
+  if(box){
+    const nums = t ? `<div style="display:flex;gap:12px;flex-wrap:wrap">` + TG_METS.map(([label, k]) =>
+      `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:104px"><div style="font-size:12px;color:var(--mut)">${label}</div><div style="font-size:17px;font-weight:700">${fmt(t[k] || 0)}</div></div>`).join("") + `</div>` : "";
+    box.innerHTML =
+      (t ? nums : `<div style="background:#f1f5f9;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px">📭 <b>Chưa đặt target ${mLabel}.</b> Khi nào điền số vào Sheet, thẻ Target ở trang Tổng quan và tiến độ bên dưới sẽ tự hiện theo đúng số đó — không hiện 0% khi chưa có target.</div>`) +
+      `<div class="hint" style="margin-top:10px">✏️ <b>Đặt / sửa target:</b> bấm nút dưới đây để mở Sheet Kim Chi Dashboard, chọn tab <b>“Targets”</b>, rồi thêm (hoặc sửa) một dòng cho tháng cần đặt với đúng các cột: <b>Tháng</b> (định dạng yyyy-MM, ví dụ ${key}) · <b>Lượt xem</b> · <b>Tương tác</b> · <b>Follow mới</b> · <b>Người xem</b> · <b>Số bài đăng</b> · <b>Cập nhật lúc</b> · <b>Người cập nhật</b>. Điền xong chỉ cần tải lại trang này — dashboard sẽ tự cập nhật theo số mới, không cần bấm Lưu ở đây.</div>` +
+      `<div style="margin-top:10px"><a class="chip" href="${url}" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none">📄 Mở Sheet Kim Chi Dashboard — tab Targets</a></div>`;
+  }
+  const prog = document.getElementById("tgProgress");
+  if(prog) prog.innerHTML = t ? tgBars(key) : '<div class="hint">Chưa đặt target tháng này nên chưa có tiến độ để đối chiếu.</div>';
+}
 function tgFillSuggest(){
+  if(CUR.kcMode){ const st = document.getElementById("tgStatus"); if(st) st.textContent = "Target của Nội Thất Kim Chi được đặt trong tab “Targets” của Sheet Kim Chi Dashboard — bấm nút mở Sheet trong khung phía trên để điền số."; return; }
   const key = tgKey();
   const [y, m] = key.split("-").map(Number);
   const prev = new Date(y, m - 2, 1);
@@ -1442,6 +1485,7 @@ function tgFillSuggest(){
 }
 async function tgSave(){
   const st = document.getElementById("tgStatus");
+  if(CUR.kcMode){ if(st) st.textContent = "Target của Nội Thất Kim Chi được đặt trong tab “Targets” của Sheet Kim Chi Dashboard — bấm nút mở Sheet trong khung phía trên để điền số."; return; }
   if(window.MMAuth && MMAuth.preview){ if(st) st.textContent = "Đang ở chế độ XEM THỬ — thoát xem thử mới lưu được."; return; }
   const key = tgKey();
   const vals = { views: tgGet("tgViews"), eng: tgGet("tgEng"), follows: tgGet("tgFollows"), reach: tgGet("tgReach"), posts: tgGet("tgPosts") };
@@ -1473,7 +1517,7 @@ async function initPlanPages(){
     const _jobs = CUR.planTabs.map(t => fetchTabFrom(PLAN_ID, t.tab).catch(() => []));
     _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "List of Content").catch(() => []) : Promise.resolve([]));
     _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "Matrix Control").catch(() => []) : Promise.resolve([]));
-    _jobs.push(CUR.hasTargets ? fetchTabFrom(PLAN_ID, "Targets").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.hasTargets ? fetchTabFrom(CUR.targetsId || PLAN_ID, "Targets").catch(() => []) : Promise.resolve([]));
     _jobs.push(CUR.hasSubmit ? fetchTabFrom(PLAN_ID, "Link nhân viên gửi").catch(() => []) : Promise.resolve([]));
     const _res = await Promise.all(_jobs);
     const planRowsArr = _res.slice(0, CUR.planTabs.length);
