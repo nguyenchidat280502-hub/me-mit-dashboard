@@ -315,38 +315,47 @@
   .sw-airlink{font-size:12.5px;font-weight:700;color:var(--acc);text-decoration:none}
   .sw-airlink:hover{text-decoration:underline}
   .sw-empty{color:var(--mut);font-size:13.5px;font-style:italic;padding:6px 0 2px}
+  .proj-btn{flex:1;padding:8px 4px;border-radius:8px;border:1px solid #3a3670;background:transparent;color:#c9cdea;font-weight:700;font-size:13px;cursor:pointer}
+  .proj-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
 </style>
 <script>try{var _t=localStorage.getItem("mm-theme");if(_t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>
 </head>
 <body>
 <div class="layout">
 <aside>
-  <div class="brand">MẸ MÍT<small>Trung tâm kiểm soát nội dung & số liệu</small></div>
+  <div class="brand"><span id="brandName">MẸ MÍT</span><small>Trung tâm kiểm soát nội dung & số liệu</small></div>
+  <div id="projSwitch" style="display:none;padding:10px 14px 2px">
+    <div style="font-size:11px;color:#8b90b8;font-weight:700;letter-spacing:.4px;margin-bottom:6px">PROJECT</div>
+    <div style="display:flex;gap:6px">
+      <button type="button" class="proj-btn active" id="projBtnMemit">🌾 Mẹ Mít</button>
+      <button type="button" class="proj-btn" id="projBtnKimchi">🪑 Nội Thất</button>
+    </div>
+  </div>
   <nav id="sidenav">
     <button data-page="page-overview" class="active">📊 Tổng quan số liệu</button>
     <button data-page="page-plan">🗓 Media Plan</button>
     <button data-page="page-calendar">📅 Lịch đăng</button>
-    <button data-page="page-content">📝 List of Content</button>
+    <button data-page="page-content" id="navContent">📝 List of Content</button>
     <button data-page="page-deep">🎬 Phân tích content</button>
     <button data-page="page-mine">✅ Việc của tôi</button>
     <button data-page="page-staff" id="navStaff" style="display:none">👤 Việc theo nhân sự</button>
     <button data-page="page-admin" id="navAdmin" style="display:none">👥 Tài khoản &amp; phân quyền</button>
     <button data-page="page-target" id="navTarget" style="display:none">🎯 Target</button>
   </nav>
-  <div style="padding:12px 14px">
+  <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v44</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v45</b></div>
   </div>
 </aside>
 <main>
 <header>
  <div class="hdr-row">
   <div class="hdr-left">
-  <h1>📊 Dashboard Fanpage NGŨ CỐC MẸ MÍT</h1>
+  <h1>📊 Dashboard Fanpage <span id="brandPageName">NGŨ CỐC MẸ MÍT</span></h1>
   <div class="sub">
-    <a href="https://www.facebook.com/224645764799502" target="_blank" rel="noopener">Mở Fanpage</a> ·
-    <a href="https://docs.google.com/spreadsheets/d/1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM/edit" target="_blank" rel="noopener">Google Sheet nguồn</a> ·
+    <a id="fpLink" href="https://www.facebook.com/224645764799502" target="_blank" rel="noopener">Mở Fanpage</a> ·
+    <a id="sheetLink" href="https://docs.google.com/spreadsheets/d/1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM/edit" target="_blank" rel="noopener">Google Sheet nguồn</a> ·
     Dữ liệu: <span id="rangeInfo">đang tải…</span> · <span id="updated"></span>
   </div>
   </div>
@@ -480,7 +489,7 @@
       <th>PIC Content</th><th>PIC Design</th><th>Brief</th><th>Link Air</th><th>Trạng thái</th><th>Check</th>
     </tr></thead><tbody></tbody></table>
     </div>
-    <div class="hint">Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút. <span id="planSyncInfo"></span></div>
+    <div class="hint"><span id="planSrcTxt">Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút.</span> <span id="planSyncInfo"></span></div>
   </div>
  </section>
 
@@ -655,10 +664,27 @@
 </div>
 
 <script>
-const SHEET_ID = "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM";
+const PROJECTS = {
+  memit: { key: "memit", label: "Mẹ Mít", brand: "MẸ MÍT", pageName: "NGŨ CỐC MẸ MÍT", pageId: "224645764799502",
+    sheetId: "1WLHVRtp6k_x-46-c9Zrp8MWt9U8OvKAhLSqqArSiPeM", planId: "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE",
+    followersSnapshot: 4859, staffCol: "staff", hasTargets: true, hasList: true, hasSubmit: true, syncWebapp: true,
+    planSrc: "Dữ liệu đồng bộ tự động từ file kế hoạch “Ngũ Cốc Mẹ Mít .xlsx”, kiểm tra mỗi 30 phút.",
+    planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN THÁNG 10" },
+                { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN THÁNG 11" } ],
+    planCols: "memit" },
+  kimchi: { key: "kimchi", label: "Nội Thất", brand: "NỘI THẤT KIM CHI", pageName: "Siêu Thị Nội Thất Kim Chi", pageId: "104944459206545",
+    sheetId: "1unnkyDNHfvHo8K9W2BklweD4L5762AEkZP1DOMNNvFo", planId: "1TNBMZh4vPJGZR2ERfMFh4PHNVsx7C--dYELC5X5J1UU",
+    followersSnapshot: 417, staffCol: "staff_kc", hasTargets: false, hasList: false, hasSubmit: false, syncWebapp: false,
+    planSrc: "Dữ liệu đọc trực tiếp từ Sheet kế hoạch “Media Plan_Nội thất Kim Chi” — sửa trong Sheet là dashboard cập nhật theo.",
+    planTabs: [ { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", tab: "MEDIA PLAN T10" },
+                { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", tab: "MEDIA PLAN T11" } ],
+    planCols: "kimchi" }
+};
+let CUR = PROJECTS.memit;
+let SHEET_ID = CUR.sheetId;
 const TAB_INSIGHTS = "📉 Page Insights";
 const TAB_POSTS = "📝 Posts";
-const FOLLOWERS_SNAPSHOT = 4859;
+let FOLLOWERS_SNAPSHOT = 4859;
 
 let DAYS = [], POSTS = [], MSG = [], SNAP = [], charts = {};
 const SORT = { posts: { key: "views", dir: -1 }, daily: { key: "date", dir: -1 } };
@@ -891,6 +917,7 @@ async function main(){
 
   const months = [...new Set(DAYS.map(d => d.date.getFullYear() * 100 + (d.date.getMonth() + 1)))].sort();
   const mSel = document.getElementById("monthSel");
+  [...mSel.options].filter(o => /^\d{4}-\d{2}$/.test(o.value)).forEach(o => o.remove());
   months.forEach(m => {
     const y = Math.floor(m / 100), mo = m % 100;
     const o = document.createElement("option");
@@ -900,6 +927,7 @@ async function main(){
   });
 
   const first = DAYS[0].date, last = DAYS[DAYS.length - 1].date;
+  if(!window.__mmMainListeners){ window.__mmMainListeners = true;
   document.getElementById("presets").addEventListener("click", e => {
     const btn = e.target.closest("button[data-preset]"); if(!btn) return;
     markActive(btn);
@@ -938,6 +966,7 @@ async function main(){
       rerender();
     });
   });
+  }
 
   document.getElementById("dataAsOf").textContent = "Dữ liệu tới ngày " + DAYS[DAYS.length - 1].label;
   if(typeof renderTargetStrip === "function") renderTargetStrip();
@@ -949,7 +978,7 @@ async function main(){
 main();
 </script>
 <script>
-const PLAN_ID = "1LfKEHNuvn483hq49W9V1lKZ9xvylzGXQeJiuZ2OydYE";
+let PLAN_ID = CUR.planId;
 let PLAN = [], LC = [], MATRIX = [];
 let PLAN10 = [], PLAN11 = [], PLAN_ALL = [], PLAN_MONTHS = [], PLAN_MONTH = null;
 window.PLAN_MONTH_LABEL = "tháng 11/2026";
@@ -1441,18 +1470,23 @@ async function tgSave(){
 
 async function initPlanPages(){
   try{
-    const [plan10Rows, plan11Rows, lcRows, mxRows, tgRows, ovRows] = await Promise.all([
-      fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 10").catch(() => []),
-      fetchTabFrom(PLAN_ID, "MEDIA PLAN THÁNG 11"),
-      fetchTabFrom(PLAN_ID, "List of Content"),
-      fetchTabFrom(PLAN_ID, "Matrix Control"),
-      fetchTabFrom(PLAN_ID, "Targets").catch(() => []),
-      fetchTabFrom(PLAN_ID, "Link nhân viên gửi").catch(() => []),
-    ]);
+    const _jobs = CUR.planTabs.map(t => fetchTabFrom(PLAN_ID, t.tab).catch(() => []));
+    _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "List of Content").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.hasList ? fetchTabFrom(PLAN_ID, "Matrix Control").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.hasTargets ? fetchTabFrom(PLAN_ID, "Targets").catch(() => []) : Promise.resolve([]));
+    _jobs.push(CUR.hasSubmit ? fetchTabFrom(PLAN_ID, "Link nhân viên gửi").catch(() => []) : Promise.resolve([]));
+    const _res = await Promise.all(_jobs);
+    const planRowsArr = _res.slice(0, CUR.planTabs.length);
+    const lcRows = _res[CUR.planTabs.length], mxRows = _res[CUR.planTabs.length + 1];
+    const tgRows = _res[CUR.planTabs.length + 2], ovRows = _res[CUR.planTabs.length + 3];
     parseOverlay(ovRows);
     parseTargets(tgRows);
+    if(!CUR.syncWebapp){
+      const _psi = document.getElementById("planSyncInfo");
+      if(_psi) _psi.textContent = "";
+    }
     try {
-      const kv = await syncInfoKV();
+      const kv = CUR.syncWebapp ? await syncInfoKV() : {};
       const t = kv["Lần đồng bộ gần nhất"], n = kv["Số thay đổi lần này"];
       if(t){
         const txt = "⟳ Đồng bộ gần nhất: " + t + (n ? " · " + n + " thay đổi" : "") + ". Thay đổi của team (đổi tình trạng, đổi PIC...) được ghi ở tab “Log thay đổi” trong Sheet kế hoạch.";
@@ -1460,22 +1494,31 @@ async function initPlanPages(){
         if(a) a.textContent = txt; if(b) b.textContent = txt;
       }
     } catch(e){}
-    const mapPlan = (rows, tabName) => rows.filter(r => cell(r,6)).map(r => ({
-      dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
-      plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
-      picC: cell(r,8), caption: cell(r,9), picD: cell(r,10), brief: cell(r,11),
-      linkDesign: cell(r,12), air: cell(r,13), check: cell(r,14),
-      tab: tabName, briefOv: false, airOv: false,
-    }));
-    PLAN10 = mapPlan(plan10Rows, "MEDIA PLAN THÁNG 10");
-    PLAN11 = mapPlan(plan11Rows, "MEDIA PLAN THÁNG 11");
-    applyOverlay(PLAN10);
-    applyOverlay(PLAN11);
-    PLAN_ALL = [...PLAN10, ...PLAN11];
-    PLAN_MONTHS = [
-      { key: "2026-10", label: "tháng 10/2026", chip: "Tháng 10", rows: PLAN10 },
-      { key: "2026-11", label: "tháng 11/2026", chip: "Tháng 11", rows: PLAN11 },
-    ].filter(m => m.rows.length);
+    const mapPlan = (rows, tabName) => rows.filter(r => cell(r,6)).map(r => {
+      if(CUR.planCols === "kimchi"){
+        const _d = parseDay(cell(r,1));
+        return {
+          dow: _d ? DOWVN[_d.getDay()] : "", date: cell(r,1), hour: cell(r,2), form: cell(r,3),
+          plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: "",
+          picC: cell(r,7), caption: cell(r,8), picD: cell(r,9), brief: cell(r,10),
+          linkDesign: cell(r,11), air: "", check: cell(r,14),
+          tab: tabName, briefOv: false, airOv: false,
+        };
+      }
+      return {
+        dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
+        plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
+        picC: cell(r,8), caption: cell(r,9), picD: cell(r,10), brief: cell(r,11),
+        linkDesign: cell(r,12), air: cell(r,13), check: cell(r,14),
+        tab: tabName, briefOv: false, airOv: false,
+      };
+    });
+    const _mapped = CUR.planTabs.map((t, i) => mapPlan(planRowsArr[i] || [], t.tab));
+    _mapped.forEach(rows => applyOverlay(rows));
+    PLAN10 = _mapped[0] || [];
+    PLAN11 = _mapped[1] || [];
+    PLAN_ALL = _mapped.flat();
+    PLAN_MONTHS = CUR.planTabs.map((t, i) => ({ key: t.key, label: t.label, chip: t.chip, rows: _mapped[i] })).filter(m => m.rows.length);
     const nowD = new Date();
     const curKey = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0");
     const defMonth = PLAN_MONTHS.find(m => m.key === curKey) || PLAN_MONTHS[PLAN_MONTHS.length - 1];
@@ -1494,19 +1537,21 @@ async function initPlanPages(){
     }));
     fillSelect("lcPillar", LC.map(r => r.pillarShort));
     const lcStatus = document.getElementById("lcStatus");
-    [["done","✔ Đã hoàn thành"],["doing","⏳ Đang thực hiện"],["todo","— Chưa làm"]].forEach(([v,t]) => {
+    if(lcStatus && lcStatus.options.length <= 1) [["done","✔ Đã hoàn thành"],["doing","⏳ Đang thực hiện"],["todo","— Chưa làm"]].forEach(([v,t]) => {
       const o = document.createElement("option"); o.value = v; o.textContent = t; lcStatus.appendChild(o);
     });
-    ["planPicC","planPicD","planForm","planAir"].forEach(id => document.getElementById(id).addEventListener("change", renderPlan));
-    document.getElementById("planSearch").addEventListener("input", renderPlan);
-    ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
-    document.getElementById("lcSearch").addEventListener("input", renderLC);
+    if(!window.__planListeners){ window.__planListeners = true;
+      ["planPicC","planPicD","planForm","planAir"].forEach(id => document.getElementById(id).addEventListener("change", renderPlan));
+      document.getElementById("planSearch").addEventListener("input", renderPlan);
+      ["lcPillar","lcStatus"].forEach(id => document.getElementById(id).addEventListener("change", renderLC));
+      document.getElementById("lcSearch").addEventListener("input", renderLC);
+    }
     renderLC(); renderMatrix(); renderDeadlineRadar(); renderWeek();
     renderTargetStrip(); renderTargetPage();
     try { renderStaff(); } catch(e){}
   }catch(e){
     document.getElementById("matrixBox").innerHTML =
-      '<div class="err">Chưa đọc được dữ liệu kế hoạch từ Sheet cầu nối. (' + e.message + ')</div>';
+      '<div class="err">Chưa đọc được dữ liệu kế hoạch. (' + e.message + ')</div>';
   }
 }
 
@@ -1595,6 +1640,7 @@ window.isMgrRole = isMgrRole;
 // dành cho người làm của dòng; Quản Lí/chủ kênh nộp được cả hai ô (kể cả thay link đã có).
 // Nhân viên chỉ nộp khi ô còn trống — ô đã có link thì không nộp/thay được nữa.
 function canSubmitType(r, type){
+  if(!CUR.hasSubmit) return false;
   const a = ovAuth();
   if(!a.signed) return false;
   if(a.role === "owner" || a.role === "manager") return true;
@@ -1727,7 +1773,8 @@ document.getElementById("sidenav").addEventListener("click", e => {
   window.dispatchEvent(new Event("resize"));
 });
 /* ===== 👤 Việc theo nhân sự (v44 — chỉ Quản Lí; port từ demo-staff-work.html) ===== */
-const STAFF_PEOPLE = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
+let STAFF_PEOPLE = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
+const STAFF_PEOPLE_LISTS = { memit: ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
 const SW_DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 let STAFF_MONTH = null, STAFF_PERSON = "Huy";
 function swEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -1870,6 +1917,29 @@ function renderStaff(){
   });
 })();
 
+let KC_LINKED = false;
+function kcLinkPosted(){
+  if(CUR.key !== "kimchi" || KC_LINKED) return;
+  if(!PLAN_ALL.length || !POSTS.length) return;
+  const used = new Set();
+  PLAN_ALL.forEach(r => {
+    const d = parseDay(r.date); if(!d) return;
+    const cands = POSTS.filter(x => x.date && x.date.getTime() === d.getTime() && !used.has(x.id));
+    if(cands.length === 1){ r.air = cands[0].link; used.add(cands[0].id); return; }
+    if(cands.length > 1){
+      let best = null, bs = 0;
+      cands.forEach(x => { const sc = calSim(r.topic, x.title); if(sc > bs){ bs = sc; best = x; } });
+      if(best && bs >= 0.35){ r.air = best.link; used.add(best.id); }
+    }
+  });
+  KC_LINKED = true;
+  CAL_CHIPS = false; CAL_VMAP = null;
+  try { renderPlan(); renderWeek(); renderDeadlineRadar(); } catch(e){}
+  try { renderStaff(); } catch(e){}
+  try { renderMine(); } catch(e){}
+  try { calRender(); } catch(e){}
+}
+setInterval(() => { try { kcLinkPosted(); } catch(e){} }, 900);
 initPlanPages();
 (function(){
   const m = document.getElementById("tgMonth");
@@ -2452,7 +2522,8 @@ function calShowDetail(ix){
     measurementId: "G-F6SYHR1R5H"
   };
   var PIC_LIST = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
-  var state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: false };
+  var PIC_LISTS = { memit: ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
+  var state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: false, memit: { role: "anon", pic: "", name: "" }, kc: null };
   // 🔎 Xem thử vai trò (chỉ chủ kênh): { role: "staff"|"manager"|"guest", pic: string|null }.
   // CHỈ đổi hiển thị trên máy của chủ kênh — không ghi Firestore, không đổi quyền thật. Tải lại trang là tự thoát.
   var preview = null;
@@ -2609,7 +2680,7 @@ function calShowDetail(ix){
     var nav = document.getElementById("navAdmin");
     if(nav) nav.style.display = (effRole() === "owner") ? "" : "none";
     var nt = document.getElementById("navTarget");
-    if(nt) nt.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
+    if(nt) nt.style.display = (CUR.hasTargets && (effRole() === "owner" || effRole() === "manager")) ? "" : "none";
     var ns = document.getElementById("navStaff");
     if(ns) ns.style.display = (effRole() === "owner" || effRole() === "manager") ? "" : "none";
   }
@@ -2625,8 +2696,64 @@ function calShowDetail(ix){
   function finishAuth(){
     state.ready = true;
     renderAccount();
+    updateProjSwitch();
+    paintBrand();
     emit();
   }
+
+  // ---------- Chuyển project (Mẹ Mít / Nội Thất) ----------
+  function kcAllowed(){ return !!state.kc; }
+  function updateProjSwitch(){
+    var sw = document.getElementById("projSwitch");
+    if(sw) sw.style.display = (state.user && kcAllowed()) ? "" : "none";
+    paintProjSwitch();
+  }
+  function paintProjSwitch(){
+    var bm = document.getElementById("projBtnMemit"), bk = document.getElementById("projBtnKimchi");
+    if(bm) bm.classList.toggle("active", CUR.key === "memit");
+    if(bk) bk.classList.toggle("active", CUR.key === "kimchi");
+  }
+  function paintBrand(){
+    var bn = document.getElementById("brandName"); if(bn) bn.textContent = CUR.brand;
+    var bp = document.getElementById("brandPageName"); if(bp) bp.textContent = CUR.pageName;
+    document.title = "Dashboard Fanpage " + CUR.pageName;
+    var fp = document.getElementById("fpLink"); if(fp) fp.href = "https://www.facebook.com/" + CUR.pageId;
+    var sl = document.getElementById("sheetLink"); if(sl) sl.href = "https://docs.google.com/spreadsheets/d/" + CUR.sheetId + "/edit";
+    var sb = document.getElementById("syncBox"); if(sb) sb.style.display = CUR.syncWebapp ? "" : "none";
+    var nc = document.getElementById("navContent"); if(nc) nc.style.display = CUR.hasList ? "" : "none";
+    var pst = document.getElementById("planSrcTxt"); if(pst) pst.textContent = CUR.planSrc || "";
+    paintProjSwitch();
+  }
+  function setProject(key){
+    if(!PROJECTS[key] || key === CUR.key){ paintProjSwitch(); return; }
+    if(key === "kimchi" && !kcAllowed()) return; // chặn cứng: không có quyền Kim Chi thì không vào được
+    CUR = PROJECTS[key];
+    SHEET_ID = CUR.sheetId; PLAN_ID = CUR.planId; FOLLOWERS_SNAPSHOT = CUR.followersSnapshot;
+    PIC_LIST = PIC_LISTS[key] || PIC_LIST;
+    if(typeof STAFF_PEOPLE_LISTS !== "undefined" && STAFF_PEOPLE_LISTS[key]){ STAFF_PEOPLE = STAFF_PEOPLE_LISTS[key].slice(); if(STAFF_PEOPLE.indexOf(STAFF_PERSON) < 0) STAFF_PERSON = (key === "kimchi" ? "Xuân Nhi" : STAFF_PEOPLE[0]); }
+    if(key === "kimchi"){
+      state.role = state.kc ? state.kc.role : "guest";
+      state.pic = state.kc ? state.kc.pic : "";
+      state.staffName = state.kc ? state.kc.name : "";
+    } else {
+      state.role = state.memit.role; state.pic = state.memit.pic; state.staffName = state.memit.name;
+    }
+    preview = null;
+    KC_LINKED = false; CAL_CHIPS = false; CAL_VMAP = null; CAL_CUR = null; CAL_ITEMS = [];
+    if(adminUnsub){ try { adminUnsub(); } catch(e){} adminUnsub = null; }
+    adminBuilt = false;
+    paintBrand();
+    renderAccount();
+    emit();
+    var cur = document.querySelector(".page.show");
+    if(cur && ((cur.id === "page-content" && !CUR.hasList) || (cur.id === "page-target" && !CUR.hasTargets))) gotoPage("page-overview");
+    try { main(); } catch(e){}
+    try { initPlanPages(); } catch(e){}
+    try { if(typeof loadDeep === "function") loadDeep(); } catch(e){}
+    var tries = 0;
+    var iv = setInterval(function(){ tries++; var ok = false; try { ok = calRender(); } catch(e){} if(ok || tries > 30) clearInterval(iv); }, 800);
+  }
+  window.MMSetProject = setProject;
 
   // ---------- Trang "Việc của tôi" ----------
   function renderMine(signInErr){
@@ -2703,7 +2830,9 @@ function calShowDetail(ix){
       }
       var briefCell;
       if(r.brief){
-        briefCell = '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>' + (r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : '')
+        briefCell = (/^https?:\/\//i.test(r.brief)
+          ? '<a href="' + esc(r.brief) + '" target="_blank" rel="noopener">📄 Mở brief</a>'
+          : '<span>📄 ' + esc(r.brief) + '</span>') + (r.briefOv ? ' <span class="nvbadge">NV gửi</span>' : '')
           + ((window.isMgrRole && window.isMgrRole()) ? ' ' + window.cellEditBtn(r, "Brief") : '');
       } else if(window.canSubmitType && window.canSubmitType(r, "Brief")){
         // Chính ô Brief là điểm nộp link Brief cho người brief của bài này.
@@ -2757,6 +2886,7 @@ function calShowDetail(ix){
       return '<option value="' + esc(p) + '">' + esc(p) + '</option>';
     }).join("");
     box.innerHTML =
+      '<div class="hint" style="margin-bottom:10px">Đang quản lý tài khoản của project: <b>' + esc(CUR.label) + '</b> — muốn quản lý project còn lại, hãy chuyển project ở thanh bên trái trước.</div>' +
       '<table><thead><tr><th>Tên</th><th>Email</th><th>PIC liên kết</th><th>Cấp</th><th>Thao tác</th></tr></thead>' +
       '<tbody><tr><td><b>Đạt Nguyễn</b> 🔒</td><td>' + OWNER_EMAIL + '</td><td>—</td>' +
       '<td><span class="role-badge role-manager">Quản Lí · Chủ kênh</span></td><td><span style="color:var(--mut)">Tài khoản gốc — không sửa/xoá</span></td></tr></tbody>' +
@@ -2782,7 +2912,7 @@ function calShowDetail(ix){
       if(!email || email.indexOf("@") < 0){ admStatus("Email chưa hợp lệ.", true); return; }
       if(email === OWNER_EMAIL){ admStatus("Đây là email của chủ kênh — tài khoản gốc luôn là Quản Lí, không cần thêm.", true); return; }
       admStatus("Đang lưu…", false);
-      db.collection("staff").doc(email).set({
+      db.collection(CUR.staffCol).doc(email).set({
         name: name, pic: pic, role: role,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: OWNER_EMAIL
@@ -2798,7 +2928,7 @@ function calShowDetail(ix){
       if(!sel) return;
       var email = sel.getAttribute("data-role-for");
       admStatus("Đang đổi cấp cho " + email + "…", false);
-      db.collection("staff").doc(email).set({
+      db.collection(CUR.staffCol).doc(email).set({
         role: sel.value,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: OWNER_EMAIL
@@ -2811,12 +2941,12 @@ function calShowDetail(ix){
       if(!btn) return;
       var email = btn.getAttribute("data-del-for");
       if(!confirm("Xoá tài khoản " + email + " khỏi danh sách phân quyền?")) return;
-      db.collection("staff").doc(email).delete().then(function(){
+      db.collection(CUR.staffCol).doc(email).delete().then(function(){
         admStatus("Đã xoá tài khoản " + email + ".", false);
       }).catch(function(e){ console.warn("staff delete", e); admStatus(fsErr(e), true); });
     });
 
-    adminUnsub = db.collection("staff").onSnapshot(function(snap){
+    adminUnsub = db.collection(CUR.staffCol).onSnapshot(function(snap){
       var docs = [];
       snap.forEach(function(d){ var v = d.data() || {}; docs.push({ email: d.id, name: v.name || "", pic: v.pic || "", role: v.role === "manager" ? "manager" : "staff" }); });
       docs.sort(function(a, b){ return (a.name || a.email).localeCompare(b.name || b.email, "vi"); });
@@ -2857,16 +2987,31 @@ function calShowDetail(ix){
     auth.onAuthStateChanged(function(user){
       preview = null; // đổi tài khoản / đăng xuất → luôn thoát chế độ xem thử
       if(!user){
-        state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: true };
+        state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: true, memit: { role: "anon", pic: "", name: "" }, kc: null };
         renderAccount();
         emit();
         return;
       }
       state.user = user;
       state.email = (user.email || "").toLowerCase();
+      var finishWithKc = function(){
+        if(state.email === OWNER_EMAIL){
+          state.kc = { role: "owner", pic: "", name: "" };
+          finishAuth();
+          return;
+        }
+        db.collection("staff_kc").doc(state.email).get().then(function(d2){
+          if(d2.exists){
+            var v = d2.data() || {};
+            state.kc = { role: (v.role === "manager") ? "manager" : "staff", pic: v.pic || "", name: v.name || "" };
+          } else state.kc = null;
+          finishAuth();
+        }).catch(function(){ state.kc = null; finishAuth(); });
+      };
       if(state.email === OWNER_EMAIL){
         state.role = "owner"; state.pic = ""; state.staffName = "";
-        finishAuth();
+        state.memit = { role: "owner", pic: "", name: "" };
+        finishWithKc();
         return;
       }
       db.collection("staff").doc(state.email).get().then(function(doc){
@@ -2878,11 +3023,13 @@ function calShowDetail(ix){
         } else {
           state.role = "guest"; state.pic = ""; state.staffName = "";
         }
-        finishAuth();
+        state.memit = { role: state.role, pic: state.pic, name: state.staffName };
+        finishWithKc();
       }).catch(function(e){
         console.warn("staff doc read failed — treating as guest", e);
         state.role = "guest"; state.pic = ""; state.staffName = "";
-        finishAuth();
+        state.memit = { role: "guest", pic: "", name: "" };
+        finishWithKc();
       });
     });
     // Khi dữ liệu Media Plan tải xong thì vẽ lại tab "Việc của tôi"
@@ -2898,6 +3045,10 @@ function calShowDetail(ix){
       var btn = e.target.closest("button[data-page]");
       if(btn && btn.dataset.page === "page-mine") setTimeout(renderMine, 0);
     });
+    var bM = document.getElementById("projBtnMemit"), bK = document.getElementById("projBtnKimchi");
+    if(bM) bM.addEventListener("click", function(){ setProject("memit"); });
+    if(bK) bK.addEventListener("click", function(){ setProject("kimchi"); });
+    paintBrand();
     renderMine();
     updateAdminNav();
   }
