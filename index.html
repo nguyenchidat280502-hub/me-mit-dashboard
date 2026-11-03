@@ -349,7 +349,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v52</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v53</b></div>
   </div>
 </aside>
 <main>
@@ -563,7 +563,7 @@
         <button class="chip" id="deepApply">Áp dụng</button>
       </div>
     </div>
-    <div class="hint" style="margin:0 0 8px">Lọc theo <b>ngày đăng video</b>; số liệu từng video là tổng toàn thời gian tính đến lần cập nhật gần nhất. “Hôm nay” = ngày của video mới nhất. <span id="deepUpdated"></span><br>Chuẩn <b>video tốt</b> (mức Tốt): hook 3s ≥ 80% · còn xem tại 15s ≥ 35% · tại 30s ≥ 20% · TB xem ≥ 15s.</div>
+    <div class="hint" style="margin:0 0 8px">Lọc theo <b>ngày đăng video</b>; số liệu từng video là tổng toàn thời gian tính đến lần cập nhật gần nhất. Mọi nút lọc tính theo <b>ngày thật</b> (giờ VN). <span id="deepUpdated"></span><br>Chuẩn <b>video tốt</b> (mức Tốt): hook 3s ≥ 80% · còn xem tại 15s ≥ 35% · tại 30s ≥ 20% · TB xem ≥ 15s.</div>
     <div id="deepRangeLabel" style="font-size:13.5px;margin:2px 0 4px"></div>
     <section class="kpis" id="deepSummary" style="margin:6px 0 10px"></section>
     <div id="deepBox"><div class="loading">Đang tải dữ liệu video…</div></div>
@@ -1307,7 +1307,7 @@ function tgBars(key){
   if(typeof DAYS !== "undefined" && DAYS) DAYS.forEach(d => { if(d.date && d.date.getFullYear() === yy && d.date.getMonth() === mm - 1) dataDays++; });
   const pace = dataDays / daysInMonth * 100;
   const pctOf = k => (t[k] > 0 ? (a[k] || 0) / t[k] * 100 : 0);
-  const overall = Math.round(TG_METS.reduce((s, [, k]) => s + pctOf(k), 0) / TG_METS.length);
+  const overall = Math.round(pctOf("views"));
   const lastData = (typeof DAYS !== "undefined" && DAYS && DAYS.length) ? DAYS[DAYS.length - 1].label : "";
   const todayVN = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
   const isCurMonth = yy === todayVN.getFullYear() && mm === todayVN.getMonth() + 1;
@@ -1334,7 +1334,7 @@ function tgBars(key){
       `<div class="tgrow-sub">${sub}</div></div>`;
   }).join("");
   return `<div class="tg-head"><span class="tg-pace">${paceTxt}</span></div>` +
-    `<div class="tg-top"><div class="tg-big">${overall}%</div><div class="tg-big-note">hoàn thành chung của tháng<br>(trung bình % của 5 chỉ số)</div></div>` + rows;
+    `<div class="tg-top"><div class="tg-big">${overall}%</div><div class="tg-big-note">hoàn thành <b>Lượt xem</b> của tháng<br>(chỉ số chính — chi tiết 5 chỉ số ở dưới)</div></div>` + rows;
 }
 function tgNextKey(key){ const [y, m] = key.split("-").map(Number); const d = new Date(y, m, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function tgRoundTo(v, step){ return Math.max(0, Math.round(v / step) * step); }
@@ -2183,7 +2183,12 @@ function renderDeepSummary(){
   const el = document.getElementById("deepSummary");
   if(!el) return;
   const rows = deepFiltered();
-  if(!rows.length){ el.innerHTML = ""; return; }
+  if(!rows.length){
+    const lv = VIDEOS.filter(v => v.date).sort((a, b) => b.date - a.date)[0];
+    el.innerHTML = `<div class="kpi" style="grid-column:1/-1;text-align:left"><div class="label">Kỳ đã chọn</div><div style="font-size:15px;font-weight:600">Chưa có video nào đăng trong kỳ này.</div>` +
+      (lv ? `<div style="margin-top:8px"><button class="chip" id="deepJumpLatest" type="button">▶ Xem video mới nhất — đăng ${dstr(lv.date)}</button></div>` : "") + `</div>`;
+    return;
+  }
   const sumV = rows.reduce((s, v) => s + (v.views || 0), 0);
   const sumM = rows.reduce((s, v) => s + (v.minutes || 0), 0);
   const r15s = rows.map(v => retAt(v.ret, 15)).filter(x => x !== null);
@@ -2431,6 +2436,7 @@ async function loadDeep(){
       dmSel.appendChild(o);
     });
   const dMax = VIDEOS.reduce((mx, v) => (v.date && (!mx || v.date > mx)) ? v.date : mx, null);
+  const dToday = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
   const dMark = btn => document.querySelectorAll("#deepPresets .chip").forEach(b => b.classList.toggle("active", b === btn));
   const dSet = (f, t) => {
     DEEP_FROM = f; DEEP_TO = t;
@@ -2441,11 +2447,12 @@ async function loadDeep(){
       if(!f || !t){
         const mn = VIDEOS.reduce((a, v) => (v.date && (!a || v.date < a)) ? v.date : a, null);
         if(fi && ti && mn && dMax){ fi.value = iso(mn); ti.value = iso(dMax); }
-        lb.innerHTML = "Đang xem: <b>tất cả video</b>" + (mn && dMax ? ` (${dstr(mn)} → ${dstr(dMax)})` : "");
+        lb.innerHTML = "Đang xem: <b>tất cả video</b>" + (mn && dMax ? ` (${dstr(mn)} → ${dstr(dMax)})` : "") + ` · ${VIDEOS.length} video`;
       } else if(f.getTime() === t.getTime()){
-        lb.innerHTML = `Đang xem: <b>${dstr(f)}</b>`;
+        lb.innerHTML = `Đang xem: <b>${dstr(f)}</b> · ${deepFiltered().length} video`;
       } else {
-        lb.innerHTML = `Đang xem: <b>${dstr(f)} → ${dstr(t)}</b>`;
+        const ndays = Math.round((t - f) / 86400000) + 1;
+        lb.innerHTML = `Đang xem: <b>${dstr(f)} → ${dstr(t)}</b> (${ndays} ngày · ${deepFiltered().length} video)`;
       }
     }
     renderDeepSummary(); renderDeepTable();
@@ -2456,16 +2463,19 @@ async function loadDeep(){
     dmSel.value = "";
     const p = btn.dataset.dpreset;
     if(p === "all") dSet(null, null);
-    else if(p === "today") dSet(dMax, dMax);
-    else if(p === "yesterday"){ const yd = new Date(dMax); yd.setDate(yd.getDate() - 1); dSet(yd, yd); }
-    else if(p === "year") dSet(new Date(2026, 0, 1), dMax);
-    else { const f = new Date(dMax); f.setDate(f.getDate() - (+p - 1)); dSet(f, dMax); }
+    else if(p === "today") dSet(dToday, dToday);
+    else if(p === "yesterday"){ const yd = new Date(dToday); yd.setDate(yd.getDate() - 1); dSet(yd, yd); }
+    else if(p === "year") dSet(new Date(2026, 0, 1), dToday);
+    else { const f = new Date(dToday); f.setDate(f.getDate() - (+p - 1)); dSet(f, dToday); }
   });
   dmSel.addEventListener("change", () => {
     if(!dmSel.value) return;
     dMark(null);
     const parts = dmSel.value.split("-").map(Number);
     dSet(new Date(parts[0], parts[1] - 1, 1), new Date(parts[0], parts[1], 0));
+  });
+  document.getElementById("deepSummary").addEventListener("click", e => {
+    if(e.target.closest("#deepJumpLatest") && dMax){ dMark(null); dmSel.value = ""; dSet(dMax, dMax); }
   });
   document.getElementById("deepApply").addEventListener("click", () => {
     const f = document.getElementById("deepFrom").value, t = document.getElementById("deepTo").value;
