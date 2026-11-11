@@ -349,7 +349,7 @@
   <div style="padding:12px 14px" id="syncBox">
     <button id="syncNowBtn" type="button" style="width:100%;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:8px;padding:9px 10px;font-size:13.5px;font-weight:600;cursor:pointer">🔄 Đồng bộ ngay</button>
     <div id="syncNowStatus" style="font-size:12px;color:#a5a8d0;margin-top:6px;line-height:1.5"></div>
-    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v53</b></div>
+    <div style="font-size:11.5px;color:#8b90b8;margin-top:10px">Phiên bản giao diện: <b style="color:#c9cdea">v54</b></div>
   </div>
 </aside>
 <main>
@@ -1058,7 +1058,7 @@ function statusHtml(s){
   return s;
 }
 
-const PERSON_COLORS = { "tuyền": "#f9a8d4", "như": "#c4b5fd", "vân": "#5eead4", "huy": "#fdba74", "changgi": "#93c5fd", "xuân nhi": "#86efac" };
+const PERSON_COLORS = { "tuyền": "#f9a8d4", "như": "#c4b5fd", "vân": "#5eead4", "công": "#fdba74", "changgi": "#93c5fd", "xuân nhi": "#86efac" };
 const PALETTE = ["#fca5a5","#fcd34d","#6ee7b7","#67e8f9","#a5b4fc","#f0abfc","#fda4af","#bef264"];
 function personColor(name){
   const key = (name || "").trim().toLowerCase();
@@ -1566,6 +1566,9 @@ async function initPlanPages(){
         if(a) a.textContent = txt; if(b) b.textContent = txt;
       }
     } catch(e){}
+    // v54: Huy đã nghỉ, Công thay Huy (Đạt chốt 11/11/2026). File plan gốc vẫn ghi "Huy"
+    // nên dashboard tự ánh xạ PIC "Huy" -> "Công" ở tầng dữ liệu — CHỈ project Mẹ Mít.
+    const normPicMM = v => ((v || "").trim().toLowerCase() === "huy" ? "Công" : v);
     const mapPlan = (rows, tabName) => rows.filter(r => cell(r,6)).map(r => {
       if(CUR.planCols === "kimchi"){
         const _d = parseDay(cell(r,1));
@@ -1582,7 +1585,7 @@ async function initPlanPages(){
       return {
         dow: cell(r,0), date: cell(r,1), hour: cell(r,2), form: cell(r,3),
         plat1: cell(r,4), plat2: cell(r,5), topic: cell(r,6), content: cell(r,7),
-        picC: cell(r,8), caption: cell(r,9), picD: cell(r,10), brief: cell(r,11),
+        picC: normPicMM(cell(r,8)), caption: cell(r,9), picD: normPicMM(cell(r,10)), brief: cell(r,11),
         linkDesign: cell(r,12), air: cell(r,13), check: cell(r,14),
         tab: tabName, briefOv: false, airOv: false,
       };
@@ -1857,10 +1860,10 @@ document.getElementById("sidenav").addEventListener("click", e => {
   window.dispatchEvent(new Event("resize"));
 });
 /* ===== 👤 Việc theo nhân sự (v44 — chỉ Quản Lí; port từ demo-staff-work.html) ===== */
-let STAFF_PEOPLE = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
-const STAFF_PEOPLE_LISTS = { memit: ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
+let STAFF_PEOPLE = ["Tuyền", "Như", "Vân", "Công", "Changgi", "Xuân Nhi"];
+const STAFF_PEOPLE_LISTS = { memit: ["Tuyền", "Như", "Vân", "Công", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
 const SW_DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-let STAFF_MONTH = null, STAFF_PERSON = "Huy";
+let STAFF_MONTH = null, STAFF_PERSON = "Công";
 let STAFF_PERSON_TOUCHED = false;
 function swEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const swNorm = s => (s || "").trim().toLowerCase();
@@ -1922,6 +1925,29 @@ function swSort(tasks){
     const da = sa.d ? sa.d.getTime() : Infinity, db = sb.d ? sb.d.getTime() : Infinity;
     return da - db;
   });
+}
+// v54: chia thẻ việc thành 3 đoạn rõ ràng — Trễ hạn -> Chưa làm -> Đã làm,
+// mỗi đoạn có tiêu đề mini + số lượng (đoạn rỗng thì bỏ qua), trong đoạn xếp ngày tăng dần.
+function swSegOf(t){
+  const st = swStatus(t);
+  if(st.posted) return 2;
+  if(st.late) return 0;
+  return 1;
+}
+function swGroupedCards(tasks, role, frozen){
+  const segs = [
+    { k: 0, label: frozen ? "🔴 Chưa đăng (đã hủy)" : "🔴 Trễ hạn", color: "#dc2626" },
+    { k: 1, label: "🟡 Chưa làm", color: "#b45309" },
+    { k: 2, label: "🟢 Đã làm", color: "#16a34a" }
+  ];
+  let h = "";
+  segs.forEach(sg => {
+    const list = swSort(tasks.filter(t => swSegOf(t) === sg.k));
+    if(!list.length) return;
+    h += '<div style="font-weight:700;font-size:13px;color:' + sg.color + ';margin:12px 0 4px">' + sg.label + ' (' + list.length + ')</div>' +
+      list.map(t => swTaskCard(t, role, frozen)).join("");
+  });
+  return h;
 }
 /* ===== v50: trạng thái mail + nút Nhắc việc — CHỈ Chủ kênh / Quản Lí (nhân viên không thấy tab này) ===== */
 let MAILLOG = null, MAILLOG_PROJ = null, REMIND = null;
@@ -2083,11 +2109,11 @@ function renderStaff(){
     '</div>' + swMailPanel(frozen) + '</div>';
   if(briefTasks.length){
     h += '<div class="card"><h2>✍️ Việc brief (' + briefTasks.length + ')</h2>' +
-      swSort(briefTasks).map(t => swTaskCard(t, "brief", frozen)).join("") + '</div>';
+      swGroupedCards(briefTasks, "brief", frozen) + '</div>';
   }
   if(makerTasks.length){
     h += '<div class="card"><h2>🛠️ Việc làm (' + makerTasks.length + ')</h2>' +
-      swSort(makerTasks).map(t => swTaskCard(t, "maker", frozen)).join("") + '</div>';
+      swGroupedCards(makerTasks, "maker", frozen) + '</div>';
   }
   if(!briefTasks.length && !makerTasks.length){
     h += '<div class="card"><div class="sw-empty">' + swEsc(STAFF_PERSON) + ' không có việc nào trong ' + swEsc(month.label) + '.</div></div>';
@@ -2748,8 +2774,8 @@ function calShowDetail(ix){
     appId: "1:1040734874067:web:2bb96f56ded1337493a726",
     measurementId: "G-F6SYHR1R5H"
   };
-  var PIC_LIST = ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"];
-  var PIC_LISTS = { memit: ["Tuyền", "Như", "Vân", "Huy", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
+  var PIC_LIST = ["Tuyền", "Như", "Vân", "Công", "Changgi", "Xuân Nhi"];
+  var PIC_LISTS = { memit: ["Tuyền", "Như", "Vân", "Công", "Changgi", "Xuân Nhi"], kimchi: ["Tuyền", "Như", "Vân", "Changgi", "Xuân Nhi"] };
   var state = { user: null, email: "", role: "anon", pic: "", staffName: "", ready: false, memit: { role: "anon", pic: "", name: "" }, kc: null };
   // 🔎 Xem thử vai trò (chỉ chủ kênh): { role: "staff"|"manager"|"guest", pic: string|null }.
   // CHỈ đổi hiển thị trên máy của chủ kênh — không ghi Firestore, không đổi quyền thật. Tải lại trang là tự thoát.
@@ -3063,18 +3089,24 @@ function calShowDetail(ix){
       return d && d >= today;
     }).length;
     var frows = rows.filter(mineInFilter);
-    var sorted = frows.slice().sort(function(a, b){
+    var byDateAsc = function(a, b){
       var da = (typeof parsePostDate === "function") ? parsePostDate(a.date) : null;
       var db = (typeof parsePostDate === "function") ? parsePostDate(b.date) : null;
       return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
-    });
+    };
     var badge = (typeof formBadge === "function") ? formBadge : function(f){ return esc(f || "—"); };
     var stCnt = { done: 0, over: 0, today: 0, soon: 0 };
     frows.forEach(function(r){
       var s = (typeof planStatus === "function") ? planStatus(r) : "soon";
       stCnt[s] = (stCnt[s] || 0) + 1;
     });
-    var body = sorted.map(function(r){
+    // v54: tách 3 khối rõ ràng — Trễ hạn / Chưa làm / Đã làm; mỗi khối xếp ngày tăng dần
+    // (khối Trễ hạn như vậy tự đưa bài trễ lâu nhất lên đầu).
+    var stOf = function(r){ return (typeof planStatus === "function") ? planStatus(r) : (r.air ? "done" : "soon"); };
+    var gOver = frows.filter(function(r){ return stOf(r) === "over"; }).sort(byDateAsc);
+    var gTodo = frows.filter(function(r){ var s = stOf(r); return s === "today" || s === "soon"; }).sort(byDateAsc);
+    var gDone = frows.filter(function(r){ return stOf(r) === "done"; }).sort(byDateAsc);
+    var mineRowHtml = function(r){
       var role = (r.picC === pic && r.picD === pic) ? "Brief + Làm" : (r.picC === pic ? "Brief" : "Làm");
       var plat = [r.plat1, r.plat2].filter(Boolean).join(" + ");
       var statusCell = (typeof planStatusChip === "function") ? planStatusChip(r) : "";
@@ -3102,14 +3134,19 @@ function calShowDetail(ix){
         '<td>' + badge(r.form) + '</td>' +
         '<td class="title-cell">' + topicHtml + (r.content ? '<div style="color:var(--mut);font-size:12px;margin-top:2px">' + esc(r.content) + '</div>' : "") + '</td>' +
         '<td>' + role + '</td><td>' + briefCell + '</td><td>' + statusCell + '</td><td>' + esc(plat) + '</td></tr>';
-    }).join("");
+    };
+    var mineSection = function(title, color, list){
+      var head = '<div style="margin:16px 0 6px;font-weight:700;font-size:14.5px;color:' + color + '">' + title + ' (' + list.length + ')</div>';
+      if(!list.length) return head + '<div class="hint" style="margin:0">Không có bài nào.</div>';
+      return head + '<div class="scroll" style="max-height:640px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + list.map(mineRowHtml).join("") + '</tbody></table></div>';
+    };
     box.innerHTML = '<div class="card"><h2>✅ Việc của tôi — ' + esc(pic) + '</h2>' +
       '<div style="font-size:13.5px;line-height:1.7">Tổng <b>' + rows.length + '</b> bài được phân cho bạn trong toàn bộ Media Plan' + (monthTxt ? ' (' + monthTxt + ')' : '') + ' · ' +
       'Việc brief (Content): <b>' + asContent + '</b> · Việc làm (Design): <b>' + asDesign + '</b> · Sắp tới (từ hôm nay): <b>' + upcoming + '</b> bài.</div>' +
       '<div style="font-size:13.5px;line-height:1.7">Trạng thái đăng: ✅ Đã đăng <b>' + stCnt.done + '</b> · ⚠️ Quá hạn chưa đăng <b>' + stCnt.over + '</b> · 📌 Đăng hôm nay <b>' + stCnt.today + '</b> · ⏳ Sắp đăng <b>' + stCnt.soon + '</b>.</div>' + mineChipsHtml() +
-      (frows.length
-        ? '<div class="scroll" style="max-height:640px;margin-top:10px"><table><thead><tr><th>Ngày</th><th>Hình thức</th><th>Topic / Nội dung</th><th>Vai trò của tôi</th><th>Brief</th><th>Trạng thái đăng</th><th>Nền tảng</th></tr></thead><tbody>' + body + '</tbody></table></div>'
-        : '<div class="hint" style="margin-top:8px">' + (MINE_FILTER === "all" ? 'Chưa có bài nào được phân cho ' + esc(pic) + ' trong Media Plan.' : 'Không có bài nào khớp bộ lọc đang chọn.') + '</div>') +
+      mineSection('🔴 TRỄ HẠN — chưa làm', '#dc2626', gOver) +
+      mineSection('🟡 CHƯA LÀM', '#b45309', gTodo) +
+      mineSection('🟢 ĐÃ LÀM — đã đăng', '#16a34a', gDone) +
       '</div>';
   }
   function gotoPage(id){
